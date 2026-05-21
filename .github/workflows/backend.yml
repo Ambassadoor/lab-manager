@@ -1,0 +1,65 @@
+name: Backend
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ["backend/**", ".github/workflows/backend.yml"]
+  pull_request:
+    branches: [main]
+    paths: ["backend/**", ".github/workflows/backend.yml"]
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: labmanager
+          POSTGRES_USER: labmanager
+          POSTGRES_PASSWORD: labmanager
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DEBUG: "True"
+      SECRET_KEY: ci-secret-key
+      DB_NAME: labmanager
+      DB_USER: labmanager
+      DB_PASSWORD: labmanager
+      DB_HOST: localhost
+      DB_PORT: "5432"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.5"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Install dependencies
+        run: poetry install --no-root
+
+      - name: Lint (Ruff)
+        run: poetry run ruff check .
+
+      - name: Format check (Ruff)
+        run: poetry run ruff format --check .
+
+      - name: Migrate
+        run: poetry run python manage.py migrate
+
+      - name: Test
+        run: poetry run pytest

@@ -1,0 +1,57 @@
+"""Local hardware bridge for the Lab Manager app.
+
+Runs on the lab PC. The React frontend calls it on localhost to reach
+hardware the browser cannot touch directly: the USB balance and the
+Brother label printer. Keep this service small and dependency-light.
+
+Run:  poetry run uvicorn app.main:app --port 8200 --reload
+"""
+
+import os
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
+
+app = FastAPI(title="Lab Manager Hardware Bridge", version="0.1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[FRONTEND_ORIGIN],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/health")
+def health():
+    """Liveness check — the frontend uses this to detect the bridge."""
+    return {"status": "ok"}
+
+
+@app.get("/balance/read")
+def read_balance():
+    """Return the current weight from the USB balance.
+
+    TODO: open the serial port with pyserial and parse a reading.
+    The hardware spike confirmed the balance is reachable; wire it up here.
+    """
+    return {"weight": None, "unit": "g", "detail": "not yet implemented"}
+
+
+class LabelRequest(BaseModel):
+    text: str
+    barcode: str | None = None
+
+
+@app.post("/print/label")
+def print_label(req: LabelRequest):
+    """Print a label on the Brother printer.
+
+    TODO: drive the Brother SDK (b-PAC via pywin32) on the lab PC.
+    On that machine, install the Windows-only dependency:  poetry add pywin32
+    """
+    return {"printed": False, "detail": "not yet implemented", "echo": req.text}

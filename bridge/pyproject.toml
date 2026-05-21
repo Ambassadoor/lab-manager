@@ -1,0 +1,27 @@
+[project]
+name = "bridge"
+version = "0.1.0"
+description = "Local hardware bridge: USB balance + Brother label printer"
+authors = [
+    {name = "Caleb Pittman",email = "ambassadoor.dev@gmail.com"}
+]
+requires-python = "^3.14.5"
+dependencies = [
+    "fastapi (>=0.136.1,<0.137.0)",
+    "uvicorn[standard] (>=0.47.0,<0.48.0)",
+    "pyserial (>=3.5,<4.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "ruff (>=0.15.13,<0.16.0)"
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

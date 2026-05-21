@@ -1,0 +1,26 @@
+# --- Node / frontend ---
+node_modules/
+dist/
+.pnpm-store/
+
+# --- Python / backend & bridge ---
+__pycache__/
+*.py[cod]
+.Python
+.venv/
+*.log
+db.sqlite3
+staticfiles/
+media/
+
+# --- Environment files (only *.env.example is committed) ---
+.env
+.env.local
+.env.*.local
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

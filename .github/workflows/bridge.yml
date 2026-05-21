@@ -1,0 +1,35 @@
+name: Bridge
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ["bridge/**", ".github/workflows/bridge.yml"]
+  pull_request:
+    branches: [main]
+    paths: ["bridge/**", ".github/workflows/bridge.yml"]
+
+defaults:
+  run:
+    working-directory: bridge
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14.5"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Install dependencies
+        run: poetry install --no-root
+
+      - name: Lint (Ruff)
+        run: poetry run ruff check .
+
+      - name: Format check (Ruff)
+        run: poetry run ruff format --check .
