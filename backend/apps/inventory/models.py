@@ -1,7 +1,8 @@
 import re
 from django.db import models
 from django.core.exceptions import ValidationError
-from users import User
+from django.conf import settings
+
 
 def validate_cas(cas: str):
     """Checks that the provided CAS number is the correct format, and is valid.
@@ -35,7 +36,7 @@ def validate_cas(cas: str):
 
 class ChemicalStorageCategories(models.Model):
     shorthand = models.CharField(max_length=2)
-    description = models.CharField(max_length = 50)
+    description = models.CharField(max_length=50)
     help_text = models.TextField()
 
 
@@ -48,7 +49,10 @@ class Chemical(models.Model):
     synonyms = models.JSONField()
     molecular_weight = models.DecimalField(max_digits=5, decimal_places=3)
     is_organic = models.BooleanField()
-    storage_category = models.ForeignKey(ChemicalStorageCategories, on_delete=models.DO_NOTHING)
+    storage_category = models.ForeignKey(
+        ChemicalStorageCategories, on_delete=models.DO_NOTHING
+    )
+
 
 class SDS(models.Model):
     chemical = models.ForeignKey(Chemical, on_delete=models.DO_NOTHING)
@@ -65,6 +69,7 @@ class Location(models.Model):
         "self", on_delete=models.CASCADE, null=True, related_name="children"
     )
     barcode = models.CharField(max_length=75)
+
 
 class LocationTypes(models.Model):
     name = models.CharField(max_length=20, unique=True)
@@ -101,26 +106,28 @@ class Container(models.Model):
     density = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True)
     expiration_date = models.DateField(null=True, blank=True)
     initial_weight = models.DecimalField(max_digits=8, decimal_places=4)
-    tare_weight = models.DecimalField(max_digits=8, decimal_places=4, null=True, blank=True)
+    tare_weight = models.DecimalField(
+        max_digits=8, decimal_places=4, null=True, blank=True
+    )
 
     @property
     def label(self):
         return f"CHEM-{self.id}"
-    
+
     @property
     def is_opened(self):
         return self.date_opened is not None
-    
+
     @property
     def initial_content_mass(self):
-        if (self.density is not None and not self.quantity_unit.endswith("g")):
+        if self.density is not None and not self.quantity_unit.endswith("g"):
             return self.initial_quantity * self.density
         return self.initial_quantity
-        
+
     @property
     def container_weight(self):
         return self.initial_weight - self.initial_content_mass
-    
+
     @property
     def has_estimated_usage(self):
         return self.tare_weight is not None
@@ -130,7 +137,9 @@ class WeightReading(models.Model):
     container = models.ForeignKey(Container, on_delete=models.CASCADE)
     weight = models.DecimalField(max_digits=8, decimal_places=4)
     recorded_at = models.DateTimeField(auto_now=True)
-    recorded_by = models.ForeignKey(User)
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING
+    )
 
 
 class CheckoutEvent(models.Model):
