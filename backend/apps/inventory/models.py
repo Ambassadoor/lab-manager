@@ -57,7 +57,7 @@ class Chemical(models.Model):
 class SDS(models.Model):
     chemical = models.ForeignKey(Chemical, on_delete=models.DO_NOTHING)
     file_name = models.CharField(max_length=20)
-    file_location = models.URLField()
+    drive_id = models.CharField(max_length=100)
     revision_date = models.DateField(null=True, blank=True)
     revision_number = models.IntegerField(null=True, blank=True)
 
@@ -88,6 +88,7 @@ class Container(models.Model):
         ("kg", "kg"),
     ]
 
+    name = models.CharField(max_length = 50)
     chemical = models.ForeignKey(Chemical, on_delete=models.DO_NOTHING)
     location = models.ForeignKey(Location, on_delete=models.DO_NOTHING)
     barcode = models.CharField(
@@ -143,8 +144,11 @@ class WeightReading(models.Model):
 
 
 class CheckoutEvent(models.Model):
-    ACTION_CHOICES = [("in", "In"), ("out", "Out")]
+    ACTION_CHOICES = [("in", "Check In"), ("out", "Check Out")]
 
     Container = models.ForeignKey(Container, on_delete=models.CASCADE)
     action = models.CharField(max_length=3)
     timestamp = models.DateTimeField(auto_now=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING
+    )
