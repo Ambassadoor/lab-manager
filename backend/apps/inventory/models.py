@@ -60,6 +60,7 @@ class SDS(models.Model):
     drive_id = models.CharField(max_length=100)
     revision_date = models.DateField(null=True, blank=True)
     revision_number = models.IntegerField(null=True, blank=True)
+    is_uploaded = models.BooleanField(default=False)
 
 
 class Location(models.Model):
