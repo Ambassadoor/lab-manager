@@ -21,8 +21,6 @@ class Chemical(ViewSet):
     def update(self, request, pk=None):
         pass
 
-    def destroy(self, request, pk=None):
-        pass
 
 class Container(ViewSet):
     def create(self, request):
