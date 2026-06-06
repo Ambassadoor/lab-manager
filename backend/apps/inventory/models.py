@@ -49,9 +49,7 @@ class Chemical(models.Model):
     synonyms = models.JSONField()
     molecular_weight = models.DecimalField(max_digits=5, decimal_places=3)
     is_organic = models.BooleanField()
-    storage_category = models.ForeignKey(
-        ChemicalStorageCategories, on_delete=models.DO_NOTHING
-    )
+    storage_category = models.ForeignKey(ChemicalStorageCategories, on_delete=models.DO_NOTHING)
 
 
 class SDS(models.Model):
@@ -66,9 +64,7 @@ class SDS(models.Model):
 class Location(models.Model):
     name = models.CharField(max_length=20)
     type = models.CharField(max_length=20)
-    parent = models.ForeignKey(
-        "self", on_delete=models.CASCADE, null=True, related_name="children"
-    )
+    parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, related_name="children")
     barcode = models.CharField(max_length=75)
 
 
@@ -80,7 +76,6 @@ class LocationTypes(models.Model):
 
 
 class Container(models.Model):
-
     QUANTITY_UNIT_CHOICES = [
         ("mL", "mL"),
         ("L", "L"),
@@ -89,7 +84,7 @@ class Container(models.Model):
         ("kg", "kg"),
     ]
 
-    name = models.CharField(max_length = 50)
+    name = models.CharField(max_length=50)
     chemical = models.ForeignKey(Chemical, on_delete=models.DO_NOTHING)
     location = models.ForeignKey(Location, on_delete=models.DO_NOTHING)
     barcode = models.CharField(
@@ -108,9 +103,7 @@ class Container(models.Model):
     density = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True)
     expiration_date = models.DateField(null=True, blank=True)
     initial_weight = models.DecimalField(max_digits=8, decimal_places=4)
-    tare_weight = models.DecimalField(
-        max_digits=8, decimal_places=4, null=True, blank=True
-    )
+    tare_weight = models.DecimalField(max_digits=8, decimal_places=4, null=True, blank=True)
 
     @property
     def label(self):
@@ -139,9 +132,7 @@ class WeightReading(models.Model):
     container = models.ForeignKey(Container, on_delete=models.CASCADE)
     weight = models.DecimalField(max_digits=8, decimal_places=4)
     recorded_at = models.DateTimeField(auto_now=True)
-    recorded_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING
-    )
+    recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING)
 
 
 class CheckoutEvent(models.Model):
@@ -150,6 +141,4 @@ class CheckoutEvent(models.Model):
     Container = models.ForeignKey(Container, on_delete=models.CASCADE)
     action = models.CharField(max_length=3)
     timestamp = models.DateTimeField(auto_now=True)
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING
-    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING)

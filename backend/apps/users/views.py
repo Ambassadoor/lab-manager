@@ -57,6 +57,7 @@ class MeView(APIView):
     def get(self, request):
         return Response(UserSerializer(request.user).data)
 
+
 class RegisterView(APIView):
     """Registers a new user."""
 
@@ -64,11 +65,11 @@ class RegisterView(APIView):
 
     @csrf_exempt
     def post(self, request):
-        '''Handles the creation of a new user for authentication
+        """Handles the creation of a new user for authentication
 
         Method arguments:
         request -- The full HTTP request object
-        '''
+        """
         User = get_user_model()
 
         req_body = request.data
@@ -76,14 +77,14 @@ class RegisterView(APIView):
         # Create a new user by invoking the `create_user` helper method
         # on Django's built-in User model
         new_user = User.objects.create_user(
-            username=req_body.get('username'),
+            username=req_body.get("username"),
             email=req_body.get("email"),
-            password=req_body.get('password'),
-            first_name=req_body.get('first_name'),
-            last_name=req_body.get('last_name'),
-            role = req_body.get("role"),
-            user_type = req_body.get("user_type"),
-            scanned_id = req_body.get("scanned_id")
+            password=req_body.get("password"),
+            first_name=req_body.get("first_name"),
+            last_name=req_body.get("last_name"),
+            role=req_body.get("role"),
+            user_type=req_body.get("user_type"),
+            scanned_id=req_body.get("scanned_id"),
         )
 
         return Response(UserSerializer(new_user).data, status=status.HTTP_201_CREATED)

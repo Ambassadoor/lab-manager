@@ -16,13 +16,16 @@ class User(AbstractUser):
         VIEWER = "viewer", "Viewer"
 
     class UserType(models.TextChoices):
-        FULL = "full", "Full User",
+        FULL = (
+            "full",
+            "Full User",
+        )
         GUEST = "guest", "Guest"
 
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.VIEWER)
     user_type = models.CharField(max_length=10, choices=UserType.choices, default=UserType.FULL)
-    scanned_id = models.CharField(max_length=11, unique=True, null=True, blank=True)  
+    scanned_id = models.CharField(max_length=11, unique=True, null=True, blank=True)
 
     def __str__(self) -> str:
         return self.username or self.scanned_id or f"Guest {self.pk}"
@@ -30,4 +33,3 @@ class User(AbstractUser):
     @property
     def is_guest(self):
         return self.user_type == self.UserType.GUEST
-    

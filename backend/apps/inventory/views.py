@@ -1,7 +1,6 @@
 from rest_framework.viewsets import ViewSet
 
 
-
 class Chemical(ViewSet):
     def create(self, request):
         pass
@@ -31,6 +30,7 @@ class Container(ViewSet):
 
     def destroy(self, request, pk=None):
         pass
+
 
 class Location(ViewSet):
     def create(self, request):
