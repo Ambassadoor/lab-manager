@@ -60,20 +60,17 @@ class SDS(models.Model):
     revision_number = models.IntegerField(null=True, blank=True)
     is_uploaded = models.BooleanField(default=False)
 
-
-class Location(models.Model):
-    name = models.CharField(max_length=20)
-    type = models.CharField(max_length=20)
-    parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, related_name="children")
-    barcode = models.CharField(max_length=75)
-
-
 class LocationTypes(models.Model):
     name = models.CharField(max_length=20, unique=True)
     slug = models.CharField(max_length=40, unique=True)
     description = models.CharField(max_length=100, null=True, blank=True)
     icon = models.CharField(max_length=25, null=True)
 
+class Location(models.Model):
+    name = models.CharField(max_length=20)
+    type = models.ForeignKey(LocationTypes, on_delete=models.DO_NOTHING)
+    parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, related_name="children")
+    barcode = models.CharField(max_length=75)
 
 class Container(models.Model):
     QUANTITY_UNIT_CHOICES = [
@@ -138,7 +135,7 @@ class WeightReading(models.Model):
 class CheckoutEvent(models.Model):
     ACTION_CHOICES = [("in", "Check In"), ("out", "Check Out")]
 
-    Container = models.ForeignKey(Container, on_delete=models.CASCADE)
+    container = models.ForeignKey(Container, on_delete=models.CASCADE)
     action = models.CharField(max_length=3)
     timestamp = models.DateTimeField(auto_now=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING)
