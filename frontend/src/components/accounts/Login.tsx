@@ -15,32 +15,29 @@ export const Login = () => {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<Inputs>();
-  const onSubmit: SubmitHandler<Inputs> = (data): Promise<void> => login(data.username, data.password);
+  const onSubmit: SubmitHandler<Inputs> = (data): Promise<void> =>
+    login(data.username, data.password);
   if (loading) return null;
 
   return (
     <Container
-        sx={{  
-            padding: {sm: 4, md: 2}
-        }}
+      sx={{
+        padding: { sm: 4, md: 2 },
+      }}
     >
       <Card
         sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignSelf: 'center',
-            width: '100%',
-            padding: 4,
-            gap: 2,
-            margin: 'auto',
-            maxWidth: {sm: '450px'}
+          display: 'flex',
+          flexDirection: 'column',
+          alignSelf: 'center',
+          width: '100%',
+          padding: 4,
+          gap: 2,
+          margin: 'auto',
+          maxWidth: { sm: '450px' },
         }}
       >
-        <Box
-            component="form"
-            onSubmit={handleSubmit(onSubmit)}
-            noValidate
-        >
+        <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
           <Stack spacing={2}>
             <Typography component={'h1'} variant="h4">
               Sign In
@@ -80,7 +77,13 @@ export const Login = () => {
                 />
               )}
             />
-            <Button type="submit" variant="contained" color="primary" size="large" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              size="large"
+              disabled={isSubmitting}
+            >
               Submit
             </Button>
             <Typography>
