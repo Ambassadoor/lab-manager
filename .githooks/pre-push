@@ -1,17 +1,17 @@
 #!/bin/sh
 #Check frontend formatting
-echo "Running format checks"
+echo "Running format checks" >&2
 RESULT=0
-echo "Running prettier checks"
-(cd frontend && pnpm format:check) || RESULT=1
-echo "Running lint checks"
-(cd frontend && pnpm lint) || RESULT=1
-echo "Running ruff checks"
-(cd backend && poetry run ruff format --check ) || RESULT=1
-(cd backend && poetry run ruff check .) || RESULT=1
+echo "Running prettier checks" >&2
+(cd frontend && pnpm format:check) || { echo "Prettier check failed - run pnpm format" >&2; RESULT=1; }
+echo "Running lint checks" >&2
+(cd frontend && pnpm lint) || { echo "Lint check failed" >&2; RESULT=1; }
+echo "Running ruff checks" >&2
+(cd backend && poetry run ruff format --check ) || { echo "Ruff format check failed - run poetry run ruff format" >&2; RESULT=1; }
+(cd backend && poetry run ruff check .) || { echo "Ruff lint check failed" >&2; RESULT=1; }
 
 if [ $RESULT -gt 0 ]; then
-    echo "Formatting needed before you can push"
-    echo "Exiting with code 1"
+    echo "Formatting needed before you can push" >&2
+    echo "Exiting with code 1" >&2
      exit 1 
 fi
