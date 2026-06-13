@@ -15,27 +15,29 @@ type Inputs = {
 };
 
 type CachedValues = {
-  first_name: string,
-  last_name: string,
-  email: string,
-  username: string
-}
+  first_name: string;
+  last_name: string;
+  email: string;
+  username: string;
+};
 
 export const Register = () => {
-  const { preValidate } = useAuth();
+  const { preValidate, register, user } = useAuth();
   const navigate = useNavigate();
   const submittedRef = useRef(false);
 
- 
   //Return cached form values
   const getCachedValues = (): CachedValues => {
-    const cached = sessionStorage.getItem("register_form_cache");
-    return cached ? JSON.parse(cached) : {
-      username: '',
-      email: '',
-      first_name: '',
-      last_name: '',
-    }}
+    const cached = sessionStorage.getItem('register_form_cache');
+    return cached
+      ? JSON.parse(cached)
+      : {
+          username: '',
+          email: '',
+          first_name: '',
+          last_name: '',
+        };
+  };
 
   const {
     control,
@@ -49,20 +51,34 @@ export const Register = () => {
     defaultValues: getCachedValues(),
   });
 
-  const formValues = useWatch({control})
+  const formValues = useWatch({ control });
 
   //Cache user inputs
   useEffect(() => {
     //eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const {password, confirm_password, lipscomb_id, ...valuesToCache} = formValues
-    sessionStorage.setItem("register_form_cache", JSON.stringify(valuesToCache))
-  },[formValues])
+    const { password, confirm_password, lipscomb_id, ...valuesToCache } = formValues;
+    sessionStorage.setItem('register_form_cache', JSON.stringify(valuesToCache));
+  }, [formValues]);
 
-  const onSubmit: SubmitHandler<Inputs> = async (data): Promise<void> => {
-
-
-    sessionStorage.removeItem("register_form_cache")
+  const onSubmit: SubmitHandler<Inputs> = async (data: Inputs): Promise<void> => {
+    //eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { confirm_password, ...user } = data;
+    register(user).then((res) => {
+      if (res) {
+        sessionStorage.removeItem('register_form_cache');
+        navigate('/');
+      }
+    });
   };
+
+  if (user)
+    return (
+      <Container>
+        <Typography>
+          User already logged in. Please logout before creating a new account.
+        </Typography>
+      </Container>
+    );
 
   return (
     <Container
@@ -102,7 +118,7 @@ export const Register = () => {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    autoComplete='given-name'
+                    autoComplete="given-name"
                     label="First Name"
                     error={!!errors.first_name}
                     helperText={errors.first_name ? errors.first_name.message : ''}
@@ -126,7 +142,7 @@ export const Register = () => {
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    autoComplete='family-name'
+                    autoComplete="family-name"
                     label="Last Name"
                     error={!!errors.last_name}
                     helperText={errors.last_name ? errors.last_name.message : ''}
@@ -155,7 +171,7 @@ export const Register = () => {
               render={({ field }) => (
                 <TextField
                   {...field}
-                  autoComplete='email'
+                  autoComplete="email"
                   label="Email"
                   error={!!errors.email}
                   helperText={errors.email ? errors.email.message : ''}
@@ -181,7 +197,7 @@ export const Register = () => {
               render={({ field }) => (
                 <TextField
                   {...field}
-                  autoComplete='username'
+                  autoComplete="username"
                   label="Username"
                   error={!!errors.username}
                   helperText={errors.username ? errors.username.message : ''}
@@ -194,7 +210,7 @@ export const Register = () => {
               )}
             />
             <Controller
-              defaultValue=''
+              defaultValue=""
               name="password"
               control={control}
               rules={{
@@ -207,7 +223,7 @@ export const Register = () => {
               render={({ field }) => (
                 <TextField
                   {...field}
-                  autoComplete='new-password'
+                  autoComplete="new-password"
                   label="Password"
                   type="password"
                   error={!!errors.password}
@@ -221,7 +237,7 @@ export const Register = () => {
               )}
             />
             <Controller
-            defaultValue=''
+              defaultValue=""
               name="confirm_password"
               control={control}
               rules={{
@@ -234,7 +250,7 @@ export const Register = () => {
               render={({ field }) => (
                 <TextField
                   {...field}
-                  autoComplete='new-password'
+                  autoComplete="new-password"
                   label="Confirm Password"
                   type="password"
                   error={!!errors.confirm_password}
@@ -248,7 +264,7 @@ export const Register = () => {
               )}
             />
             <Controller
-            defaultValue=''
+              defaultValue=""
               name="lipscomb_id"
               control={control}
               rules={{
