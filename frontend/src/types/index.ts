@@ -12,13 +12,13 @@ export interface User {
 }
 
 export interface UserRegistration extends Omit<User, 'id' | 'role'> {
-  password: string,
-  lipscomb_id: string
+  password: string;
+  lipscomb_id: string;
 }
 
 export interface PreValidation {
   errors: {
-    username?: string,
-    email?: string,
-  }
+    username?: string;
+    email?: string;
+  };
 }

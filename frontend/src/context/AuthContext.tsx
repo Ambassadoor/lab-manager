@@ -6,7 +6,7 @@ interface AuthContextType {
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  preValidate: (field: string, value: string) => Promise<PreValidation | undefined>
+  preValidate: (field: string, value: string) => Promise<PreValidation | undefined>;
   register: (user: UserRegistration) => Promise<User | undefined>;
 }
 

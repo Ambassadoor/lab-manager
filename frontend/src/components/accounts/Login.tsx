@@ -9,7 +9,8 @@ type Inputs = {
 };
 
 export const Login = () => {
-  const { loading, login } = useAuth();
+  const { loading, login, user } = useAuth();
+
   const {
     control,
     handleSubmit,
@@ -18,6 +19,13 @@ export const Login = () => {
   const onSubmit: SubmitHandler<Inputs> = (data): Promise<void> =>
     login(data.username, data.password);
   if (loading) return null;
+
+  if (user)
+    return (
+      <Container>
+        <Typography>User already logged in</Typography>
+      </Container>
+    );
 
   return (
     <Container
@@ -84,7 +92,7 @@ export const Login = () => {
               size="large"
               disabled={isSubmitting}
             >
-              Submit
+              Sign In
             </Button>
             <Typography>
               Don't have an account? <Link to="/register">Sign Up</Link>
