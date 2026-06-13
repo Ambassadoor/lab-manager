@@ -22,6 +22,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Navbar />}>
         <Route index element={user ? <>Dashboard</> : <Login />} />
+        <Route path="login" element={<Login />}/>
         <Route path="register" element={<Register />}/>
         <Route path="*" element={<NotFound />} />
       </Route>

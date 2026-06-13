@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { getMe, initCsrf, login as apiLogin, logout as apiLogout, preValidate as apiPreValidate } from '../api/auth';
-import type { PreValidation, User } from '../types';
+import { getMe, initCsrf, login as apiLogin, logout as apiLogout, preValidate as apiPreValidate, register as apiRegister } from '../api/auth';
+import type { PreValidation, User, UserRegistration } from '../types';
 import { AuthContext } from './AuthContext';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -32,7 +32,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const register = async (user: UserRegistration) => {
+    const response = await apiRegister(user);
+    if (response) {
+      return response
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, preValidate }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, loading, login, logout, preValidate, register }}>{children}</AuthContext.Provider>
   );
 }
