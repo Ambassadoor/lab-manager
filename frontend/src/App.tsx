@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { Navbar } from './components/nav/Navbar';
 import { useAuth } from './context/AuthContext';
 import { Login } from './components/accounts/Login';
+import { Register } from './components/accounts/Register';
 
 function NotFound() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Navbar />}>
         <Route index element={user ? <>Dashboard</> : <Login />} />
+        <Route path="register" element={<Register />}/>
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
