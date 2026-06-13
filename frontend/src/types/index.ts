@@ -10,3 +10,15 @@ export interface User {
   last_name: string;
   role: Role;
 }
+
+export interface UserRegistration extends Omit<User, 'id' | 'role'> {
+  password: string;
+  lipscomb_id: string;
+}
+
+export interface PreValidation {
+  errors: {
+    username?: string;
+    email?: string;
+  };
+}

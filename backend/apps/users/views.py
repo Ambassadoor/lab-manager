@@ -82,9 +82,47 @@ class RegisterView(APIView):
             password=req_body.get("password"),
             first_name=req_body.get("first_name"),
             last_name=req_body.get("last_name"),
-            role=req_body.get("role"),
-            user_type=req_body.get("user_type"),
-            scanned_id=req_body.get("scanned_id"),
+            #TODO: Implement actual role/type logic
+            role="Lab Manager",
+            user_type="Full User",
+            lipscomb_id=req_body.get("lipscomb_id"),
         )
 
         return Response(UserSerializer(new_user).data, status=status.HTTP_201_CREATED)
+    
+class ValidateView(APIView):
+    """Validates username availability and checks if account for email exists already"""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        User = get_user_model()
+
+        email = request.query_params.get("email", None)
+        username = request.query_params.get("username", None)
+
+        new_account = True
+        username_available = True
+
+        if username is not None:
+            try:
+                user = User.objects.get(username=username)                
+                if user:
+                    username_available = False
+            except User.DoesNotExist:
+                pass
+
+        if email is not None:
+            try:
+                user = User.objects.get(email=email)  
+                if user:
+                    new_account = False
+            except User.DoesNotExist:
+                pass
+
+        if not new_account or not username_available:
+            return Response({"errors": {
+                **({"email": "An account for this email already exists"} if not new_account else {}),
+                **({"username": "This username is unavailable"} if not username_available else {})
+            }}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

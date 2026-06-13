@@ -2,7 +2,8 @@ import { Routes, Route } from 'react-router-dom';
 import { Box, Typography } from '@mui/material';
 import { Navbar } from './components/nav/Navbar';
 import { useAuth } from './context/AuthContext';
-
+import { Login } from './components/accounts/Login';
+import { Register } from './components/accounts/Register';
 
 function NotFound() {
   return (
@@ -15,18 +16,16 @@ function NotFound() {
 export default function App() {
   const { user, loading } = useAuth();
 
-  if (loading) return null
-  
+  if (loading) return null;
+
   return (
-      <Routes>
-        <Route path="/" element={<Navbar />}>
-          <Route index element={
-            user
-            ? <>Dashboard</>
-            : <>Login</>
-          }/>
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
+    <Routes>
+      <Route path="/" element={<Navbar />}>
+        <Route index element={user ? <>Dashboard</> : <Login />} />
+        <Route path="login" element={<Login />} />
+        <Route path="register" element={<Register />} />
+        <Route path="*" element={<NotFound />} />
+      </Route>
+    </Routes>
   );
 }
