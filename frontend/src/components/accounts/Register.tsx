@@ -1,98 +1,47 @@
-import { Box, Button, Card, Container, Divider, Stack, TextField, Typography } from "@mui/material"
-import { useEffect } from "react"
-import { Controller, useForm, useWatch, type SubmitHandler } from "react-hook-form"
-import { Link, useNavigate } from "react-router-dom"
-import { useAuth } from "../../context/AuthContext"
+import { Box, Button, Card, Container, Stack, TextField, Typography } from '@mui/material';
+import { Controller, useForm, type SubmitHandler } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { useRef } from 'react';
 
 type Inputs = {
-    username: string,
-    password: string,
-    confirm_password: string,
-    email: string,
-    first_name: string,
-    last_name: string,
-    lipscomb_id: string,
-}
+  username: string;
+  password: string;
+  confirm_password: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  lipscomb_id: string;
+};
 
 export const Register = () => {
-    const {preValidate} = useAuth()
-    const navigate = useNavigate()
+  const { preValidate } = useAuth();
+  const navigate = useNavigate();
+  const submittedRef = useRef(false);
 
-    const {
-        control,
-        handleSubmit,
-        formState: {errors, isSubmitting, touchedFields, dirtyFields},
-        setError,
-        clearErrors,
-        resetField,
-        getValues,
-        trigger
-    } = useForm<Inputs>();
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting, dirtyFields, isDirty },
+    clearErrors,
+    getValues,
+  } = useForm<Inputs>({
+    mode: 'onBlur',
+    reValidateMode: 'onBlur',
+    defaultValues: {
+      username: '',
+      password: '',
+      confirm_password: '',
+      email: '',
+      first_name: '',
+      last_name: '',
+      lipscomb_id: '',
+    },
+  });
 
-    const password = useWatch({
-        control,
-        name: "password"
-    })
+  const onSubmit: SubmitHandler<Inputs> = async (data): Promise<void> => {};
 
-    const username = useWatch({
-        control,
-        name: "username"
-    })
-
-    const email = useWatch({
-        control,
-        name: "email"
-    })
-
-    useEffect(() => {
-        if (touchedFields.email) {
-        preValidate("email", email).then(res => {
-            if (res) {
-                setError("email", {
-                    type: "manual",
-                    message: res.errors.email
-                })
-            } else {
-                clearErrors("email")
-            }
-            resetField("email", {
-                keepError: true,
-                defaultValue: getValues('email')
-            })              
-        })
-        } else if (dirtyFields.email) {
-            clearErrors("email")
-        }
-
-    }, [touchedFields.email, email, preValidate, setError, getValues, resetField, clearErrors, dirtyFields.email])
-
-    useEffect(() => {
-        if (touchedFields.username) {
-            preValidate("username", username).then(res => {
-                if (res) {
-                    setError("username", {
-                        type: "manual",
-                        message: res.errors.username
-                    })
-                } else {
-                    clearErrors("username")
-                }
-                resetField("username", {
-                    keepError: true,
-                    defaultValue: getValues("username")
-                })
-            })
-        } else if (dirtyFields.username) {
-            clearErrors("username")
-        }
-    })
-    const onSubmit: SubmitHandler<Inputs> = (data): Promise<void> => {
-
-    }
-
-
-
-    return (
+  return (
     <Container
       sx={{
         padding: { sm: 4, md: 2 },
@@ -115,69 +64,93 @@ export const Register = () => {
             <Typography component={'h1'} variant="h4">
               Create Account
             </Typography>
-            <Stack direction={"row"} spacing={2}>
-            <Controller 
+            <Stack direction={'row'} spacing={2}>
+              <Controller
                 name="first_name"
                 control={control}
-                defaultValue={""}
                 rules={{
-                    required: "First name is required",
+                  validate: {
+                    required: async (value) => {
+                      if (!dirtyFields.first_name && !submittedRef.current) return true;
+                      if (!value) return 'First name is required';
+                    },
+                  },
                 }}
-                render={({field}) => (
-                    <TextField
-                        {...field}
-                        label="First Name"
-                        error={!!errors.first_name}
-                        helperText={errors.first_name? errors.first_name.message : ''}  
-                        fullWidth
-                    />
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="First Name"
+                    error={!!errors.first_name}
+                    helperText={errors.first_name ? errors.first_name.message : ''}
+                    fullWidth
+                    onChange={(e) => {
+                      field.onChange(e);
+                      clearErrors('first_name');
+                    }}
+                  />
                 )}
-            />
-            <Controller 
+              />
+              <Controller
                 name="last_name"
                 control={control}
-                defaultValue={""}
                 rules={{
-                    required: "Last name is required",
+                  validate: (value) => {
+                    if (!dirtyFields.last_name && !submittedRef.current) return true;
+                    if (!value) return 'Last name is required';
+                  },
                 }}
-                render={({field}) => (
-                    <TextField
-                        {...field}
-                        label="Last Name"
-                        error={!!errors.last_name}
-                        helperText={errors.last_name? errors.last_name.message : ''}  
-                        fullWidth
-                    />
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Last Name"
+                    error={!!errors.last_name}
+                    helperText={errors.last_name ? errors.last_name.message : ''}
+                    fullWidth
+                    onChange={(e) => {
+                      field.onChange(e);
+                      clearErrors('last_name');
+                    }}
+                  />
                 )}
-            />
+              />
             </Stack>
             <Controller
-                name="email"
-                control={control}
-                defaultValue=""
-                rules={{
-                    required: "Email is required",
-                    pattern: {
-                        value: /^[a-zA-Z0-9._%+-]+@(mail\.)?lipscomb\.edu$/,
-                        message: "Please use your Lipscomb email address"
-                    }
-                }}
-                render={({field}) => (
-                    <TextField
-                        {...field}
-                        label="Email"
-                        error={!!errors.email}
-                        helperText={errors.email ? errors.email.message : ''}
-                        fullWidth
-                    />
-                )}
+              name="email"
+              control={control}
+              rules={{
+                validate: async (value) => {
+                  if (!dirtyFields.email && !submittedRef.current) return true;
+                  if (!value) return 'Email is required';
+                  const pattern = /^[a-zA-Z0-9._%+-]+@(mail\.)?lipscomb\.edu$/;
+                  if (!pattern.test(value)) return 'Please use your Lipscomb email address';
+                  const taken = await preValidate('email', value);
+                  return taken?.errors.email ? taken.errors.email : true;
+                },
+              }}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Email"
+                  error={!!errors.email}
+                  helperText={errors.email ? errors.email.message : ''}
+                  fullWidth
+                  onChange={(e) => {
+                    field.onChange(e);
+                    clearErrors('email');
+                  }}
+                />
+              )}
             />
             <Controller
               name="username"
               control={control}
-              defaultValue={''}
               rules={{
-                required: 'Username is required',
+                validate: async (value) => {
+                  if (!dirtyFields.username && !submittedRef.current) return true;
+                  if (!value) return 'Username is required';
+                  const taken = await preValidate('username', value);
+                  return taken?.errors.username ? taken?.errors.username : true;
+                },
               }}
               render={({ field }) => (
                 <TextField
@@ -186,16 +159,22 @@ export const Register = () => {
                   error={!!errors.username}
                   helperText={errors.username ? errors.username.message : ''}
                   fullWidth
+                  onChange={(e) => {
+                    field.onChange(e);
+                    clearErrors('username');
+                  }}
                 />
               )}
             />
             <Controller
               name="password"
               control={control}
-              defaultValue={''}
               rules={{
-                required: 'Password is required',
-                minLength: {value: 8, message: "Minimum 8 characters"}
+                validate: (value) => {
+                  if (!dirtyFields.password && !submittedRef.current) return true;
+                  if (!value) return 'Password is required';
+                  if (value.length < 8) return 'Minimum 8 characters';
+                },
               }}
               render={({ field }) => (
                 <TextField
@@ -205,16 +184,22 @@ export const Register = () => {
                   error={!!errors.password}
                   helperText={errors.password ? errors.password.message : ''}
                   fullWidth
+                  onChange={(e) => {
+                    field.onChange(e);
+                    clearErrors('password');
+                  }}
                 />
               )}
             />
             <Controller
               name="confirm_password"
               control={control}
-              defaultValue={''}
               rules={{
-                required: 'Please confirm password',
-                validate: (value) => value === password || "Passwords do not match"
+                validate: (value) => {
+                  if (!dirtyFields.confirm_password && !submittedRef.current) return true;
+                  if (!value) return 'Please confirm password';
+                  return value === getValues('password') || 'Passwords do not match';
+                },
               }}
               render={({ field }) => (
                 <TextField
@@ -226,50 +211,54 @@ export const Register = () => {
                   fullWidth
                   onChange={(e) => {
                     field.onChange(e);
-                    trigger("confirm_password")}}
+                    clearErrors('confirm_password');
+                  }}
                 />
               )}
             />
             <Controller
-                name="lipscomb_id"
-                control={control}
-                defaultValue=""
-                rules={{
-                    required: "Please provide your Lipscomb Id",
-                    pattern: {
-                        value: /^L[0-9]{8}$/,
-                        message: "Please use L######## format"
-                    }
-                }}
-                render={({field}) => (
-                    <TextField 
-                        {...field}
-                        label="Lipscomb ID"
-                    />
-                )}
+              name="lipscomb_id"
+              control={control}
+              rules={{
+                validate: (value) => {
+                  if (!dirtyFields.lipscomb_id && !submittedRef.current) return true;
+                  if (!value) return 'Please provide your Lipscomb ID';
+                  const pattern = /^L[0-9]{8}$/;
+                  if (!pattern.test(value)) return 'Please match L12345678 format';
+                },
+              }}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Lipscomb ID"
+                  error={!!errors.lipscomb_id}
+                  helperText={errors.lipscomb_id ? errors.lipscomb_id.message : ''}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    clearErrors('lipscomb_id');
+                  }}
+                />
+              )}
             />
-            <Stack direction={"row"} spacing={2}>
-                <Button
+            <Stack direction={'row'} spacing={2}>
+              <Button
+                onClick={() => (submittedRef.current = true)}
                 type="submit"
                 variant="contained"
                 color="primary"
                 size="large"
-                disabled={isSubmitting}
+                disabled={isSubmitting || Object.keys(errors).length > 0 || !isDirty}
                 fullWidth
-                >
+              >
                 Submit
-                </Button>
-                <Button
-                variant="outlined"
-                size="large"
-                fullWidth
-                onClick={() => navigate("/")}
-                >Cancel</Button>
-
+              </Button>
+              <Button variant="outlined" size="large" fullWidth onClick={() => navigate('/')}>
+                Cancel
+              </Button>
             </Stack>
           </Stack>
         </Box>
       </Card>
     </Container>
-    )
-}
+  );
+};
