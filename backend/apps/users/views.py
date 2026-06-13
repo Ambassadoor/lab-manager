@@ -82,9 +82,10 @@ class RegisterView(APIView):
             password=req_body.get("password"),
             first_name=req_body.get("first_name"),
             last_name=req_body.get("last_name"),
-            role=req_body.get("role"),
-            user_type=req_body.get("user_type"),
-            scanned_id=req_body.get("scanned_id"),
+            #TODO: Implement actual role/type logic
+            role="Lab Manager",
+            user_type="Full User",
+            lipscomb_id=req_body.get("lipscomb_id"),
         )
 
         return Response(UserSerializer(new_user).data, status=status.HTTP_201_CREATED)
