@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { getMe, initCsrf, login as apiLogin, logout as apiLogout } from '../api/auth';
-import type { User } from '../types';
+import { getMe, initCsrf, login as apiLogin, logout as apiLogout, preValidate as apiPreValidate } from '../api/auth';
+import type { PreValidation, User } from '../types';
 import { AuthContext } from './AuthContext';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -24,7 +24,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  //TODO: Maybe make these memoized using useCallback
+  const preValidate = async (field: string, value: string) => {
+    const response = await apiPreValidate(field, value);
+    if (response) {
+      return response
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, loading, login, logout, preValidate }}>{children}</AuthContext.Provider>
   );
 }

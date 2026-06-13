@@ -1,11 +1,12 @@
 import { createContext, useContext } from 'react';
-import type { User } from '../types';
+import type { PreValidation, User } from '../types';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  preValidate: (field: string, value: string) => Promise<PreValidation | undefined>
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);

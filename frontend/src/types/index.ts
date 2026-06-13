@@ -10,3 +10,10 @@ export interface User {
   last_name: string;
   role: Role;
 }
+
+export interface PreValidation {
+  errors: {
+    username?: string,
+    email?: string,
+  }
+}
