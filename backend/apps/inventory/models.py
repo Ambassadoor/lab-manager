@@ -69,6 +69,7 @@ class SDS(models.Model):
     def __str__(self):
         return self.file_name
 
+
 class LocationTypes(models.Model):
     name = models.CharField(max_length=20, unique=True)
     slug = models.CharField(max_length=40, unique=True)
@@ -87,6 +88,7 @@ class Location(models.Model):
 
     def __str__(self):
         return self.name
+
 
 class Container(models.Model):
     QUANTITY_UNIT_CHOICES = [
@@ -139,7 +141,7 @@ class Container(models.Model):
     @property
     def has_estimated_usage(self):
         return self.tare_weight is not None
-    
+
     def __str__(self):
         return self.name
 
@@ -149,9 +151,9 @@ class WeightReading(models.Model):
     weight = models.DecimalField(max_digits=8, decimal_places=4)
     recorded_at = models.DateTimeField(auto_now=True)
     recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING)
-    
+
     def __str__(self):
-        return f'{self.container.name}: {self.weight}'
+        return f"{self.container.name}: {self.weight}"
 
 
 class CheckoutEvent(models.Model):
@@ -163,4 +165,4 @@ class CheckoutEvent(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING)
 
     def __str__(self):
-        return f'{self.container.name}: {self.action}'
+        return f"{self.container.name}: {self.action}"
