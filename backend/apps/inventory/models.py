@@ -39,6 +39,9 @@ class ChemicalStorageCategories(models.Model):
     description = models.CharField(max_length=50)
     help_text = models.TextField()
 
+    def __str__(self):
+        return self.shorthand
+
 
 class Chemical(models.Model):
     name = models.CharField(max_length=200)
@@ -51,6 +54,9 @@ class Chemical(models.Model):
     is_organic = models.BooleanField()
     storage_category = models.ForeignKey(ChemicalStorageCategories, on_delete=models.DO_NOTHING)
 
+    def __str__(self):
+        return self.name
+
 
 class SDS(models.Model):
     chemical = models.ForeignKey(Chemical, on_delete=models.DO_NOTHING)
@@ -60,12 +66,17 @@ class SDS(models.Model):
     revision_number = models.IntegerField(null=True, blank=True)
     is_uploaded = models.BooleanField(default=False)
 
+    def __str__(self):
+        return self.file_name
 
 class LocationTypes(models.Model):
     name = models.CharField(max_length=20, unique=True)
     slug = models.CharField(max_length=40, unique=True)
     description = models.CharField(max_length=100, null=True, blank=True)
     icon = models.CharField(max_length=25, null=True)
+
+    def __str__(self):
+        return self.name
 
 
 class Location(models.Model):
@@ -74,6 +85,8 @@ class Location(models.Model):
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, related_name="children")
     barcode = models.CharField(max_length=75)
 
+    def __str__(self):
+        return self.name
 
 class Container(models.Model):
     QUANTITY_UNIT_CHOICES = [
@@ -126,6 +139,9 @@ class Container(models.Model):
     @property
     def has_estimated_usage(self):
         return self.tare_weight is not None
+    
+    def __str__(self):
+        return self.name
 
 
 class WeightReading(models.Model):
@@ -133,12 +149,18 @@ class WeightReading(models.Model):
     weight = models.DecimalField(max_digits=8, decimal_places=4)
     recorded_at = models.DateTimeField(auto_now=True)
     recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING)
+    
+    def __str__(self):
+        return f'{self.container.name}: {self.weight}'
 
 
 class CheckoutEvent(models.Model):
     ACTION_CHOICES = [("in", "Check In"), ("out", "Check Out")]
 
     container = models.ForeignKey(Container, on_delete=models.CASCADE)
-    action = models.CharField(max_length=3)
+    action = models.CharField(max_length=3, choices=ACTION_CHOICES)
     timestamp = models.DateTimeField(auto_now=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING)
+
+    def __str__(self):
+        return f'{self.container.name}: {self.action}'
