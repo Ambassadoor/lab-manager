@@ -8,6 +8,7 @@ from .models import (
     LocationTypes,
     WeightReading,
     CheckoutEvent,
+    Ingredient
 )
 
 admin.site.register(Chemical)
@@ -18,3 +19,4 @@ admin.site.register(SDS)
 admin.site.register(LocationTypes)
 admin.site.register(WeightReading)
 admin.site.register(CheckoutEvent)
+admin.site.register(Ingredient)
