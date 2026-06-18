@@ -53,12 +53,14 @@ class Chemical(models.Model):
     formula = models.CharField(max_length=50, null=True, blank=True)
     pubchem_cid = models.IntegerField(null=True, blank=True)
     synonyms = models.JSONField(null=True, blank=True)
-    molecular_weight = models.DecimalField(
-        max_digits=7, decimal_places=3, null=True, blank=True
-    )
+    molecular_weight = models.DecimalField(max_digits=7, decimal_places=3, null=True, blank=True)
     is_organic = models.BooleanField(null=True, blank=True)
     storage_category = models.ForeignKey(
-        ChemicalStorageCategories, on_delete=models.DO_NOTHING, null=True, blank=True, related_name="chemicals"
+        ChemicalStorageCategories,
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name="chemicals",
     )
 
     def __str__(self):
@@ -123,9 +125,7 @@ class Container(models.Model):
     location = models.ForeignKey(Location, on_delete=models.DO_NOTHING, related_name="containers")
     barcode = models.CharField(max_length=80, unique=True, null=True, blank=True)
 
-    manufacturer = models.CharField(
-        "manufacturer", max_length=50, null=True, blank=True
-    )
+    manufacturer = models.CharField("manufacturer", max_length=50, null=True, blank=True)
     initial_quantity = models.IntegerField("quantity", null=True, blank=True)
     quantity_unit = models.CharField(
         "unit", max_length=2, choices=QUANTITY_UNIT_CHOICES, null=True, blank=True
@@ -134,9 +134,7 @@ class Container(models.Model):
     sds = models.ForeignKey(
         SDS, on_delete=models.DO_NOTHING, null=True, blank=True, verbose_name="sds"
     )
-    date_received = models.DateField(
-        "received on", default=timezone.now, null=True, blank=True
-    )
+    date_received = models.DateField("received on", default=timezone.now, null=True, blank=True)
     date_opened = models.DateField("opened on", null=True, blank=True)
     date_discarded = models.DateField("discarded on", null=True, blank=True)
     density = models.DecimalField(
@@ -209,7 +207,9 @@ class CheckoutEvent(models.Model):
     container = models.ForeignKey(Container, on_delete=models.CASCADE, related_name="events")
     action = models.CharField(max_length=3, choices=ACTION_CHOICES)
     timestamp = models.DateTimeField(auto_now=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, related_name="events")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, related_name="events"
+    )
 
     def __str__(self):
         return f"{self.container.name}: {self.action}"

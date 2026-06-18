@@ -1,5 +1,6 @@
 import json
 import pubchempy as pcp
+
 BATCH_SIZE = 50
 INPUT_FILE = "data.json"
 OUTPUT_FILE = "data_with_properties.json"

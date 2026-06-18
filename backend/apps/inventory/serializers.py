@@ -29,7 +29,6 @@ class SDSSerializer(serializers.ModelSerializer):
 
 
 class LocationSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Location
         fields = ["id", "name", "type", "parent"]
@@ -57,6 +56,7 @@ class ContainerSerializer(serializers.ModelSerializer):
             "is_opened",
         ]
 
+
 class ContainerWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Container
@@ -74,6 +74,7 @@ class ContainerWriteSerializer(serializers.ModelSerializer):
             "initial_weight",
             "tare_weight",
         ]
+
 
 class WeightReadingSerializer(serializers.ModelSerializer):
     class Meta:

@@ -4,9 +4,9 @@ from .views import ContainerView, ChemicalView, LocationView
 
 router = DefaultRouter()
 
-router.register(r'containers', ContainerView, basename="container")
-router.register(r'chemicals', ChemicalView, basename="chemical")
-router.register(r'locations', LocationView, basename="location")
+router.register(r"containers", ContainerView, basename="container")
+router.register(r"chemicals", ChemicalView, basename="chemical")
+router.register(r"locations", LocationView, basename="location")
 
 urlpatterns = [
     path("", include(router.urls)),

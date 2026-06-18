@@ -8,7 +8,7 @@ from .models import (
     LocationTypes,
     WeightReading,
     CheckoutEvent,
-    Ingredient
+    Ingredient,
 )
 
 admin.site.register(Chemical)
