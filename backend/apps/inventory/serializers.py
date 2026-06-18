@@ -29,9 +29,10 @@ class SDSSerializer(serializers.ModelSerializer):
 
 
 class LocationSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Location
-        fields = ["id", "type", "parent"]
+        fields = ["id", "name", "type", "parent"]
 
     def to_representation(self, instance):
         self.fields["parent"] = LocationSerializer(many=False, read_only=True)
@@ -39,10 +40,40 @@ class LocationSerializer(serializers.ModelSerializer):
 
 
 class ContainerSerializer(serializers.ModelSerializer):
+    label = serializers.ReadOnlyField(label="ID")
+    is_opened = serializers.ReadOnlyField(label="Opened?")
+    quantity = serializers.ReadOnlyField(label="Quantity")
+    location = serializers.ReadOnlyField(label="Location", source="location.full_path")
+
     class Meta:
         model = Container
-        fields = "__all__"
+        fields = [
+            "label",
+            "name",
+            "location",
+            "manufacturer",
+            "quantity",
+            "product_num",
+            "is_opened",
+        ]
 
+class ContainerWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Container
+        fields = [
+            "name",
+            "chemical",
+            "location",
+            "manufacturer",
+            "initial_quantity",
+            "quantity_unit",
+            "product_num",
+            "date_received",
+            "density",
+            "expiration_date",
+            "initial_weight",
+            "tare_weight",
+        ]
 
 class WeightReadingSerializer(serializers.ModelSerializer):
     class Meta:
