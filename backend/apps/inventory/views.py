@@ -17,7 +17,7 @@ class ContainerView(ModelViewSet):
     queryset = Container.objects.all()
 
     def get_serializer_class(self):
-        if self.action in ["create", "update", "partial_update"]:
+        if self.action in ["create", "update", "partial_update", "metadata"]:
             return ContainerWriteSerializer
         return ContainerSerializer
 
