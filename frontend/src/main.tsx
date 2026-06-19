@@ -6,12 +6,16 @@ import { CssBaseline } from '@mui/material';
 import App from './App';
 import { Theme } from './context/Theme';
 import { AuthProvider } from './context/AuthProvider';
+import { AgGridProvider } from 'ag-grid-react';
+import { AllCommunityModule} from 'ag-grid-community'
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { retry: 1, staleTime: 1000 * 60 * 5 },
   },
 });
+
+const modules = [AllCommunityModule];
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -20,7 +24,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <CssBaseline enableColorScheme />
           <Theme>
-            <App />
+            <AgGridProvider modules={modules}>
+              <App />
+            </AgGridProvider>
           </Theme>
         </AuthProvider>
       </QueryClientProvider>

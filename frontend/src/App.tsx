@@ -1,9 +1,10 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Outlet } from 'react-router-dom';
 import { Box, Typography } from '@mui/material';
 import { Navbar } from './components/nav/Navbar';
 import { useAuth } from './context/AuthContext';
 import { Login } from './components/accounts/Login';
 import { Register } from './components/accounts/Register';
+import { Containers } from './components/inventory/Containers';
 
 function NotFound() {
   return (
@@ -24,6 +25,9 @@ export default function App() {
         <Route index element={user ? <>Dashboard</> : <Login />} />
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
+        <Route path="inventory" element={<Outlet />}>
+          <Route path="containers" element={<Containers />}/>
+        </Route>
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
