@@ -3,6 +3,8 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.utils import timezone
+from django.db.models import Max
+
 
 
 def validate_cas(cas: str):
@@ -154,7 +156,9 @@ class Container(models.Model):
 
     @property
     def label(self):
-        return f"CHEM-{self.id}"
+        highest_pk = Container.objects.aggregate(Max("pk"))["pk__max"]
+        max_length = len(str(highest_pk))
+        return f"CHEM-{self.id:0>{max_length}}"
 
     @property
     def is_opened(self):

@@ -7,13 +7,13 @@ export const Containers = () => {
     const [containers, setContainers] = useState([])
 
     const colDefs = [
-        { field: 'label'},
+        { field: 'label', headerName: "ID"},
         { field: 'name'},
         { field: 'location'},
         { field: 'manufacturer'},
         { field: 'quantity'},
-        { field: 'product_num'},
-        { field: 'is_opened'}
+        { field: 'product_num', headerName: "Product #"},
+        { field: 'is_opened', headerName: "Opened?"}
     ]
 
     useEffect(() => {
@@ -21,7 +21,7 @@ export const Containers = () => {
     }, [])
 
     return (
-        <Container sx={{height: '100vh'}}>
+        <Container sx={{height: '80vh'}}>
             <AgGridReact rowData={containers} columnDefs={colDefs} />
         </Container>
     )
