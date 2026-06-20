@@ -1,5 +1,5 @@
 #!/bin/sh
-#Check frontend formatting
+#Check formatting
 echo "Running format checks" >&2
 RESULT=0
 echo "Running prettier checks" >&2
