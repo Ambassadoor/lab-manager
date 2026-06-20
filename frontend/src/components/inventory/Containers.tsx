@@ -2,12 +2,13 @@ import { Container, useTheme } from '@mui/material'
 import { AgGridReact } from 'ag-grid-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getContainers } from '../../api/inventory'
-import { themeMaterial } from 'ag-grid-community'
+import { type ColDef, themeMaterial, type GetRowIdParams, type RowSelectionOptions } from 'ag-grid-community'
+import type { Container as TContainer } from '../../types'
 
 export const Containers = () => {
-    const [containers, setContainers] = useState([])
+    const [containers, setContainers] = useState<TContainer[] | []>([])
 
-    const [colDefs, setColDefs] = useState([
+    const [colDefs, setColDefs] = useState<ColDef[]>([
         { field: 'label', headerName: "ID"},
         { field: 'name'},
         { field: 'location', filter: true},
@@ -17,13 +18,13 @@ export const Containers = () => {
         { field: 'is_opened', headerName: "Opened?"}
     ])
 
-    const rowSelection = useMemo(() => {
+    const rowSelection = useMemo<RowSelectionOptions>(() => {
         return {
             mode: 'multiRow'
         }
     }, [])
 
-    const getRowId = useCallback((params) => params.data.label, [],) 
+    const getRowId = useCallback((params: GetRowIdParams ) => params.data.label, [],) 
 
     const pagination = true;
     const paginationPageSize = 50;
