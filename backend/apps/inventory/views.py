@@ -1,49 +1,31 @@
-from rest_framework.viewsets import ViewSet
+from rest_framework.viewsets import ModelViewSet
+from rest_framework import filters
+from .models import Container, Chemical, Location
+from .serializers import (
+    ContainerSerializer,
+    ContainerWriteSerializer,
+    ChemicalSerializer,
+    LocationSerializer,
+)
 
 
-class Chemical(ViewSet):
-    def create(self, request):
-        pass
-
-    def retrieve(self, request, pk=None):
-        pass
-
-    def list(self, request):
-        pass
-
-    def update(self, request, pk=None):
-        pass
+class ChemicalView(ModelViewSet):
+    queryset = Chemical.objects.all()
+    serializer_class = ChemicalSerializer
 
 
-class Container(ViewSet):
-    def create(self, request):
-        pass
+class ContainerView(ModelViewSet):
+    queryset = Container.objects.all()
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ["id"]
+    ordering = ["id"]
 
-    def retrieve(self, request, pk=None):
-        pass
-
-    def list(self, request):
-        pass
-
-    def update(self, request, pk=None):
-        pass
-
-    def destroy(self, request, pk=None):
-        pass
+    def get_serializer_class(self):
+        if self.action in ["create", "update", "partial_update", "metadata"]:
+            return ContainerWriteSerializer
+        return ContainerSerializer
 
 
-class Location(ViewSet):
-    def create(self, request):
-        pass
-
-    def retrieve(self, request, pk=None):
-        pass
-
-    def list(self, request):
-        pass
-
-    def update(self, request, pk=None):
-        pass
-
-    def destroy(self, request, pk=None):
-        pass
+class LocationView(ModelViewSet):
+    queryset = Location.objects.all()
+    serializer_class = LocationSerializer

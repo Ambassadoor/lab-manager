@@ -24,3 +24,5 @@ media/
 *.swp
 .DS_Store
 Thumbs.db
+data_with_properties.json
+data.json

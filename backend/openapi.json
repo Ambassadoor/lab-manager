@@ -1,0 +1,953 @@
+openapi: 3.0.3
+info:
+  title: ''
+  version: 0.0.0
+paths:
+  /api/auth/csrf/:
+    get:
+      operationId: api_auth_csrf_retrieve
+      description: GET once on app load so Django sets the csrftoken cookie.
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+          description: ''
+  /api/auth/login/:
+    post:
+      operationId: api_auth_login_create
+      description: Session login. Expects {username, password}; returns the user.
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidRequest'
+          description: ''
+  /api/auth/logout/:
+    post:
+      operationId: api_auth_logout_create
+      description: Ends the current session.
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/auth/me/:
+    get:
+      operationId: api_auth_me_retrieve
+      description: Returns the currently authenticated user.
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/auth/register/:
+    post:
+      operationId: api_auth_register_create
+      description: |-
+        Handles the creation of a new user for authentication
+
+        Method arguments:
+        request -- The full HTTP request object
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/NewUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NewUser'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/auth/validate/:
+    get:
+      operationId: api_auth_validate_retrieve
+      description: Validates username availability and checks if account for email
+        exists already
+      parameters:
+      - in: query
+        name: email
+        schema:
+          type: string
+        description: Check for existing account
+      - in: query
+        name: username
+        schema:
+          type: string
+        description: Check for username availability
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+        '422':
+          description: No response body
+  /inventory/chemicals/:
+    get:
+      operationId: inventory_chemicals_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Chemical'
+          description: ''
+    post:
+      operationId: inventory_chemicals_create
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Chemical'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Chemical'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Chemical'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chemical'
+          description: ''
+  /inventory/chemicals/{id}/:
+    get:
+      operationId: inventory_chemicals_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this chemical.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chemical'
+          description: ''
+    put:
+      operationId: inventory_chemicals_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this chemical.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Chemical'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Chemical'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Chemical'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chemical'
+          description: ''
+    patch:
+      operationId: inventory_chemicals_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this chemical.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedChemical'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedChemical'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedChemical'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chemical'
+          description: ''
+    delete:
+      operationId: inventory_chemicals_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this chemical.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /inventory/containers/:
+    get:
+      operationId: inventory_containers_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Container'
+          description: ''
+    post:
+      operationId: inventory_containers_create
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContainerWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContainerWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContainerWrite'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContainerWrite'
+          description: ''
+  /inventory/containers/{id}/:
+    get:
+      operationId: inventory_containers_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this container.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Container'
+          description: ''
+    put:
+      operationId: inventory_containers_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this container.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContainerWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContainerWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContainerWrite'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContainerWrite'
+          description: ''
+    patch:
+      operationId: inventory_containers_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this container.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedContainerWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedContainerWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedContainerWrite'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContainerWrite'
+          description: ''
+    delete:
+      operationId: inventory_containers_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this container.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /inventory/locations/:
+    get:
+      operationId: inventory_locations_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Location'
+          description: ''
+    post:
+      operationId: inventory_locations_create
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Location'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Location'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Location'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+          description: ''
+  /inventory/locations/{id}/:
+    get:
+      operationId: inventory_locations_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this location.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+          description: ''
+    put:
+      operationId: inventory_locations_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this location.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Location'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Location'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Location'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+          description: ''
+    patch:
+      operationId: inventory_locations_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this location.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLocation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLocation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLocation'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+          description: ''
+    delete:
+      operationId: inventory_locations_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this location.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+components:
+  schemas:
+    BlankEnum:
+      enum:
+      - ''
+    Chemical:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 200
+        iupac:
+          type: string
+          nullable: true
+          maxLength: 300
+        cas:
+          type: string
+          nullable: true
+          maxLength: 13
+        formula:
+          type: string
+          nullable: true
+          maxLength: 50
+        molecular_weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,3})?$
+          nullable: true
+        is_organic:
+          type: boolean
+          nullable: true
+        storage_category:
+          type: integer
+          nullable: true
+      required:
+      - id
+      - name
+    Container:
+      type: object
+      properties:
+        label:
+          type: string
+          readOnly: true
+          title: ID
+        name:
+          type: string
+          maxLength: 200
+        location:
+          type: string
+          readOnly: true
+        manufacturer:
+          type: string
+          nullable: true
+          maxLength: 50
+        quantity:
+          type: string
+          readOnly: true
+        product_num:
+          type: string
+          nullable: true
+          title: 'Product #'
+          maxLength: 25
+        is_opened:
+          type: boolean
+          readOnly: true
+          title: Opened?
+      required:
+      - is_opened
+      - label
+      - location
+      - name
+      - quantity
+    ContainerWrite:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        chemical:
+          type: integer
+        location:
+          type: integer
+        manufacturer:
+          type: string
+          nullable: true
+          maxLength: 50
+        initial_quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+          title: Quantity
+        quantity_unit:
+          nullable: true
+          title: Unit
+          oneOf:
+          - $ref: '#/components/schemas/QuantityUnitEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        product_num:
+          type: string
+          nullable: true
+          title: 'Product #'
+          maxLength: 25
+        date_received:
+          type: string
+          format: date
+          nullable: true
+          title: Received on
+        density:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,2})?$
+          nullable: true
+          title: Density/specific gravity
+        expiration_date:
+          type: string
+          format: date
+          nullable: true
+          title: Expires on
+        initial_weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,4})?$
+          nullable: true
+        tare_weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,4})?$
+          nullable: true
+          title: Container weight
+      required:
+      - chemical
+      - location
+      - name
+    InvalidRequest:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    Location:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 20
+        type:
+          type: integer
+        parent:
+          type: integer
+          nullable: true
+      required:
+      - id
+      - name
+      - type
+    NewUser:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        lipscomb_id:
+          type: string
+          nullable: true
+          maxLength: 11
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        password:
+          type: string
+          maxLength: 128
+      required:
+      - email
+      - password
+      - username
+    NullEnum:
+      enum:
+      - null
+    PatchedChemical:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 200
+        iupac:
+          type: string
+          nullable: true
+          maxLength: 300
+        cas:
+          type: string
+          nullable: true
+          maxLength: 13
+        formula:
+          type: string
+          nullable: true
+          maxLength: 50
+        molecular_weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,3})?$
+          nullable: true
+        is_organic:
+          type: boolean
+          nullable: true
+        storage_category:
+          type: integer
+          nullable: true
+    PatchedContainerWrite:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        chemical:
+          type: integer
+        location:
+          type: integer
+        manufacturer:
+          type: string
+          nullable: true
+          maxLength: 50
+        initial_quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+          title: Quantity
+        quantity_unit:
+          nullable: true
+          title: Unit
+          oneOf:
+          - $ref: '#/components/schemas/QuantityUnitEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        product_num:
+          type: string
+          nullable: true
+          title: 'Product #'
+          maxLength: 25
+        date_received:
+          type: string
+          format: date
+          nullable: true
+          title: Received on
+        density:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,2})?$
+          nullable: true
+          title: Density/specific gravity
+        expiration_date:
+          type: string
+          format: date
+          nullable: true
+          title: Expires on
+        initial_weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,4})?$
+          nullable: true
+        tare_weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,4})?$
+          nullable: true
+          title: Container weight
+    PatchedLocation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 20
+        type:
+          type: integer
+        parent:
+          type: integer
+          nullable: true
+    QuantityUnitEnum:
+      enum:
+      - mL
+      - L
+      - mg
+      - g
+      - kg
+      type: string
+      description: |-
+        * `mL` - mL
+        * `L` - L
+        * `mg` - mg
+        * `g` - g
+        * `kg` - kg
+    RoleEnum:
+      enum:
+      - lab_manager
+      - coordinator
+      - stockroom
+      - viewer
+      type: string
+      description: |-
+        * `lab_manager` - Lab Manager
+        * `coordinator` - Coordinator
+        * `stockroom` - Stockroom
+        * `viewer` - Viewer
+    SuccessMessage:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+      required:
+      - email
+      - id
+      - role
+      - username
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
