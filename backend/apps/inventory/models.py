@@ -100,7 +100,7 @@ class Location(models.Model):
     barcode = models.CharField(max_length=75, null=True, blank=True)
 
     @property
-    def full_path(self):
+    def full_path(self) -> str:
         parent = self.parent
         locations = [self.name]
         while parent:
@@ -155,13 +155,13 @@ class Container(models.Model):
     )
 
     @property
-    def label(self):
+    def label(self) -> str:
         highest_pk = Container.objects.aggregate(Max("pk"))["pk__max"]
         max_length = len(str(highest_pk))
         return f"CHEM-{self.id:0>{max_length}}"
 
     @property
-    def is_opened(self):
+    def is_opened(self) -> bool:
         return self.date_opened is not None
 
     @property
@@ -179,7 +179,7 @@ class Container(models.Model):
         return self.tare_weight is not None
 
     @property
-    def quantity(self):
+    def quantity(self) -> str:
         return f"{self.initial_quantity} {self.quantity_unit}"
 
     def __str__(self):

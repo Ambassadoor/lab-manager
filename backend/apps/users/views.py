@@ -1,12 +1,13 @@
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
-from rest_framework import status
+from rest_framework import status, serializers
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from .serializers import UserSerializer
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
+from .serializers import UserSerializer, NewUserSerializer
 
 
 @method_decorator(ensure_csrf_cookie, name="get")
@@ -15,6 +16,14 @@ class CsrfView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=None,
+        responses={
+            200: inline_serializer(
+                name="SuccessMessage", fields={"detail": serializers.CharField()}
+            )
+        },
+    )
     def get(self, request):
         return Response({"detail": "CSRF cookie set"})
 
@@ -24,6 +33,15 @@ class LoginView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=None,
+        responses={
+            200: UserSerializer,
+            401: inline_serializer(
+                name="InvalidRequest", fields={"detail": serializers.CharField()}
+            ),
+        },
+    )
     def post(self, request):
         user = authenticate(
             request,
@@ -44,6 +62,7 @@ class LogoutView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=None, responses={204: None})
     def post(self, request):
         logout(request)
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -54,6 +73,7 @@ class MeView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=None, responses=UserSerializer)
     def get(self, request):
         return Response(UserSerializer(request.user).data)
 
@@ -62,8 +82,9 @@ class RegisterView(APIView):
     """Registers a new user."""
 
     permission_classes = [AllowAny]
+    authentication_classes = []
 
-    @csrf_exempt
+    @extend_schema(request=NewUserSerializer, responses={201: UserSerializer})
     def post(self, request):
         """Handles the creation of a new user for authentication
 
@@ -73,20 +94,10 @@ class RegisterView(APIView):
         User = get_user_model()
 
         req_body = request.data
-
-        # Create a new user by invoking the `create_user` helper method
-        # on Django's built-in User model
-        new_user = User.objects.create_user(
-            username=req_body.get("username"),
-            email=req_body.get("email"),
-            password=req_body.get("password"),
-            first_name=req_body.get("first_name"),
-            last_name=req_body.get("last_name"),
-            # TODO: Implement actual role/type logic
-            role="Lab Manager",
-            user_type="Full User",
-            lipscomb_id=req_body.get("lipscomb_id"),
-        )
+        serializer = NewUserSerializer(data=req_body)
+        serializer.is_valid(raise_exception=True)
+        # TODO: Implement actual role determination logic
+        new_user = serializer.save(role="Lab Manager", user_type="Full User")
 
         return Response(UserSerializer(new_user).data, status=status.HTTP_201_CREATED)
 
@@ -96,6 +107,31 @@ class ValidateView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="email",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Check for existing account",
+            ),
+            OpenApiParameter(
+                name="username",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Check for username availability",
+            ),
+        ],
+        request=None,
+        responses={
+            204: None,
+            422: inline_serializer(
+                name="UserTaken", fields={"errors": OpenApiTypes.OBJECT}
+            ),
+        },
+    )
     def get(self, request):
         User = get_user_model()
 
