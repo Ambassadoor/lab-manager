@@ -1,6 +1,6 @@
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
+from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import status, serializers
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -91,7 +91,6 @@ class RegisterView(APIView):
         Method arguments:
         request -- The full HTTP request object
         """
-        User = get_user_model()
 
         req_body = request.data
         serializer = NewUserSerializer(data=req_body)

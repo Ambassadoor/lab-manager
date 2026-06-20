@@ -1,4 +1,3 @@
-import json
 import os
 import time
 import requests
@@ -12,7 +11,6 @@ from apps.inventory.models import (
     Ingredient,
     WeightReading,
 )
-from django.db.utils import DataError, IntegrityError
 from django.contrib.auth import get_user_model
 
 NOTION_SECRET = os.environ.get("NOTION_SECRET")
