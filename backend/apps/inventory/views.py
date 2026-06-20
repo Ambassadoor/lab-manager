@@ -1,4 +1,5 @@
 from rest_framework.viewsets import ModelViewSet
+from rest_framework import filters
 from .models import Container, Chemical, Location
 from .serializers import (
     ContainerSerializer,
@@ -15,6 +16,9 @@ class ChemicalView(ModelViewSet):
 
 class ContainerView(ModelViewSet):
     queryset = Container.objects.all()
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['id']
+    ordering = ['id']
 
     def get_serializer_class(self):
         if self.action in ["create", "update", "partial_update", "metadata"]:
