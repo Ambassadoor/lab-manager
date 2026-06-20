@@ -1,5 +1,5 @@
 // Shared application types.
-import type { components } from "./api"
+import type { components } from './api';
 export type Role = 'lab_manager' | 'stockroom' | 'viewer';
 
 export interface User {
@@ -23,8 +23,7 @@ export interface PreValidation {
   };
 }
 
-export type Container = components["schemas"]["Container"]
-export type ContainerWrite = components["schemas"]["ContainerWrite"]
-export type Chemical = components["schemas"]["Chemical"]
-export type Location = components["schemas"]["Location"]
-
+export type Container = components['schemas']['Container'];
+export type ContainerWrite = components['schemas']['ContainerWrite'];
+export type Chemical = components['schemas']['Chemical'];
+export type Location = components['schemas']['Location'];

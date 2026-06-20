@@ -17,8 +17,8 @@ class ChemicalView(ModelViewSet):
 class ContainerView(ModelViewSet):
     queryset = Container.objects.all()
     filter_backends = [filters.OrderingFilter]
-    ordering_fields = ['id']
-    ordering = ['id']
+    ordering_fields = ["id"]
+    ordering = ["id"]
 
     def get_serializer_class(self):
         if self.action in ["create", "update", "partial_update", "metadata"]:

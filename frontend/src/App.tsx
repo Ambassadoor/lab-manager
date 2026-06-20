@@ -26,7 +26,7 @@ export default function App() {
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
         <Route path="inventory" element={<Outlet />}>
-          <Route path="containers" element={<Containers />}/>
+          <Route path="containers" element={<Containers />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Route>

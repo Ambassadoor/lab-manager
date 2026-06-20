@@ -6,7 +6,6 @@ from django.utils import timezone
 from django.db.models import Max
 
 
-
 def validate_cas(cas: str):
     """Checks that the provided CAS number is the correct format, and is valid.
 

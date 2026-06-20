@@ -127,9 +127,7 @@ class ValidateView(APIView):
         request=None,
         responses={
             204: None,
-            422: inline_serializer(
-                name="UserTaken", fields={"errors": OpenApiTypes.OBJECT}
-            ),
+            422: inline_serializer(name="UserTaken", fields={"errors": OpenApiTypes.OBJECT}),
         },
     )
     def get(self, request):

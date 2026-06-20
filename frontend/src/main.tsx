@@ -7,7 +7,7 @@ import App from './App';
 import { Theme } from './context/Theme';
 import { AuthProvider } from './context/AuthProvider';
 import { AgGridProvider } from 'ag-grid-react';
-import { AllCommunityModule} from 'ag-grid-community'
+import { AllCommunityModule } from 'ag-grid-community';
 
 const queryClient = new QueryClient({
   defaultOptions: {

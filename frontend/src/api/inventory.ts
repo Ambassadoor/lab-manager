@@ -1,6 +1,6 @@
-import { apiFetch } from "./client";
-import type { Container } from "../types";
+import { apiFetch } from './client';
+import type { Container } from '../types';
 
-export const getContainers = (): Promise<Container[]| []> => {
-    return apiFetch('/inventory/containers/')
-}
+export const getContainers = (): Promise<Container[] | []> => {
+  return apiFetch('/inventory/containers/');
+};
