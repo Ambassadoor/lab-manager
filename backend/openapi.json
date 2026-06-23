@@ -90,7 +90,6 @@ paths:
               $ref: '#/components/schemas/NewUser'
         required: true
       security:
-      - cookieAuth: []
       - {}
       responses:
         '201':
@@ -124,6 +123,160 @@ paths:
         '204':
           description: No response body
         '422':
+          description: No response body
+  /inventory/chemical_storage_categories/:
+    get:
+      operationId: inventory_chemical_storage_categories_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChemicalStorageCategories'
+          description: ''
+    post:
+      operationId: inventory_chemical_storage_categories_create
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChemicalStorageCategories'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChemicalStorageCategories'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChemicalStorageCategories'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChemicalStorageCategories'
+          description: ''
+  /inventory/chemical_storage_categories/{id}/:
+    get:
+      operationId: inventory_chemical_storage_categories_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this chemical storage categories.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChemicalStorageCategories'
+          description: ''
+    put:
+      operationId: inventory_chemical_storage_categories_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this chemical storage categories.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChemicalStorageCategories'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChemicalStorageCategories'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChemicalStorageCategories'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChemicalStorageCategories'
+          description: ''
+    patch:
+      operationId: inventory_chemical_storage_categories_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this chemical storage categories.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedChemicalStorageCategories'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedChemicalStorageCategories'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedChemicalStorageCategories'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChemicalStorageCategories'
+          description: ''
+    delete:
+      operationId: inventory_chemical_storage_categories_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this chemical storage categories.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
           description: No response body
   /inventory/chemicals/:
     get:
@@ -279,6 +432,20 @@ paths:
       responses:
         '204':
           description: No response body
+  /inventory/chemicals/check_cas/:
+    get:
+      operationId: inventory_chemicals_check_cas_retrieve
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chemical'
+          description: ''
   /inventory/containers/:
     get:
       operationId: inventory_containers_list
@@ -616,11 +783,32 @@ components:
           type: boolean
           nullable: true
         storage_category:
-          type: integer
-          nullable: true
+          allOf:
+          - $ref: '#/components/schemas/Nested'
+          readOnly: true
       required:
       - id
       - name
+      - storage_category
+    ChemicalStorageCategories:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        shorthand:
+          type: string
+          maxLength: 3
+        description:
+          type: string
+          maxLength: 50
+        help_text:
+          type: string
+      required:
+      - description
+      - help_text
+      - id
+      - shorthand
     Container:
       type: object
       properties:
@@ -672,10 +860,7 @@ components:
           maxLength: 50
         initial_quantity:
           type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-          title: Quantity
+          minimum: 0
         quantity_unit:
           nullable: true
           title: Unit
@@ -717,6 +902,7 @@ components:
           title: Container weight
       required:
       - chemical
+      - initial_quantity
       - location
       - name
     InvalidRequest:
@@ -744,6 +930,25 @@ components:
       - id
       - name
       - type
+    Nested:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        shorthand:
+          type: string
+          maxLength: 3
+        description:
+          type: string
+          maxLength: 50
+        help_text:
+          type: string
+      required:
+      - description
+      - help_text
+      - id
+      - shorthand
     NewUser:
       type: object
       properties:
@@ -807,8 +1012,23 @@ components:
           type: boolean
           nullable: true
         storage_category:
+          allOf:
+          - $ref: '#/components/schemas/Nested'
+          readOnly: true
+    PatchedChemicalStorageCategories:
+      type: object
+      properties:
+        id:
           type: integer
-          nullable: true
+          readOnly: true
+        shorthand:
+          type: string
+          maxLength: 3
+        description:
+          type: string
+          maxLength: 50
+        help_text:
+          type: string
     PatchedContainerWrite:
       type: object
       properties:
@@ -825,10 +1045,7 @@ components:
           maxLength: 50
         initial_quantity:
           type: integer
-          maximum: 2147483647
-          minimum: -2147483648
-          nullable: true
-          title: Quantity
+          minimum: 0
         quantity_unit:
           nullable: true
           title: Unit

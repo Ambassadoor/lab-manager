@@ -5,7 +5,7 @@ export const getContainers = (): Promise<Container[] | []> => {
   return apiFetch('/inventory/containers/');
 };
 
-export const getChemicalByCas = (cas: string): Promise<Chemical[] | []> => {
+export const getChemicalByCas = (cas: string): Promise<{mixtures: Chemical[], chemicals: Chemical[]}> => {
   return apiFetch(`/inventory/chemicals/check_cas?cas=${cas}`)
 }
 
