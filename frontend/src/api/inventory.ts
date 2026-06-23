@@ -6,5 +6,9 @@ export const getContainers = (): Promise<Container[] | []> => {
 };
 
 export const getChemicalByCas = (cas: string): Promise<Chemical[] | []> => {
-  return apiFetch(`/inventory/chemicals?cas=${cas}`)
+  return apiFetch(`/inventory/chemicals/check_cas?cas=${cas}`)
+}
+
+export const getStorageCategories = () => {
+  return apiFetch(`/inventory/chemical_storage_categories/`)
 }
