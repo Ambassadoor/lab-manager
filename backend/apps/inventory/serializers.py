@@ -7,13 +7,21 @@ from .models import (
     Container,
     WeightReading,
     CheckoutEvent,
+    Ingredient
 )
 
 
 class ChemicalSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Chemical
         exclude = ["pubchem_cid", "synonyms"]
+        depth = 1
+
+    def to_representation(self, instance):
+        self.fields["ingredients"] = IngredientSerializer(many=True, read_only=True)
+        return super().to_representation(instance)
+
 
 
 class ChemicalStorageCategoriesSerializer(serializers.ModelSerializer):
@@ -58,6 +66,8 @@ class ContainerSerializer(serializers.ModelSerializer):
 
 
 class ContainerWriteSerializer(serializers.ModelSerializer):
+    initial_quantity = serializers.IntegerField(min_value=0)
+
     class Meta:
         model = Container
         fields = [
@@ -86,3 +96,10 @@ class CheckoutEventSerializer(serializers.ModelSerializer):
     class Meta:
         model = CheckoutEvent
         exclude = ["container"]
+
+class IngredientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ingredient
+        ingredient = ChemicalSerializer(read_only=True)
+        fields = ['ingredient']
+        depth=1
