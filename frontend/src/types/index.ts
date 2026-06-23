@@ -27,3 +27,4 @@ export type Container = components['schemas']['Container'];
 export type ContainerWrite = components['schemas']['ContainerWrite'];
 export type Chemical = components['schemas']['Chemical'];
 export type Location = components['schemas']['Location'];
+export type StorageCategory = components['schemas']['ChemicalStorageCategories'];
