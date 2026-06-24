@@ -39,7 +39,7 @@ class SDSSerializer(serializers.ModelSerializer):
 class LocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Location
-        fields = ["id", "name", "type", "parent"]
+        fields = ["id", "name", "type", "parent", "full_path"]
 
     def to_representation(self, instance):
         self.fields["parent"] = LocationSerializer(many=False, read_only=True)
