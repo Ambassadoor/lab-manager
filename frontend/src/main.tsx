@@ -8,6 +8,8 @@ import { Theme } from './context/Theme';
 import { AuthProvider } from './context/AuthProvider';
 import { AgGridProvider } from 'ag-grid-react';
 import { AllCommunityModule } from 'ag-grid-community';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,7 +27,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <CssBaseline enableColorScheme />
           <Theme>
             <AgGridProvider modules={modules}>
-              <App />
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <App />
+              </LocalizationProvider>
             </AgGridProvider>
           </Theme>
         </AuthProvider>
