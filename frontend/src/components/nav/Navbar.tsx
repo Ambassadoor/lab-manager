@@ -35,7 +35,7 @@ export const Navbar = (): JSX.Element | null => {
   if (loading) return null;
 
   return (
-    <Paper sx={{ height: '100vh' }}>
+    <Paper>
       <Box sx={{ flexGrow: 1, marginBottom: 5 }}>
         <AppBar position="static">
           <Toolbar>

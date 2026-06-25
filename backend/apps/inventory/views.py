@@ -9,7 +9,7 @@ from .serializers import (
     ContainerWriteSerializer,
     ChemicalSerializer,
     LocationSerializer,
-    ChemicalStorageCategoriesSerializer
+    ChemicalStorageCategoriesSerializer,
 )
 from django.db.models import Count, Q, F
 
@@ -42,7 +42,6 @@ class ChemicalView(ModelViewSet):
             return Response({"mixtures": mixtures, "chemicals": chemicals})
 
 
-
 class ContainerView(ModelViewSet):
     queryset = Container.objects.all()
     filter_backends = [filters.OrderingFilter]
@@ -59,12 +58,13 @@ class LocationView(ModelViewSet):
     queryset = Location.objects.all()
     serializer_class = LocationSerializer
 
+
 class ChemicalStorageCategoryView(ModelViewSet):
     queryset = ChemicalStorageCategories.objects.all()
     serializer_class = ChemicalStorageCategoriesSerializer
 
     def get_queryset(self):
-        queryset =  super().get_queryset()
+        queryset = super().get_queryset()
         sorted = natsorted(queryset, key=lambda obj: obj.shorthand)
 
         return sorted

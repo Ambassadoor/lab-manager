@@ -7,7 +7,11 @@ router = DefaultRouter()
 router.register(r"containers", ContainerView, basename="container")
 router.register(r"chemicals", ChemicalView, basename="chemical")
 router.register(r"locations", LocationView, basename="location")
-router.register(r"chemical_storage_categories", ChemicalStorageCategoryView, basename="chemical_storage_category")
+router.register(
+    r"chemical_storage_categories",
+    ChemicalStorageCategoryView,
+    basename="chemical_storage_category",
+)
 
 urlpatterns = [
     path("", include(router.urls)),

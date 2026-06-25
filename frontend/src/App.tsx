@@ -28,8 +28,8 @@ export default function App() {
         <Route path="register" element={<Register />} />
         <Route path="inventory" element={<Outlet />}>
           <Route path="containers" element={<Outlet />}>
-            <Route path="" element={<Containers />}/>
-            <Route path="new" element={<ContainerForm />}/>
+            <Route path="" element={<Containers />} />
+            <Route path="new" element={<ContainerForm />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />

@@ -26,7 +26,7 @@ def validate_cas(cas: str):
     if match:
         cas_sum = 0
         for index, digit in enumerate(formatted):
-            cas_sum += ((index + 1) * int(digit))
+            cas_sum += (index + 1) * int(digit)
 
         if cas_sum % 10 != check_digit:
             raise ValidationError(f"{cas} is not a valid CAS number")
