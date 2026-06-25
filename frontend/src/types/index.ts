@@ -1,4 +1,5 @@
 // Shared application types.
+import type { Dayjs } from 'dayjs';
 import type { components } from './api';
 export type Role = 'lab_manager' | 'stockroom' | 'viewer';
 
@@ -28,3 +29,46 @@ export type ContainerWrite = components['schemas']['ContainerWrite'];
 export type Chemical = components['schemas']['Chemical'];
 export type Location = components['schemas']['Location'];
 export type StorageCategory = components['schemas']['ChemicalStorageCategories'];
+
+export interface CasCheck {
+  mixtures: Chemical[];
+  chemicals: Chemical[];
+}
+
+export interface ContainerFormDefaults {
+  name: string;
+  multiple_cas: boolean;
+  mixture_name: string;
+  mixture_storage_category: string | number;
+  mixture_molecular_weight: string;
+  chemicals: {
+    cas: string;
+    name: string;
+    molecular_weight: string;
+    storage_category: string | number;
+  }[];
+  location: string | number;
+  manufacturer: string;
+  initial_quantity: string | number;
+  quantity_unit: string;
+  product_num: string;
+  date_received: Dayjs | null;
+  density: string | number;
+  expiration_date: Dayjs | null;
+  initial_weight: string | number;
+  tare_weight: string | number;
+}
+
+export interface ContainerOptions {
+  name: string;
+  description: string;
+  renders: string[];
+  parses: string[];
+  actions: {
+    POST: {
+      quantity_unit: {
+        choices: { value: string; display_name: string }[];
+      };
+    };
+  };
+}

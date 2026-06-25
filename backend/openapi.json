@@ -926,7 +926,11 @@ components:
         parent:
           type: integer
           nullable: true
+        full_path:
+          type: string
+          readOnly: true
       required:
+      - full_path
       - id
       - name
       - type
@@ -1099,6 +1103,9 @@ components:
         parent:
           type: integer
           nullable: true
+        full_path:
+          type: string
+          readOnly: true
     QuantityUnitEnum:
       enum:
       - mL
