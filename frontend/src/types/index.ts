@@ -57,6 +57,7 @@ export interface ContainerFormDefaults {
   expiration_date: Dayjs | null;
   initial_weight: string | number;
   tare_weight: string | number;
+  mixture_id: string | number;
 }
 
 export interface ContainerOptions {
