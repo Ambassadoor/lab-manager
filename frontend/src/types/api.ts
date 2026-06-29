@@ -111,6 +111,38 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/inventory/chemical_storage_categories/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_chemical_storage_categories_list'];
+    put?: never;
+    post: operations['inventory_chemical_storage_categories_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/chemical_storage_categories/{id}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_chemical_storage_categories_retrieve'];
+    put: operations['inventory_chemical_storage_categories_update'];
+    post?: never;
+    delete: operations['inventory_chemical_storage_categories_destroy'];
+    options?: never;
+    head?: never;
+    patch: operations['inventory_chemical_storage_categories_partial_update'];
+    trace?: never;
+  };
   '/inventory/chemicals/': {
     parameters: {
       query?: never;
@@ -141,6 +173,22 @@ export interface paths {
     options?: never;
     head?: never;
     patch: operations['inventory_chemicals_partial_update'];
+    trace?: never;
+  };
+  '/inventory/chemicals/check_cas/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_chemicals_check_cas_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   '/inventory/containers/': {
@@ -222,9 +270,16 @@ export interface components {
       /** Format: decimal */
       molecular_weight?: string | null;
       is_organic?: boolean | null;
-      storage_category?: number | null;
+      readonly storage_category: components['schemas']['Nested'];
+    };
+    ChemicalStorageCategories: {
+      readonly id: number;
+      shorthand: string;
+      description: string;
+      help_text: string;
     };
     Container: {
+      readonly id: number;
       /** ID */
       readonly label: string;
       name: string;
@@ -241,8 +296,7 @@ export interface components {
       chemical: number;
       location: number;
       manufacturer?: string | null;
-      /** Quantity */
-      initial_quantity?: number | null;
+      initial_quantity: number;
       /** Unit */
       quantity_unit?:
         | (
@@ -284,6 +338,13 @@ export interface components {
       name: string;
       type: number;
       parent?: number | null;
+      readonly full_path: string;
+    };
+    Nested: {
+      readonly id: number;
+      shorthand: string;
+      description: string;
+      help_text: string;
     };
     NewUser: {
       /** Format: email */
@@ -306,15 +367,20 @@ export interface components {
       /** Format: decimal */
       molecular_weight?: string | null;
       is_organic?: boolean | null;
-      storage_category?: number | null;
+      readonly storage_category?: components['schemas']['Nested'];
+    };
+    PatchedChemicalStorageCategories: {
+      readonly id?: number;
+      shorthand?: string;
+      description?: string;
+      help_text?: string;
     };
     PatchedContainerWrite: {
       name?: string;
       chemical?: number;
       location?: number;
       manufacturer?: string | null;
-      /** Quantity */
-      initial_quantity?: number | null;
+      initial_quantity?: number;
       /** Unit */
       quantity_unit?:
         | (
@@ -353,6 +419,7 @@ export interface components {
       name?: string;
       type?: number;
       parent?: number | null;
+      readonly full_path?: string;
     };
     /**
      * @description * `mL` - mL
@@ -531,6 +598,154 @@ export interface operations {
       };
     };
   };
+  inventory_chemical_storage_categories_list: {
+    parameters: {
+      query?: {
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+        /** @description A search term. */
+        search?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ChemicalStorageCategories'][];
+        };
+      };
+    };
+  };
+  inventory_chemical_storage_categories_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChemicalStorageCategories'];
+        'application/x-www-form-urlencoded': components['schemas']['ChemicalStorageCategories'];
+        'multipart/form-data': components['schemas']['ChemicalStorageCategories'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ChemicalStorageCategories'];
+        };
+      };
+    };
+  };
+  inventory_chemical_storage_categories_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this chemical storage categories. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ChemicalStorageCategories'];
+        };
+      };
+    };
+  };
+  inventory_chemical_storage_categories_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this chemical storage categories. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChemicalStorageCategories'];
+        'application/x-www-form-urlencoded': components['schemas']['ChemicalStorageCategories'];
+        'multipart/form-data': components['schemas']['ChemicalStorageCategories'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ChemicalStorageCategories'];
+        };
+      };
+    };
+  };
+  inventory_chemical_storage_categories_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this chemical storage categories. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No response body */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  inventory_chemical_storage_categories_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this chemical storage categories. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedChemicalStorageCategories'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedChemicalStorageCategories'];
+        'multipart/form-data': components['schemas']['PatchedChemicalStorageCategories'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ChemicalStorageCategories'];
+        };
+      };
+    };
+  };
   inventory_chemicals_list: {
     parameters: {
       query?: {
@@ -668,6 +883,25 @@ export interface operations {
         'multipart/form-data': components['schemas']['PatchedChemical'];
       };
     };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Chemical'];
+        };
+      };
+    };
+  };
+  inventory_chemicals_check_cas_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
     responses: {
       200: {
         headers: {

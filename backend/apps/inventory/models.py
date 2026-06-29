@@ -186,10 +186,11 @@ class Container(models.Model):
 
 
 class Ingredient(models.Model):
-    chemical = models.ForeignKey(Chemical, on_delete=models.CASCADE, related_name="ingredients")
+    mixture = models.ForeignKey(Chemical, on_delete=models.CASCADE, related_name="ingredients")
+    ingredient = models.ForeignKey(Chemical, on_delete=models.CASCADE, related_name="mixtures")
 
     def __str__(self):
-        return self.chemical.name
+        return self.ingredient.name
 
 
 class WeightReading(models.Model):

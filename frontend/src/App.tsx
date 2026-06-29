@@ -5,6 +5,7 @@ import { useAuth } from './context/AuthContext';
 import { Login } from './components/accounts/Login';
 import { Register } from './components/accounts/Register';
 import { Containers } from './components/inventory/Containers';
+import { ContainerForm } from './components/inventory/ContainerForm';
 
 function NotFound() {
   return (
@@ -26,7 +27,10 @@ export default function App() {
         <Route path="login" element={<Login />} />
         <Route path="register" element={<Register />} />
         <Route path="inventory" element={<Outlet />}>
-          <Route path="containers" element={<Containers />} />
+          <Route path="containers" element={<Outlet />}>
+            <Route path="" element={<Containers />} />
+            <Route path="new" element={<ContainerForm />} />
+          </Route>
         </Route>
         <Route path="*" element={<NotFound />} />
       </Route>

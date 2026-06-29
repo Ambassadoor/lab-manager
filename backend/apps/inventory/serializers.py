@@ -7,6 +7,7 @@ from .models import (
     Container,
     WeightReading,
     CheckoutEvent,
+    Ingredient,
 )
 
 
@@ -14,6 +15,11 @@ class ChemicalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Chemical
         exclude = ["pubchem_cid", "synonyms"]
+        depth = 1
+
+    def to_representation(self, instance):
+        self.fields["ingredients"] = IngredientSerializer(many=True, read_only=True)
+        return super().to_representation(instance)
 
 
 class ChemicalStorageCategoriesSerializer(serializers.ModelSerializer):
@@ -31,7 +37,7 @@ class SDSSerializer(serializers.ModelSerializer):
 class LocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Location
-        fields = ["id", "name", "type", "parent"]
+        fields = ["id", "name", "type", "parent", "full_path"]
 
     def to_representation(self, instance):
         self.fields["parent"] = LocationSerializer(many=False, read_only=True)
@@ -47,6 +53,7 @@ class ContainerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Container
         fields = [
+            "id",
             "label",
             "name",
             "location",
@@ -58,6 +65,10 @@ class ContainerSerializer(serializers.ModelSerializer):
 
 
 class ContainerWriteSerializer(serializers.ModelSerializer):
+    initial_quantity = serializers.IntegerField(min_value=0)
+    chemical = serializers.PrimaryKeyRelatedField(queryset=Chemical.objects.all())
+    location = serializers.PrimaryKeyRelatedField(queryset=Location.objects.all())
+
     class Meta:
         model = Container
         fields = [
@@ -86,3 +97,11 @@ class CheckoutEventSerializer(serializers.ModelSerializer):
     class Meta:
         model = CheckoutEvent
         exclude = ["container"]
+
+
+class IngredientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ingredient
+        ingredient = ChemicalSerializer(read_only=True)
+        fields = ["ingredient"]
+        depth = 1
