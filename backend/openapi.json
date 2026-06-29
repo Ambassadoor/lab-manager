@@ -812,6 +812,9 @@ components:
     Container:
       type: object
       properties:
+        id:
+          type: integer
+          readOnly: true
         label:
           type: string
           readOnly: true
@@ -839,6 +842,7 @@ components:
           readOnly: true
           title: Opened?
       required:
+      - id
       - is_opened
       - label
       - location

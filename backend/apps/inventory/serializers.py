@@ -53,6 +53,7 @@ class ContainerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Container
         fields = [
+            "id",
             "label",
             "name",
             "location",
@@ -65,6 +66,8 @@ class ContainerSerializer(serializers.ModelSerializer):
 
 class ContainerWriteSerializer(serializers.ModelSerializer):
     initial_quantity = serializers.IntegerField(min_value=0)
+    chemical = serializers.PrimaryKeyRelatedField(queryset=Chemical.objects.all())
+    location = serializers.PrimaryKeyRelatedField(queryset=Location.objects.all())
 
     class Meta:
         model = Container
