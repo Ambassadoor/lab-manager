@@ -4,6 +4,7 @@ import {
   AccordionDetails,
   AccordionSummary,
   Box,
+  Button,
   Card,
   Checkbox,
   Container,
@@ -23,7 +24,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Controller, FormProvider, useFieldArray, useForm, useWatch } from 'react-hook-form';
+import { Controller, FormProvider, useFieldArray, useForm, useWatch, type Path, type SubmitHandler } from 'react-hook-form';
 import {
   getChemicalByCas,
   getContainerMetaData,
@@ -88,6 +89,7 @@ export const ContainerForm = () => {
     setValue,
     trigger,
     resetField,
+    handleSubmit,
     ...methods
   } = useForm<ContainerFormDefaults>({
     mode: 'onBlur',
@@ -101,14 +103,10 @@ export const ContainerForm = () => {
 
   const formValues = useWatch({ control });
 
-  const allCas: string[] = useWatch({
+  const allCas = useWatch({
     control,
-    name: fields.map((_, index) => `chemicals.${index}.cas`),
-  });
-
-  useEffect(() => {
-    console.log(allCas);
-  }, [allCas]);
+    name: fields.map((_, index) => `chemicals.${index}.cas` as Path<ContainerFormDefaults>),
+  }) as string[];
 
   useEffect(() => {
     sessionStorage.setItem('container_form_cache', JSON.stringify(formValues));
@@ -199,10 +197,12 @@ export const ContainerForm = () => {
     const volumeUnits = ['mL', 'L'];
     if (defaultUnit.includes('g')) {
       const power = massUnits.indexOf(currentUnit) - massUnits.indexOf(defaultUnit);
-      return parseFloat(String(quantity)) * 1000 ** power;
+      const result = parseFloat(String(quantity)) * 1000 ** power;
+      return result
     } else if (defaultUnit.includes('L')) {
       const power = volumeUnits.indexOf(currentUnit) - volumeUnits.indexOf(defaultUnit);
-      return parseFloat(String(quantity)) * 1000 ** power;
+      const result = parseFloat(String(quantity)) * (1000 ** power);
+      return result
     }
     return parseFloat(String(quantity));
   };
@@ -220,25 +220,19 @@ export const ContainerForm = () => {
       !(initial_weight = parseFloat(String(initial_weight)))
     )
       return;
-
     if (quantity_unit.includes('g')) {
-      //const massUnits = ["mg", "g", "kg"]
-      //const power = massUnits.indexOf(quantity_unit) - 1
-      //initial_quantity *= (1000 ** power)
+
       initial_quantity = convertUnits('g', quantity_unit, initial_quantity);
-      const result = initial_weight - initial_quantity;
+      const result = ((initial_weight * 100) - (initial_quantity * 100))/100;
       clearErrors('tare_weight');
       setValue('tare_weight', result);
       trigger('tare_weight');
     } else if (quantity_unit.includes('L')) {
-      //const volumeUnits = ["mL", "L"]
-      //const power = volumeUnits.indexOf(quantity_unit) - 0
-      //initial_quantity *= (1000 ** power)
       initial_quantity = convertUnits('mL', quantity_unit, initial_quantity);
       if (!density || !(density = parseFloat(String(density)))) {
         return;
       } else {
-        const result = initial_weight - initial_quantity * density;
+        const result = ((initial_weight*100) - ((initial_quantity * density)*100))/100;
         clearErrors('tare_weight');
         setValue('tare_weight', result);
         trigger('tare_weight');
@@ -262,6 +256,10 @@ export const ContainerForm = () => {
     setValue('mixture_storage_category', chosenMixture?.storage_category.id || '');
   }, [formValues.mixture_id, setValue, cas]);
 
+  const onSubmit: SubmitHandler<ContainerFormDefaults> = (data) => {
+    console.log(data)
+  }
+
   return (
     <Container
       sx={{
@@ -275,6 +273,7 @@ export const ContainerForm = () => {
         control={control}
         trigger={trigger}
         resetField={resetField}
+        handleSubmit={handleSubmit}
         formState={{
           errors: errors,
           touchedFields: touchedFields,
@@ -292,7 +291,7 @@ export const ContainerForm = () => {
             padding: 4,
           }}
         >
-          <Box component={'form'}>
+          <Box component={'form'} onSubmit={handleSubmit(onSubmit)}>
             <Stack spacing={2}>
               <Typography component={'h1'} variant={'h4'}>
                 Add New Container
@@ -939,27 +938,30 @@ export const ContainerForm = () => {
                       match: async (value) => {
                         if (!formValues.quantity_unit || !formValues.initial_quantity) return;
                         if (formValues.quantity_unit?.includes('g')) {
-                          if (
-                            parseFloat(String(formValues.initial_weight)) -
-                              convertUnits(
+                          const iw = parseFloat(String(formValues.initial_weight))
+                          const iq = convertUnits(
                                 'g',
                                 formValues.quantity_unit,
                                 formValues.initial_quantity
-                              ) !==
+                              )
+
+                          if (
+                            (iw*10 - iq*10)/10
+                               !==
                             parseFloat(String(value))
                           ) {
                             return 'Tare weight should equal the difference between the Initial Weight and the Initial Quantity';
                           }
                         } else {
+                          const iw = parseFloat(String(formValues.initial_weight))
+                          const iq = convertUnits(
+                            "mL",
+                            formValues.quantity_unit,
+                            formValues.initial_quantity
+                          )
+                          const d = parseFloat(String(formValues.density))
                           if (
-                            parseFloat(String(formValues.initial_weight)) -
-                              convertUnits(
-                                'mL',
-                                formValues.quantity_unit,
-                                formValues.initial_quantity
-                              ) *
-                                parseFloat(String(formValues.density)) !==
-                            parseFloat(String(value))
+                            ((iw*100) - ((iq*d)*100))/100 !== parseFloat(String(value))
                           ) {
                             return 'Tare weight should equal Initial Weight - Initial Quantity * Density';
                           }
@@ -986,6 +988,11 @@ export const ContainerForm = () => {
                     />
                   )}
                 />
+              </Stack>
+              <Divider/>
+              <Stack direction={'row'} spacing={2} sx={{justifyContent:"right"}}>
+                  <Button variant='contained' type='submit'>Submit</Button>
+                  <Button variant='outlined'>Cancel</Button>
               </Stack>
             </Stack>
           </Box>
