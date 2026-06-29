@@ -60,30 +60,28 @@ class ContainerSerializer(serializers.ModelSerializer):
             "id",
             "label",
             "name",
-            'density',
+            "density",
             "location",
             "manufacturer",
             "quantity",
             "product_num",
             "date_received",
             "is_opened",
-            'latest_reading',
-            'percent_remaining',
+            "latest_reading",
+            "percent_remaining",
         ]
 
     def get_latest_reading(self, obj):
-        latest = obj.readings.order_by('-recorded_at').first()
+        latest = obj.readings.order_by("-recorded_at").first()
         if latest:
             return WeightReadingSerializer(latest).data
-        
+
     def get_percent_remaining(self, obj):
         mass = Decimal(str(obj.initial_content_mass))
         current_weight = Decimal(str(self.get_latest_reading(obj)["weight"]))
         tare_weight = Decimal(str(obj.tare_weight))
 
-        return ((current_weight - tare_weight)/mass)*100
-
-
+        return ((current_weight - tare_weight) / mass) * 100
 
 
 class ContainerWriteSerializer(serializers.ModelSerializer):

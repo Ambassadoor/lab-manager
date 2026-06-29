@@ -31,7 +31,7 @@ export default function App() {
           <Route path="containers" element={<Outlet />}>
             <Route path="" element={<Containers />} />
             <Route path="new" element={<ContainerForm />} />
-            <Route path=":id" element={<ContainerDetail />}/>
+            <Route path=":id" element={<ContainerDetail />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />
