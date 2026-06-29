@@ -10,6 +10,8 @@ from .models import (
     Ingredient,
 )
 
+from decimal import Decimal
+
 
 class ChemicalSerializer(serializers.ModelSerializer):
     class Meta:
@@ -49,6 +51,8 @@ class ContainerSerializer(serializers.ModelSerializer):
     is_opened = serializers.ReadOnlyField(label="Opened?")
     quantity = serializers.ReadOnlyField(label="Quantity")
     location = serializers.ReadOnlyField(label="Location", source="location.full_path")
+    percent_remaining = serializers.SerializerMethodField()
+    latest_reading = serializers.SerializerMethodField()
 
     class Meta:
         model = Container
@@ -56,12 +60,30 @@ class ContainerSerializer(serializers.ModelSerializer):
             "id",
             "label",
             "name",
+            'density',
             "location",
             "manufacturer",
             "quantity",
             "product_num",
+            "date_received",
             "is_opened",
+            'latest_reading',
+            'percent_remaining',
         ]
+
+    def get_latest_reading(self, obj):
+        latest = obj.readings.order_by('-recorded_at').first()
+        if latest:
+            return WeightReadingSerializer(latest).data
+        
+    def get_percent_remaining(self, obj):
+        mass = Decimal(str(obj.initial_content_mass))
+        current_weight = Decimal(str(self.get_latest_reading(obj)["weight"]))
+        tare_weight = Decimal(str(obj.tare_weight))
+
+        return ((current_weight - tare_weight)/mass)*100
+
+
 
 
 class ContainerWriteSerializer(serializers.ModelSerializer):

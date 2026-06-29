@@ -822,6 +822,12 @@ components:
         name:
           type: string
           maxLength: 200
+        density:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,2})?$
+          nullable: true
+          title: Density/specific gravity
         location:
           type: string
           readOnly: true
@@ -837,16 +843,29 @@ components:
           nullable: true
           title: 'Product #'
           maxLength: 25
+        date_received:
+          type: string
+          format: date
+          nullable: true
+          title: Received on
         is_opened:
           type: boolean
           readOnly: true
           title: Opened?
+        latest_reading:
+          type: string
+          readOnly: true
+        percent_remaining:
+          type: string
+          readOnly: true
       required:
       - id
       - is_opened
       - label
+      - latest_reading
       - location
       - name
+      - percent_remaining
       - quantity
     ContainerWrite:
       type: object
