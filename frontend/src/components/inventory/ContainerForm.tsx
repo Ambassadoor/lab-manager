@@ -284,8 +284,7 @@ export const ContainerForm = () => {
 
     const response = await submitNewContainerForm(data);
     sessionStorage.removeItem('container_form_cache');
-    navigate(`inventory/containers/${response.id}`);
-    console.log(response);
+    navigate(`/inventory/containers/${response.id}`);
   };
 
   return (
