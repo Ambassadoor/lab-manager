@@ -22,7 +22,7 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, FormProvider, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import {
   getChemicalByCas,
@@ -45,9 +45,41 @@ export const ContainerForm = () => {
   >([]);
   const [locations, setLocations] = useState<GroupedLocations>({});
   const [metaData, setMetaData] = useState<ContainerOptions | undefined>();
-  const [cas, setCas] = useState<CasCheck | []>([]);
+  const [cas, setCas] = useState<CasCheck | undefined>();
 
   const theme = useTheme();
+
+  const defaultValues = {
+    name: '',
+    multiple_cas: false,
+    mixture_name: '',
+    mixture_storage_category: '',
+    mixture_molecular_weight: '',
+    chemicals: [
+      {
+        cas: '',
+        name: '',
+        molecular_weight: '',
+        storage_category: '',
+      },
+    ],
+    location: '',
+    manufacturer: '',
+    initial_quantity: '',
+    quantity_unit: 'g',
+    product_num: '',
+    date_received: null,
+    density: '',
+    expiration_date: null,
+    initial_weight: '',
+    tare_weight: '',
+    mixture_id: '',
+  };
+
+  const getContainerCachedValues = () => {
+    const cached = sessionStorage.getItem('container_form_cache');
+    return cached ? JSON.parse(cached) : defaultValues;
+  };
 
   const {
     control,
@@ -55,41 +87,32 @@ export const ContainerForm = () => {
     formState: { errors, dirtyFields, touchedFields, ...rest },
     setValue,
     trigger,
+    resetField,
     ...methods
   } = useForm<ContainerFormDefaults>({
     mode: 'onBlur',
-    defaultValues: {
-      name: '',
-      multiple_cas: false,
-      mixture_name: '',
-      mixture_storage_category: '',
-      mixture_molecular_weight: '',
-      chemicals: [
-        {
-          cas: '',
-          name: '',
-          molecular_weight: '',
-          storage_category: '',
-        },
-      ],
-      location: '',
-      manufacturer: '',
-      initial_quantity: '',
-      quantity_unit: 'g',
-      product_num: '',
-      date_received: null,
-      density: '',
-      expiration_date: null,
-      initial_weight: '',
-      tare_weight: '',
-    },
+    defaultValues: getContainerCachedValues(),
   });
   const { fields, append, remove } = useFieldArray({
     control: control,
     name: 'chemicals',
+    keyName: 'rhfId',
   });
 
   const formValues = useWatch({ control });
+
+  const allCas: string[] = useWatch({
+    control,
+    name: fields.map((_, index) => `chemicals.${index}.cas`),
+  });
+
+  useEffect(() => {
+    console.log(allCas);
+  }, [allCas]);
+
+  useEffect(() => {
+    sessionStorage.setItem('container_form_cache', JSON.stringify(formValues));
+  }, [formValues]);
 
   type GroupedLocations = Record<string, Location[]>;
 
@@ -117,24 +140,45 @@ export const ContainerForm = () => {
     getContainerMetaData().then(setMetaData);
   }, [formatLocations]);
 
-  useEffect(() => {
-    if (!formValues.chemicals) return;
-    const cas = formValues?.chemicals?.map((c, i) => {
-      if (!errors?.chemicals?.[i]?.cas) {
-        return { index: i, cas: c.cas };
-      } else return {};
+  const cas_is_valid = (value: string) => {
+    if (!value) return false;
+    const parts = value.split('-');
+    const check_digit = parts[2];
+    const formatted = parts.join('').split('').reverse();
+    let sum = 0;
+    formatted.forEach((d, i) => {
+      sum += i * Number(d);
     });
-    if (!cas) return;
-    const casString = cas
-      ?.map((c) => {
-        if (c.cas) return c.cas;
-      })
-      .join(',');
+    if (sum % 10 !== Number(check_digit)) {
+      return false;
+    } else return true;
+  };
+  const casRef = useRef(cas);
 
-    if (casString)
+  useEffect(() => {
+    if (!allCas) return;
+    const validCasNum: { index: number; cas: string }[] = [];
+    let already_processed = false;
+    allCas.forEach((c, i) => {
+      if (!errors.chemicals?.[i]?.cas && c && cas_is_valid(c)) {
+        validCasNum.push({ index: i, cas: c });
+      }
+    });
+    if (
+      casRef.current &&
+      validCasNum.every((c) => casRef.current?.chemicals.map((chem) => chem.cas).includes(c.cas)) &&
+      casRef.current.chemicals.every((chem) => {
+        if (!chem.cas) return false;
+        else return validCasNum.map((n) => n.cas).includes(chem.cas);
+      })
+    )
+      already_processed = true;
+    if (already_processed) return;
+    const casString = validCasNum?.map((v) => v.cas).join(',');
+    if (casString.length > 0)
       getChemicalByCas(casString).then((res) => {
         res.chemicals.forEach((c) => {
-          const name = cas.find((o) => {
+          const name = validCasNum.find((o) => {
             return o.cas === c.cas;
           });
           if (name?.index !== undefined) {
@@ -146,8 +190,9 @@ export const ContainerForm = () => {
           }
         });
         setCas(res);
+        casRef.current = res;
       });
-  }, [formValues.chemicals, errors?.chemicals, setValue]);
+  }, [errors.chemicals, setValue, allCas]);
 
   const convertUnits = (defaultUnit: string, currentUnit: string, quantity: string | number) => {
     const massUnits = ['mg', 'g', 'kg'];
@@ -209,6 +254,14 @@ export const ContainerForm = () => {
     setValue,
   ]);
 
+  useEffect(() => {
+    if (!formValues.mixture_id) return;
+    const chosenMixture = cas?.mixtures.find((mix) => mix.id === Number(formValues.mixture_id));
+    setValue('mixture_name', chosenMixture?.name || '');
+    setValue('mixture_molecular_weight', chosenMixture?.molecular_weight || '');
+    setValue('mixture_storage_category', chosenMixture?.storage_category.id || '');
+  }, [formValues.mixture_id, setValue, cas]);
+
   return (
     <Container
       sx={{
@@ -221,6 +274,7 @@ export const ContainerForm = () => {
         setValue={setValue}
         control={control}
         trigger={trigger}
+        resetField={resetField}
         formState={{
           errors: errors,
           touchedFields: touchedFields,
@@ -281,107 +335,8 @@ export const ContainerForm = () => {
                   />
                 )}
               />
-              {formValues.multiple_cas && (
-                <>
-                  <Controller
-                    control={control}
-                    name={`mixture_name`}
-                    render={({ field: { onChange, name, ...field } }) => (
-                      <TextField
-                        {...field}
-                        label="Mixture Name"
-                        fullWidth
-                        error={!!errors.mixture_name}
-                        helperText={errors.mixture_name?.message ? errors.mixture_name.message : ''}
-                        onChange={(e) => {
-                          onChange(e);
-                          clearErrors(name);
-                        }}
-                      />
-                    )}
-                    rules={{
-                      required: {
-                        value: true,
-                        message: 'Required',
-                      },
-                    }}
-                  />
-                  <Controller
-                    control={control}
-                    name={'mixture_storage_category'}
-                    rules={{
-                      required: {
-                        value: true,
-                        message: 'Required',
-                      },
-                    }}
-                    render={({ field, fieldState: { error } }) => (
-                      <FormControl>
-                        <InputLabel id="sc_label">Storage Category</InputLabel>
-                        <Select
-                          {...field}
-                          labelId="sc_label"
-                          label="Storage Category"
-                          value={formValues?.mixture_storage_category}
-                          error={!!error}
-                          onChange={(e) => {
-                            field.onChange(e);
-                            clearErrors(field.name);
-                          }}
-                          MenuProps={{
-                            slotProps: {
-                              paper: {
-                                sx: {
-                                  maxHeight: 200,
-                                },
-                              },
-                            },
-                          }}
-                        >
-                          {chemicalStorageCategories.map((c) => (
-                            <MenuItem key={c.id} value={c.id}>
-                              {c.shorthand}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        {error && <FormHelperText error>{error?.message}</FormHelperText>}
-                      </FormControl>
-                    )}
-                  />
-                  <Controller
-                    control={control}
-                    name={'mixture_molecular_weight'}
-                    rules={{
-                      pattern: {
-                        value: /^\d+(\.\d+)?$/,
-                        message: 'Please input integer or decimal value.',
-                      },
-                    }}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        error={!!errors.mixture_molecular_weight}
-                        label="Molecular Weight"
-                        onChange={(e) => {
-                          field.onChange(e);
-                          clearErrors('mixture_molecular_weight');
-                        }}
-                        helperText={
-                          errors.mixture_molecular_weight && errors.mixture_molecular_weight.message
-                        }
-                        slotProps={{
-                          input: {
-                            endAdornment: <InputAdornment position="end">g/mol</InputAdornment>,
-                          },
-                        }}
-                      />
-                    )}
-                  />
-                  <Divider />
-                </>
-              )}
               {fields.map((item, index) => (
-                <Stack spacing={2} key={item.id}>
+                <Stack spacing={2} key={item.rhfId}>
                   <Controller
                     control={control}
                     name={`chemicals.${index}.cas`}
@@ -396,17 +351,7 @@ export const ContainerForm = () => {
                       },
                       validate: {
                         check_digit: (value) => {
-                          if (!value) return true;
-                          const parts = value.split('-');
-                          const check_digit = parts[2];
-                          const formatted = parts.join('').split('').reverse();
-                          let sum = 0;
-                          formatted.forEach((d, i) => {
-                            sum += i * Number(d);
-                          });
-                          if (sum % 10 !== Number(check_digit)) {
-                            return 'Invalid CAS number';
-                          }
+                          if (!cas_is_valid(value)) return 'Invalid CAS number';
                         },
                         duplicate: async (value) => {
                           if (!formValues?.chemicals) return true;
@@ -565,6 +510,159 @@ export const ContainerForm = () => {
                   )}
                 </Stack>
               ))}
+              {formValues.multiple_cas && (
+                <>
+                  {cas?.mixtures && cas?.mixtures.length > 0 && (
+                    <Controller
+                      control={control}
+                      name={`mixture_id`}
+                      rules={{
+                        required: {
+                          value: true,
+                          message: 'Select an existing mixture, or create a new one',
+                        },
+                      }}
+                      render={({ field, fieldState: { error } }) => (
+                        <FormControl>
+                          <InputLabel id="mixture_label">Select a Mixture</InputLabel>
+                          <Select
+                            {...field}
+                            labelId="mixture_label"
+                            label="Select a Mixture"
+                            value={formValues?.mixture_id}
+                            error={!!error}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              clearErrors(field.name);
+                            }}
+                            MenuProps={{
+                              slotProps: {
+                                paper: {
+                                  sx: {
+                                    maxHeight: 200,
+                                  },
+                                },
+                              },
+                            }}
+                          >
+                            <MenuItem key={-1} value={-1}>
+                              Create New Mixture
+                            </MenuItem>
+                            {cas.mixtures.map((mix) => (
+                              <MenuItem key={mix.id} value={mix.id}>
+                                {mix.name}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                          {error && <FormHelperText error>{error.message}</FormHelperText>}
+                        </FormControl>
+                      )}
+                    />
+                  )}
+                  <Box>
+                    <Stack spacing={2} sx={{ ml: 2 }}>
+                      <Controller
+                        control={control}
+                        name={`mixture_name`}
+                        render={({ field: { onChange, name, ...field } }) => (
+                          <TextField
+                            {...field}
+                            label="Mixture Name"
+                            fullWidth
+                            error={!!errors.mixture_name}
+                            helperText={
+                              errors.mixture_name?.message ? errors.mixture_name.message : ''
+                            }
+                            onChange={(e) => {
+                              onChange(e);
+                              clearErrors(name);
+                            }}
+                          />
+                        )}
+                        rules={{
+                          required: {
+                            value: true,
+                            message: 'Required',
+                          },
+                        }}
+                      />
+                      <Controller
+                        control={control}
+                        name={'mixture_storage_category'}
+                        rules={{
+                          required: {
+                            value: true,
+                            message: 'Required',
+                          },
+                        }}
+                        render={({ field, fieldState: { error } }) => (
+                          <FormControl>
+                            <InputLabel id="sc_label">Storage Category</InputLabel>
+                            <Select
+                              {...field}
+                              labelId="sc_label"
+                              label="Storage Category"
+                              value={formValues?.mixture_storage_category}
+                              error={!!error}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                clearErrors(field.name);
+                              }}
+                              MenuProps={{
+                                slotProps: {
+                                  paper: {
+                                    sx: {
+                                      maxHeight: 200,
+                                    },
+                                  },
+                                },
+                              }}
+                            >
+                              {chemicalStorageCategories.map((c) => (
+                                <MenuItem key={c.id} value={c.id}>
+                                  {c.shorthand}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                            {error && <FormHelperText error>{error?.message}</FormHelperText>}
+                          </FormControl>
+                        )}
+                      />
+                      <Controller
+                        control={control}
+                        name={'mixture_molecular_weight'}
+                        rules={{
+                          pattern: {
+                            value: /^\d+(\.\d+)?$/,
+                            message: 'Please input integer or decimal value.',
+                          },
+                        }}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            error={!!errors.mixture_molecular_weight}
+                            label="Molecular Weight"
+                            onChange={(e) => {
+                              field.onChange(e);
+                              clearErrors('mixture_molecular_weight');
+                            }}
+                            helperText={
+                              errors.mixture_molecular_weight &&
+                              errors.mixture_molecular_weight.message
+                            }
+                            slotProps={{
+                              input: {
+                                endAdornment: <InputAdornment position="end">g/mol</InputAdornment>,
+                              },
+                            }}
+                          />
+                        )}
+                      />
+                    </Stack>
+                  </Box>
+                  <Divider />
+                </>
+              )}
               <Controller
                 control={control}
                 name="location"
