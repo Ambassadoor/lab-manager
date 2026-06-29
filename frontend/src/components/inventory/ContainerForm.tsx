@@ -30,6 +30,7 @@ import {
   getContainerMetaData,
   getLocations,
   getStorageCategories,
+  submitNewContainerForm,
 } from '../../api/inventory';
 import { DateField } from '@mui/x-date-pickers';
 import {
@@ -39,6 +40,9 @@ import {
   type StorageCategory,
   type ContainerOptions,
 } from '../../types';
+import { useNavigate } from 'react-router-dom';
+import { Decimal } from 'decimal.js'
+import dayjs from 'dayjs';
 
 export const ContainerForm = () => {
   const [chemicalStorageCategories, setChemicalStorageCategories] = useState<
@@ -49,6 +53,7 @@ export const ContainerForm = () => {
   const [cas, setCas] = useState<CasCheck | undefined>();
 
   const theme = useTheme();
+  const navigate = useNavigate();
 
   const defaultValues = {
     name: '',
@@ -153,6 +158,7 @@ export const ContainerForm = () => {
   };
   const casRef = useRef(cas);
 
+
   useEffect(() => {
     if (!allCas) return;
     const validCasNum: { index: number; cas: string }[] = [];
@@ -195,13 +201,14 @@ export const ContainerForm = () => {
   const convertUnits = (defaultUnit: string, currentUnit: string, quantity: string | number) => {
     const massUnits = ['mg', 'g', 'kg'];
     const volumeUnits = ['mL', 'L'];
+    const q = new Decimal(parseFloat(String(quantity)))
     if (defaultUnit.includes('g')) {
       const power = massUnits.indexOf(currentUnit) - massUnits.indexOf(defaultUnit);
-      const result = parseFloat(String(quantity)) * 1000 ** power;
+      const result = q.times(1000 ** power).toNumber();
       return result
     } else if (defaultUnit.includes('L')) {
       const power = volumeUnits.indexOf(currentUnit) - volumeUnits.indexOf(defaultUnit);
-      const result = parseFloat(String(quantity)) * (1000 ** power);
+      const result = q.times(1000 ** power).toNumber();
       return result
     }
     return parseFloat(String(quantity));
@@ -223,18 +230,23 @@ export const ContainerForm = () => {
     if (quantity_unit.includes('g')) {
 
       initial_quantity = convertUnits('g', quantity_unit, initial_quantity);
-      const result = ((initial_weight * 100) - (initial_quantity * 100))/100;
+      const iw = new Decimal(initial_weight)
+      const iq = new Decimal(initial_quantity)
+      const result = iw.minus(iq);
       clearErrors('tare_weight');
-      setValue('tare_weight', result);
+      setValue('tare_weight', result.toNumber());
       trigger('tare_weight');
     } else if (quantity_unit.includes('L')) {
       initial_quantity = convertUnits('mL', quantity_unit, initial_quantity);
+      const iw = new Decimal(initial_weight)
+      const iq = new Decimal(initial_quantity)
       if (!density || !(density = parseFloat(String(density)))) {
         return;
       } else {
-        const result = ((initial_weight*100) - ((initial_quantity * density)*100))/100;
+        const d = new Decimal(density)
+        const result = iw.minus(iq.times(d))
         clearErrors('tare_weight');
-        setValue('tare_weight', result);
+        setValue('tare_weight', result.toNumber());
         trigger('tare_weight');
       }
     }
@@ -256,8 +268,18 @@ export const ContainerForm = () => {
     setValue('mixture_storage_category', chosenMixture?.storage_category.id || '');
   }, [formValues.mixture_id, setValue, cas]);
 
-  const onSubmit: SubmitHandler<ContainerFormDefaults> = (data) => {
-    console.log(data)
+  const onSubmit: SubmitHandler<ContainerFormDefaults> = async (data) => {   
+    if (data.date_received) {
+      data.date_received = data.date_received?.split("T")[0] || null
+    }
+    if (data.expiration_date) {
+      data.expiration_date = data.expiration_date?.split("T")[0] || null
+    }
+
+    const response = await submitNewContainerForm(data)
+    sessionStorage.removeItem("container_form_cache")
+    navigate(`inventory/containers/${response.id}`)
+    console.log(response)
   }
 
   return (
@@ -851,6 +873,7 @@ export const ContainerForm = () => {
                   <DateField
                     {...field}
                     label="Date Received"
+                    value={dayjs(field.value)}
                     clearable
                     disableFuture
                     error={!!error}
@@ -883,7 +906,14 @@ export const ContainerForm = () => {
               <Controller
                 control={control}
                 name="expiration_date"
-                render={({ field }) => <DateField {...field} label="Expiration Date" clearable />}
+                render={({ field, fieldState: {error} }) => 
+                <DateField 
+                {...field} 
+                label="Expiration Date" 
+                clearable 
+                error={!!error}
+                helperText={error && error.message}
+                value={dayjs(field.value)} />}
               />
               <Stack direction={'row'} spacing={2}>
                 <Controller
@@ -938,30 +968,30 @@ export const ContainerForm = () => {
                       match: async (value) => {
                         if (!formValues.quantity_unit || !formValues.initial_quantity) return;
                         if (formValues.quantity_unit?.includes('g')) {
-                          const iw = parseFloat(String(formValues.initial_weight))
-                          const iq = convertUnits(
+                          const v = new Decimal(parseFloat(String(value)))
+                          const iw = new Decimal(parseFloat(String(formValues.initial_weight)))
+                          const iq = new Decimal(convertUnits(
                                 'g',
                                 formValues.quantity_unit,
                                 formValues.initial_quantity
-                              )
+                              ))
 
                           if (
-                            (iw*10 - iq*10)/10
-                               !==
-                            parseFloat(String(value))
+                            !iw.minus(iq).equals(v)
                           ) {
                             return 'Tare weight should equal the difference between the Initial Weight and the Initial Quantity';
                           }
                         } else {
-                          const iw = parseFloat(String(formValues.initial_weight))
-                          const iq = convertUnits(
+                          const iw = new Decimal(parseFloat(String(formValues.initial_weight)))
+                          const iq = new Decimal(convertUnits(
                             "mL",
                             formValues.quantity_unit,
                             formValues.initial_quantity
-                          )
-                          const d = parseFloat(String(formValues.density))
+                          ))
+                          const v = new Decimal(value)
+                          const d = new Decimal(parseFloat(String(formValues.density)))
                           if (
-                            ((iw*100) - ((iq*d)*100))/100 !== parseFloat(String(value))
+                            !iw.minus(iq.times(d)).equals(v)
                           ) {
                             return 'Tare weight should equal Initial Weight - Initial Quantity * Density';
                           }
