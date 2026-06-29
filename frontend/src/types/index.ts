@@ -1,6 +1,7 @@
 // Shared application types.
 import type { Dayjs } from 'dayjs';
 import type { components } from './api';
+import type Decimal from 'decimal.js';
 export type Role = 'lab_manager' | 'stockroom' | 'viewer';
 
 export interface User {
@@ -52,9 +53,9 @@ export interface ContainerFormDefaults {
   initial_quantity: string | number;
   quantity_unit: string;
   product_num: string;
-  date_received: Dayjs | null;
+  date_received: string | null;
   density: string | number;
-  expiration_date: Dayjs | null;
+  expiration_date: string | null;
   initial_weight: string | number;
   tare_weight: string | number;
   mixture_id: string | number;
