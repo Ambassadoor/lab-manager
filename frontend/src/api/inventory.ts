@@ -1,5 +1,12 @@
 import { apiFetch } from './client';
-import type { Container, StorageCategory, Location, CasCheck, ContainerOptions, ContainerFormDefaults } from '../types';
+import type {
+  Container,
+  StorageCategory,
+  Location,
+  CasCheck,
+  ContainerOptions,
+  ContainerFormDefaults,
+} from '../types';
 
 export const getContainers = (): Promise<Container[] | []> => {
   return apiFetch('/inventory/containers/');
@@ -26,6 +33,6 @@ export const getContainerMetaData = (): Promise<ContainerOptions> => {
 export const submitNewContainerForm = (data: ContainerFormDefaults): Promise<Container> => {
   return apiFetch('/inventory/containers/', {
     method: 'POST',
-    body: JSON.stringify(data)
-  })
-}
+    body: JSON.stringify(data),
+  });
+};

@@ -1,7 +1,5 @@
 // Shared application types.
-import type { Dayjs } from 'dayjs';
 import type { components } from './api';
-import type Decimal from 'decimal.js';
 export type Role = 'lab_manager' | 'stockroom' | 'viewer';
 
 export interface User {

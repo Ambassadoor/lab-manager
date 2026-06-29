@@ -24,7 +24,15 @@ import {
   useTheme,
 } from '@mui/material';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Controller, FormProvider, useFieldArray, useForm, useWatch, type Path, type SubmitHandler } from 'react-hook-form';
+import {
+  Controller,
+  FormProvider,
+  useFieldArray,
+  useForm,
+  useWatch,
+  type Path,
+  type SubmitHandler,
+} from 'react-hook-form';
 import {
   getChemicalByCas,
   getContainerMetaData,
@@ -41,7 +49,7 @@ import {
   type ContainerOptions,
 } from '../../types';
 import { useNavigate } from 'react-router-dom';
-import { Decimal } from 'decimal.js'
+import { Decimal } from 'decimal.js';
 import dayjs from 'dayjs';
 
 export const ContainerForm = () => {
@@ -158,7 +166,6 @@ export const ContainerForm = () => {
   };
   const casRef = useRef(cas);
 
-
   useEffect(() => {
     if (!allCas) return;
     const validCasNum: { index: number; cas: string }[] = [];
@@ -201,15 +208,15 @@ export const ContainerForm = () => {
   const convertUnits = (defaultUnit: string, currentUnit: string, quantity: string | number) => {
     const massUnits = ['mg', 'g', 'kg'];
     const volumeUnits = ['mL', 'L'];
-    const q = new Decimal(parseFloat(String(quantity)))
+    const q = new Decimal(parseFloat(String(quantity)));
     if (defaultUnit.includes('g')) {
       const power = massUnits.indexOf(currentUnit) - massUnits.indexOf(defaultUnit);
       const result = q.times(1000 ** power).toNumber();
-      return result
+      return result;
     } else if (defaultUnit.includes('L')) {
       const power = volumeUnits.indexOf(currentUnit) - volumeUnits.indexOf(defaultUnit);
       const result = q.times(1000 ** power).toNumber();
-      return result
+      return result;
     }
     return parseFloat(String(quantity));
   };
@@ -228,23 +235,22 @@ export const ContainerForm = () => {
     )
       return;
     if (quantity_unit.includes('g')) {
-
       initial_quantity = convertUnits('g', quantity_unit, initial_quantity);
-      const iw = new Decimal(initial_weight)
-      const iq = new Decimal(initial_quantity)
+      const iw = new Decimal(initial_weight);
+      const iq = new Decimal(initial_quantity);
       const result = iw.minus(iq);
       clearErrors('tare_weight');
       setValue('tare_weight', result.toNumber());
       trigger('tare_weight');
     } else if (quantity_unit.includes('L')) {
       initial_quantity = convertUnits('mL', quantity_unit, initial_quantity);
-      const iw = new Decimal(initial_weight)
-      const iq = new Decimal(initial_quantity)
+      const iw = new Decimal(initial_weight);
+      const iq = new Decimal(initial_quantity);
       if (!density || !(density = parseFloat(String(density)))) {
         return;
       } else {
-        const d = new Decimal(density)
-        const result = iw.minus(iq.times(d))
+        const d = new Decimal(density);
+        const result = iw.minus(iq.times(d));
         clearErrors('tare_weight');
         setValue('tare_weight', result.toNumber());
         trigger('tare_weight');
@@ -268,19 +274,19 @@ export const ContainerForm = () => {
     setValue('mixture_storage_category', chosenMixture?.storage_category.id || '');
   }, [formValues.mixture_id, setValue, cas]);
 
-  const onSubmit: SubmitHandler<ContainerFormDefaults> = async (data) => {   
+  const onSubmit: SubmitHandler<ContainerFormDefaults> = async (data) => {
     if (data.date_received) {
-      data.date_received = data.date_received?.split("T")[0] || null
+      data.date_received = data.date_received?.split('T')[0] || null;
     }
     if (data.expiration_date) {
-      data.expiration_date = data.expiration_date?.split("T")[0] || null
+      data.expiration_date = data.expiration_date?.split('T')[0] || null;
     }
 
-    const response = await submitNewContainerForm(data)
-    sessionStorage.removeItem("container_form_cache")
-    navigate(`inventory/containers/${response.id}`)
-    console.log(response)
-  }
+    const response = await submitNewContainerForm(data);
+    sessionStorage.removeItem('container_form_cache');
+    navigate(`inventory/containers/${response.id}`);
+    console.log(response);
+  };
 
   return (
     <Container
@@ -906,14 +912,16 @@ export const ContainerForm = () => {
               <Controller
                 control={control}
                 name="expiration_date"
-                render={({ field, fieldState: {error} }) => 
-                <DateField 
-                {...field} 
-                label="Expiration Date" 
-                clearable 
-                error={!!error}
-                helperText={error && error.message}
-                value={dayjs(field.value)} />}
+                render={({ field, fieldState: { error } }) => (
+                  <DateField
+                    {...field}
+                    label="Expiration Date"
+                    clearable
+                    error={!!error}
+                    helperText={error && error.message}
+                    value={dayjs(field.value)}
+                  />
+                )}
               />
               <Stack direction={'row'} spacing={2}>
                 <Controller
@@ -968,31 +976,27 @@ export const ContainerForm = () => {
                       match: async (value) => {
                         if (!formValues.quantity_unit || !formValues.initial_quantity) return;
                         if (formValues.quantity_unit?.includes('g')) {
-                          const v = new Decimal(parseFloat(String(value)))
-                          const iw = new Decimal(parseFloat(String(formValues.initial_weight)))
-                          const iq = new Decimal(convertUnits(
-                                'g',
-                                formValues.quantity_unit,
-                                formValues.initial_quantity
-                              ))
+                          const v = new Decimal(parseFloat(String(value)));
+                          const iw = new Decimal(parseFloat(String(formValues.initial_weight)));
+                          const iq = new Decimal(
+                            convertUnits('g', formValues.quantity_unit, formValues.initial_quantity)
+                          );
 
-                          if (
-                            !iw.minus(iq).equals(v)
-                          ) {
+                          if (!iw.minus(iq).equals(v)) {
                             return 'Tare weight should equal the difference between the Initial Weight and the Initial Quantity';
                           }
                         } else {
-                          const iw = new Decimal(parseFloat(String(formValues.initial_weight)))
-                          const iq = new Decimal(convertUnits(
-                            "mL",
-                            formValues.quantity_unit,
-                            formValues.initial_quantity
-                          ))
-                          const v = new Decimal(value)
-                          const d = new Decimal(parseFloat(String(formValues.density)))
-                          if (
-                            !iw.minus(iq.times(d)).equals(v)
-                          ) {
+                          const iw = new Decimal(parseFloat(String(formValues.initial_weight)));
+                          const iq = new Decimal(
+                            convertUnits(
+                              'mL',
+                              formValues.quantity_unit,
+                              formValues.initial_quantity
+                            )
+                          );
+                          const v = new Decimal(value);
+                          const d = new Decimal(parseFloat(String(formValues.density)));
+                          if (!iw.minus(iq.times(d)).equals(v)) {
                             return 'Tare weight should equal Initial Weight - Initial Quantity * Density';
                           }
                         }
@@ -1019,10 +1023,12 @@ export const ContainerForm = () => {
                   )}
                 />
               </Stack>
-              <Divider/>
-              <Stack direction={'row'} spacing={2} sx={{justifyContent:"right"}}>
-                  <Button variant='contained' type='submit'>Submit</Button>
-                  <Button variant='outlined'>Cancel</Button>
+              <Divider />
+              <Stack direction={'row'} spacing={2} sx={{ justifyContent: 'right' }}>
+                <Button variant="contained" type="submit">
+                  Submit
+                </Button>
+                <Button variant="outlined">Cancel</Button>
               </Stack>
             </Stack>
           </Box>

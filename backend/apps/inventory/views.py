@@ -3,7 +3,14 @@ from rest_framework import filters, status
 from rest_framework.decorators import action
 from natsort import natsorted
 from rest_framework.response import Response
-from .models import Container, Chemical, Location, ChemicalStorageCategories, Ingredient, WeightReading
+from .models import (
+    Container,
+    Chemical,
+    Location,
+    ChemicalStorageCategories,
+    Ingredient,
+    WeightReading,
+)
 from .serializers import (
     ContainerSerializer,
     ContainerWriteSerializer,
@@ -53,7 +60,7 @@ class ContainerView(ModelViewSet):
         if self.action in ["create", "update", "partial_update", "metadata"]:
             return ContainerWriteSerializer
         return ContainerSerializer
-    
+
     @transaction.atomic
     def create(self, request):
         user = request.user
@@ -61,16 +68,16 @@ class ContainerView(ModelViewSet):
 
         data = request.data
 
-        if data.get("multiple_cas"):      
+        if data.get("multiple_cas"):
             if data.get("mixture_id") != "":
                 chemical = Chemical.objects.get(pk=data.get("mixture_id"))
             else:
                 mixture_data = {
                     "name": data.get("mixture_name"),
                     "cas": data.get("mixture_cas"),
-                    "molecular_weight": data.ge("molecular_weight")
+                    "molecular_weight": data.ge("molecular_weight"),
                 }
-                if ChemicalSerializer(data=mixture_data).isValid():                    
+                if ChemicalSerializer(data=mixture_data).isValid():
                     chemical = Chemical.objects.create(mixture_data)
                 else:
                     pass
@@ -78,15 +85,9 @@ class ContainerView(ModelViewSet):
             for chem in request_chems:
                 serializer = ChemicalSerializer(data=chem)
                 serializer.isValid(raise_exception=True)
-                c, _= chemicals.get_or_create(cas=chem.get("cas"))
-                Ingredient.objects.create(
-                    {
-                        "mixture": chemical,
-                        "ingredient": c.id
-                    }
-                )
+                c, _ = chemicals.get_or_create(cas=chem.get("cas"))
+                Ingredient.objects.create({"mixture": chemical, "ingredient": c.id})
 
-                    
         else:
             request_chem = data.get("chemicals")[0]
             chemical, created = Chemical.objects.get_or_create(cas=request_chem.get("cas"))
@@ -95,8 +96,8 @@ class ContainerView(ModelViewSet):
                 chemical.name = request_chem.get("name")
                 chemical.storage_category = request_chem.get("storage_category")
         new_container = {
-            "name" : data.get("name"),
-            "chemical" : chemical.id,
+            "name": data.get("name"),
+            "chemical": chemical.id,
             "location": data.get("location"),
             "manufacturer": data.get("manufacturer"),
             "initial_quantity": data.get("initial_quantity"),
@@ -112,14 +113,11 @@ class ContainerView(ModelViewSet):
         serializer.is_valid(raise_exception=True)
         container = serializer.save()
         WeightReading.objects.create(
-            **{
-                "container": container,
-                "weight": container.initial_weight,
-                "recorded_by": user
-            }
+            **{"container": container, "weight": container.initial_weight, "recorded_by": user}
         )
-        #TODO: Reset IDs on failed creates
-        return(Response(ContainerSerializer(container).data, status=status.HTTP_201_CREATED))
+        # TODO: Reset IDs on failed creates
+        return Response(ContainerSerializer(container).data, status=status.HTTP_201_CREATED)
+
 
 class LocationView(ModelViewSet):
     queryset = Location.objects.all()
