@@ -3,6 +3,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.utils import timezone
+from django.utils.text import slugify
 from django.db.models import Max
 
 
@@ -122,6 +123,7 @@ class Container(models.Model):
     ]
 
     name = models.CharField(max_length=200)
+    slug = models.SlugField(unique=True)
     chemical = models.ForeignKey(Chemical, on_delete=models.DO_NOTHING, related_name="containers")
     location = models.ForeignKey(Location, on_delete=models.DO_NOTHING, related_name="containers")
     barcode = models.CharField(max_length=80, unique=True, null=True, blank=True)
@@ -183,6 +185,10 @@ class Container(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self):
+        if not self.slug:
+            self.slug = slugify(f"chem-{self.id}")
 
 
 class Ingredient(models.Model):

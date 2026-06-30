@@ -1,6 +1,6 @@
-import { Container, useTheme } from '@mui/material';
+import { Alert, Box, Container, Drawer, useTheme } from '@mui/material';
 import { AgGridReact } from 'ag-grid-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { getContainers } from '../../api/inventory';
 import {
   type ColDef,
@@ -8,10 +8,21 @@ import {
   type GetRowIdParams,
   type RowSelectionOptions,
 } from 'ag-grid-community';
-import type { Container as TContainer } from '../../types';
+import { ContainerDetail } from './ContainerDetail';
+import { useQuery } from '@tanstack/react-query';
 
 export const Containers = () => {
-  const [containers, setContainers] = useState<TContainer[] | []>([]);
+  const {
+    isPending,
+    error,
+    data: containers,
+  } = useQuery({
+    queryKey: ['containerData'],
+    queryFn: getContainers,
+  });
+
+  const [open, setOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState();
   //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [colDefs, setColDefs] = useState<ColDef[]>([
     { field: 'label', headerName: 'ID' },
@@ -34,9 +45,6 @@ export const Containers = () => {
   const pagination = true;
   const paginationPageSize = 50;
   const paginationPageSizeSelector = [10, 25, 50];
-  useEffect(() => {
-    getContainers().then(setContainers);
-  }, []);
 
   const theme = useTheme();
   const myTheme = themeMaterial.withParams({
@@ -53,17 +61,28 @@ export const Containers = () => {
   });
 
   return (
-    <Container sx={{ height: '80vh' }}>
-      <AgGridReact
-        theme={myTheme}
-        rowData={containers}
-        columnDefs={colDefs}
-        rowSelection={rowSelection}
-        pagination={pagination}
-        paginationPageSize={paginationPageSize}
-        paginationPageSizeSelector={paginationPageSizeSelector}
-        getRowId={getRowId}
-      />
-    </Container>
+    <Box>
+      <Container sx={{ height: '80vh' }}>
+        {error && <Alert severity="error">There was an error loading the table.</Alert>}
+        <AgGridReact
+          theme={myTheme}
+          rowData={containers}
+          columnDefs={colDefs}
+          rowSelection={rowSelection}
+          pagination={pagination}
+          paginationPageSize={paginationPageSize}
+          paginationPageSizeSelector={paginationPageSizeSelector}
+          getRowId={getRowId}
+          loading={isPending}
+          onRowClicked={(e) => {
+            setSelectedRow(e.data);
+            setOpen(true);
+          }}
+        />
+      </Container>
+      <Drawer open={open} onClose={() => setOpen((prev) => !prev)} anchor="right">
+        <ContainerDetail data={selectedRow} />
+      </Drawer>
+    </Box>
   );
 };

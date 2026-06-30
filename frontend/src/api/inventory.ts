@@ -36,3 +36,7 @@ export const submitNewContainerForm = (data: ContainerFormDefaults): Promise<Con
     body: JSON.stringify(data),
   });
 };
+
+export const getContainerDetails = (id: string): Promise<Container> => {
+  return apiFetch(`/inventory/containers/${id}/`);
+};

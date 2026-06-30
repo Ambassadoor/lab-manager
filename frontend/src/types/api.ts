@@ -207,7 +207,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/containers/{id}/': {
+  '/inventory/containers/{slug}/': {
     parameters: {
       query?: never;
       header?: never;
@@ -282,14 +282,27 @@ export interface components {
       readonly id: number;
       /** ID */
       readonly label: string;
+      slug: string;
       name: string;
+      /**
+       * Density/specific gravity
+       * Format: decimal
+       */
+      density?: string | null;
       readonly location: string;
       manufacturer?: string | null;
       readonly quantity: string;
       /** Product # */
       product_num?: string | null;
+      /**
+       * Received on
+       * Format: date
+       */
+      date_received?: string | null;
       /** Opened? */
       readonly is_opened: boolean;
+      readonly latest_reading: string;
+      readonly percent_remaining: string;
     };
     ContainerWrite: {
       name: string;
@@ -965,8 +978,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        /** @description A unique integer value identifying this container. */
-        id: number;
+        slug: string;
       };
       cookie?: never;
     };
@@ -987,8 +999,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        /** @description A unique integer value identifying this container. */
-        id: number;
+        slug: string;
       };
       cookie?: never;
     };
@@ -1015,8 +1026,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        /** @description A unique integer value identifying this container. */
-        id: number;
+        slug: string;
       };
       cookie?: never;
     };
@@ -1036,8 +1046,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        /** @description A unique integer value identifying this container. */
-        id: number;
+        slug: string;
       };
       cookie?: never;
     };

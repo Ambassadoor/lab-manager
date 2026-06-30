@@ -6,6 +6,7 @@ import { Login } from './components/accounts/Login';
 import { Register } from './components/accounts/Register';
 import { Containers } from './components/inventory/Containers';
 import { ContainerForm } from './components/inventory/ContainerForm';
+import { ContainerDetail } from './components/inventory/ContainerDetail';
 
 function NotFound() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="containers" element={<Outlet />}>
             <Route path="" element={<Containers />} />
             <Route path="new" element={<ContainerForm />} />
+            <Route path=":id" element={<ContainerDetail />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />

@@ -10,6 +10,9 @@ from .models import (
     Ingredient,
 )
 
+from decimal import Decimal
+from decimal import DecimalException
+
 
 class ChemicalSerializer(serializers.ModelSerializer):
     class Meta:
@@ -49,19 +52,51 @@ class ContainerSerializer(serializers.ModelSerializer):
     is_opened = serializers.ReadOnlyField(label="Opened?")
     quantity = serializers.ReadOnlyField(label="Quantity")
     location = serializers.ReadOnlyField(label="Location", source="location.full_path")
+    percent_remaining = serializers.SerializerMethodField()
+    latest_reading = serializers.SerializerMethodField()
 
     class Meta:
         model = Container
         fields = [
             "id",
             "label",
+            "slug",
             "name",
+            "density",
             "location",
             "manufacturer",
             "quantity",
             "product_num",
+            "date_received",
             "is_opened",
+            "latest_reading",
+            "percent_remaining",
         ]
+
+    def get_latest_reading(self, obj):
+        latest = obj.readings.order_by("-recorded_at").first()
+        if latest:
+            return WeightReadingSerializer(latest).data
+
+    def get_percent_remaining(self, obj):
+        try:
+            if obj.initial_content_mass is not None:
+                mass = Decimal(str(obj.initial_content_mass))
+            else:
+                return None
+            latest_reading = self.get_latest_reading(obj)
+            if latest_reading is not None:
+                current_weight = Decimal(str(latest_reading["weight"]))
+            else:
+                return None
+            if obj.tare_weight is not None:
+                tare_weight = Decimal(str(obj.tare_weight))
+            else:
+                return None
+
+            return ((current_weight - tare_weight) / mass) * 100
+        except DecimalException:
+            return None
 
 
 class ContainerWriteSerializer(serializers.ModelSerializer):

@@ -284,8 +284,7 @@ export const ContainerForm = () => {
 
     const response = await submitNewContainerForm(data);
     sessionStorage.removeItem('container_form_cache');
-    navigate(`inventory/containers/${response.id}`);
-    console.log(response);
+    navigate(`/inventory/containers/${response.id}`);
   };
 
   return (
@@ -318,6 +317,7 @@ export const ContainerForm = () => {
             margin: 'auto',
             padding: 4,
           }}
+          elevation={6}
         >
           <Box component={'form'} onSubmit={handleSubmit(onSubmit)}>
             <Stack spacing={2}>

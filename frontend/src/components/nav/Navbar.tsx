@@ -8,6 +8,7 @@ import {
   Menu,
   MenuItem,
   Paper,
+  Stack,
   Toolbar,
   Tooltip,
   Typography,
@@ -17,7 +18,7 @@ import { useState, type JSX } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Logout } from '@mui/icons-material';
 import { DarkModeToggle } from './DarkModeToggle';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
 
 export const Navbar = (): JSX.Element | null => {
   const { user, loading, logout } = useAuth();
@@ -35,16 +36,31 @@ export const Navbar = (): JSX.Element | null => {
   if (loading) return null;
 
   return (
-    <Paper>
+    <Paper sx={{ height: '100dvh', width: '100dvw', overflow: 'auto' }} square>
       <Box sx={{ flexGrow: 1, marginBottom: 5 }}>
         <AppBar position="static">
           <Toolbar>
             <IconButton size="large" edge="start" color="inherit" aria-label="menu" sx={{ mr: 2 }}>
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            <Typography
+              variant="h6"
+              component={Link}
+              to="/"
+              sx={{ textDecoration: 'none', color: 'inherit' }}
+            >
               Lab Manager
             </Typography>
+            <Box sx={{ flexGrow: 1, pl: 4 }}>
+              <Stack spacing={2} direction={'row'}>
+                <Button component={Link} to="/inventory/containers/" color="inherit">
+                  Containers
+                </Button>
+                <Button component={Link} to="/inventory/containers/new/" color="inherit">
+                  Add Container
+                </Button>
+              </Stack>
+            </Box>
             <DarkModeToggle />
             {!user ? (
               <Button color="inherit">Login</Button>
