@@ -1,6 +1,6 @@
-import { Box, Container, Drawer, useTheme } from '@mui/material';
+import { Alert, Box, Container, Drawer, useTheme } from '@mui/material';
 import { AgGridReact } from 'ag-grid-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { getContainers } from '../../api/inventory';
 import {
   type ColDef,
@@ -8,12 +8,15 @@ import {
   type GetRowIdParams,
   type RowSelectionOptions,
 } from 'ag-grid-community';
-import type { Container as TContainer } from '../../types';
-import { useNavigate } from 'react-router-dom';
 import { ContainerDetail } from './ContainerDetail';
+import { useQuery } from '@tanstack/react-query';
 
 export const Containers = () => {
-  const [containers, setContainers] = useState<TContainer[] | []>([]);
+  const { isPending, error, data: containers } = useQuery({
+    queryKey: ['containerData'],
+    queryFn: getContainers
+  })
+
   const [open, setOpen] = useState(false)
   const [selectedRow, setSelectedRow] = useState()
   //eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -38,9 +41,6 @@ export const Containers = () => {
   const pagination = true;
   const paginationPageSize = 50;
   const paginationPageSizeSelector = [10, 25, 50];
-  useEffect(() => {
-    getContainers().then(setContainers);
-  }, []);
 
   const theme = useTheme();
   const myTheme = themeMaterial.withParams({
@@ -56,11 +56,11 @@ export const Containers = () => {
     fontSize: theme.typography.body2.fontSize,
   });
 
-  const navigate = useNavigate()
-
   return (
     <Box>
       <Container sx={{ height: '80vh' }}>
+      {error && <Alert severity='error'>
+        There was an error loading the table.</Alert>}
         <AgGridReact
           theme={myTheme}
           rowData={containers}
@@ -70,7 +70,7 @@ export const Containers = () => {
           paginationPageSize={paginationPageSize}
           paginationPageSizeSelector={paginationPageSizeSelector}
           getRowId={getRowId}
-          /*onRowClicked={(e) => navigate(`${e.data.slug}`, {state: e.data})}*/
+          loading={isPending}
           onRowClicked={(e) => {
             setSelectedRow(e.data)
             setOpen(true)
