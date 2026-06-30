@@ -1,8 +1,9 @@
-import { Box, Card, CardContent, CardHeader, Stack, Typography } from '@mui/material';
+import { Box, Card, CardContent, CardHeader, IconButton, Stack, Typography } from '@mui/material';
 import { useEffect, useState} from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getContainerDetails } from '../../api/inventory';
 import type { Container } from '../../types';
+import { UnfoldMore } from '@mui/icons-material';
 
 type ContainerDetailProps = {
     data?: Container
@@ -10,6 +11,7 @@ type ContainerDetailProps = {
 
 export const ContainerDetail = ({data}: ContainerDetailProps) => {
   const location = useLocation()
+  const navigate = useNavigate()
   const [container, setContainer] = useState<Container>(data || location.state || {})
   const params = useParams()
 
@@ -27,7 +29,13 @@ export const ContainerDetail = ({data}: ContainerDetailProps) => {
     container && (
       <Box sx={{display: "flex", justifyContent: "center"}}>
         <Card sx={{width: `${data ? '25dvw' : '50dvw'}`, alignSelf: "center"}} elevation={6}>
-          <CardHeader title={container.name} subheader={container.label} />
+          <CardHeader title={container.name} subheader={container.label} action={
+            data && <IconButton onClick={() => {
+                navigate(`${data.slug}`, {state: data})
+            }}>
+                    <UnfoldMore/>
+                </IconButton>
+          } />
           <CardContent>
             <Stack spacing={2}>
               <Typography><strong>Location:</strong> {container.location}</Typography>
