@@ -12,13 +12,17 @@ import { ContainerDetail } from './ContainerDetail';
 import { useQuery } from '@tanstack/react-query';
 
 export const Containers = () => {
-  const { isPending, error, data: containers } = useQuery({
+  const {
+    isPending,
+    error,
+    data: containers,
+  } = useQuery({
     queryKey: ['containerData'],
-    queryFn: getContainers
-  })
+    queryFn: getContainers,
+  });
 
-  const [open, setOpen] = useState(false)
-  const [selectedRow, setSelectedRow] = useState()
+  const [open, setOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState();
   //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [colDefs, setColDefs] = useState<ColDef[]>([
     { field: 'label', headerName: 'ID' },
@@ -59,8 +63,7 @@ export const Containers = () => {
   return (
     <Box>
       <Container sx={{ height: '80vh' }}>
-      {error && <Alert severity='error'>
-        There was an error loading the table.</Alert>}
+        {error && <Alert severity="error">There was an error loading the table.</Alert>}
         <AgGridReact
           theme={myTheme}
           rowData={containers}
@@ -72,12 +75,12 @@ export const Containers = () => {
           getRowId={getRowId}
           loading={isPending}
           onRowClicked={(e) => {
-            setSelectedRow(e.data)
-            setOpen(true)
+            setSelectedRow(e.data);
+            setOpen(true);
           }}
         />
       </Container>
-      <Drawer open={open} onClose={() => setOpen(prev => !prev)} anchor='right'>
+      <Drawer open={open} onClose={() => setOpen((prev) => !prev)} anchor="right">
         <ContainerDetail data={selectedRow} />
       </Drawer>
     </Box>

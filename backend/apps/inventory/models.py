@@ -188,7 +188,8 @@ class Container(models.Model):
 
     def save(self):
         if not self.slug:
-            self.slug = slugify(f'chem-{self.id}')
+            self.slug = slugify(f"chem-{self.id}")
+
 
 class Ingredient(models.Model):
     mixture = models.ForeignKey(Chemical, on_delete=models.CASCADE, related_name="ingredients")

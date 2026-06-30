@@ -55,7 +55,7 @@ class ContainerView(ModelViewSet):
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ["id"]
     ordering = ["id"]
-    lookup_field = 'slug'
+    lookup_field = "slug"
 
     def get_serializer_class(self):
         if self.action in ["create", "update", "partial_update", "metadata"]:
