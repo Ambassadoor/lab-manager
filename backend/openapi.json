@@ -494,15 +494,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/ContainerWrite'
           description: ''
-  /inventory/containers/{id}/:
+  /inventory/containers/{slug}/:
     get:
       operationId: inventory_containers_retrieve
       parameters:
       - in: path
-        name: id
+        name: slug
         schema:
-          type: integer
-        description: A unique integer value identifying this container.
+          type: string
         required: true
       tags:
       - inventory
@@ -519,10 +518,9 @@ paths:
       operationId: inventory_containers_update
       parameters:
       - in: path
-        name: id
+        name: slug
         schema:
-          type: integer
-        description: A unique integer value identifying this container.
+          type: string
         required: true
       tags:
       - inventory
@@ -551,10 +549,9 @@ paths:
       operationId: inventory_containers_partial_update
       parameters:
       - in: path
-        name: id
+        name: slug
         schema:
-          type: integer
-        description: A unique integer value identifying this container.
+          type: string
         required: true
       tags:
       - inventory
@@ -582,10 +579,9 @@ paths:
       operationId: inventory_containers_destroy
       parameters:
       - in: path
-        name: id
+        name: slug
         schema:
-          type: integer
-        description: A unique integer value identifying this container.
+          type: string
         required: true
       tags:
       - inventory
@@ -819,6 +815,10 @@ components:
           type: string
           readOnly: true
           title: ID
+        slug:
+          type: string
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
         name:
           type: string
           maxLength: 200
@@ -867,6 +867,7 @@ components:
       - name
       - percent_remaining
       - quantity
+      - slug
     ContainerWrite:
       type: object
       properties:

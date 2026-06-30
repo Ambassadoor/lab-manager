@@ -11,6 +11,7 @@ from .models import (
 )
 
 from decimal import Decimal
+from decimal import DecimalException
 
 
 class ChemicalSerializer(serializers.ModelSerializer):
@@ -59,6 +60,7 @@ class ContainerSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "label",
+            "slug",
             "name",
             "density",
             "location",
@@ -77,11 +79,24 @@ class ContainerSerializer(serializers.ModelSerializer):
             return WeightReadingSerializer(latest).data
 
     def get_percent_remaining(self, obj):
-        mass = Decimal(str(obj.initial_content_mass))
-        current_weight = Decimal(str(self.get_latest_reading(obj)["weight"]))
-        tare_weight = Decimal(str(obj.tare_weight))
+        try:
+            if obj.initial_content_mass is not None:
+                mass = Decimal(str(obj.initial_content_mass))
+            else:
+                return None
+            latest_reading = self.get_latest_reading(obj)
+            if latest_reading is not None:
+                current_weight = Decimal(str(latest_reading["weight"]))
+            else:
+                return None
+            if obj.tare_weight is not None:
+                tare_weight = Decimal(str(obj.tare_weight))
+            else:
+                return None
 
-        return ((current_weight - tare_weight) / mass) * 100
+            return ((current_weight - tare_weight) / mass) * 100
+        except DecimalException:
+            return None
 
 
 class ContainerWriteSerializer(serializers.ModelSerializer):
