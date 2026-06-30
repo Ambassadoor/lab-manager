@@ -838,6 +838,19 @@ components:
         quantity:
           type: string
           readOnly: true
+        initial_quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+          title: Quantity
+        quantity_unit:
+          nullable: true
+          title: Unit
+          oneOf:
+          - $ref: '#/components/schemas/QuantityUnitEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
         product_num:
           type: string
           nullable: true

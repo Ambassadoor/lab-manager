@@ -66,6 +66,8 @@ class ContainerSerializer(serializers.ModelSerializer):
             "location",
             "manufacturer",
             "quantity",
+            "initial_quantity",
+            "quantity_unit",
             "product_num",
             "date_received",
             "is_opened",
