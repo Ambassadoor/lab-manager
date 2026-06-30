@@ -1,4 +1,4 @@
-import { Container, useTheme } from '@mui/material';
+import { Box, Container, Drawer, useTheme } from '@mui/material';
 import { AgGridReact } from 'ag-grid-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getContainers } from '../../api/inventory';
@@ -10,9 +10,12 @@ import {
 } from 'ag-grid-community';
 import type { Container as TContainer } from '../../types';
 import { useNavigate } from 'react-router-dom';
+import { ContainerDetail } from './ContainerDetail';
 
 export const Containers = () => {
   const [containers, setContainers] = useState<TContainer[] | []>([]);
+  const [open, setOpen] = useState(false)
+  const [selectedRow, setSelectedRow] = useState()
   //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [colDefs, setColDefs] = useState<ColDef[]>([
     { field: 'label', headerName: 'ID' },
@@ -56,18 +59,27 @@ export const Containers = () => {
   const navigate = useNavigate()
 
   return (
-    <Container sx={{ height: '80vh' }}>
-      <AgGridReact
-        theme={myTheme}
-        rowData={containers}
-        columnDefs={colDefs}
-        rowSelection={rowSelection}
-        pagination={pagination}
-        paginationPageSize={paginationPageSize}
-        paginationPageSizeSelector={paginationPageSizeSelector}
-        getRowId={getRowId}
-        onRowClicked={(e) => navigate(`${e.data.slug}`, {state: e.data})}
-      />
-    </Container>
+    <Box>
+      <Container sx={{ height: '80vh' }}>
+        <AgGridReact
+          theme={myTheme}
+          rowData={containers}
+          columnDefs={colDefs}
+          rowSelection={rowSelection}
+          pagination={pagination}
+          paginationPageSize={paginationPageSize}
+          paginationPageSizeSelector={paginationPageSizeSelector}
+          getRowId={getRowId}
+          /*onRowClicked={(e) => navigate(`${e.data.slug}`, {state: e.data})}*/
+          onRowClicked={(e) => {
+            setSelectedRow(e.data)
+            setOpen(true)
+          }}
+        />
+      </Container>
+      <Drawer open={open} onClose={() => setOpen(prev => !prev)} anchor='right'>
+        <ContainerDetail data={selectedRow} />
+      </Drawer>
+    </Box>
   );
 };
