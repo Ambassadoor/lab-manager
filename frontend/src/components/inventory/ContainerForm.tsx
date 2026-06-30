@@ -317,6 +317,7 @@ export const ContainerForm = () => {
             margin: 'auto',
             padding: 4,
           }}
+          elevation={6}
         >
           <Box component={'form'} onSubmit={handleSubmit(onSubmit)}>
             <Stack spacing={2}>

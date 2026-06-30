@@ -9,6 +9,7 @@ import {
   type RowSelectionOptions,
 } from 'ag-grid-community';
 import type { Container as TContainer } from '../../types';
+import { useNavigate } from 'react-router-dom';
 
 export const Containers = () => {
   const [containers, setContainers] = useState<TContainer[] | []>([]);
@@ -52,6 +53,8 @@ export const Containers = () => {
     fontSize: theme.typography.body2.fontSize,
   });
 
+  const navigate = useNavigate()
+
   return (
     <Container sx={{ height: '80vh' }}>
       <AgGridReact
@@ -63,6 +66,7 @@ export const Containers = () => {
         paginationPageSize={paginationPageSize}
         paginationPageSizeSelector={paginationPageSizeSelector}
         getRowId={getRowId}
+        onRowClicked={(e) => navigate(`${e.data.slug}`, {state: e.data})}
       />
     </Container>
   );

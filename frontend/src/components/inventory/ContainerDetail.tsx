@@ -1,33 +1,38 @@
 import { Box, Card, CardContent, CardHeader, Stack, Typography } from '@mui/material';
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useState} from 'react';
+import { useLocation, useParams } from 'react-router-dom';
 import { getContainerDetails } from '../../api/inventory';
-
 import type { Container } from '../../types';
 
 export const ContainerDetail = () => {
-  const [details, setDetails] = useState<Container>();
-  const params = useParams();
+  const location = useLocation()
+  const [container, setContainer] = useState<Container>(location.state || {})
+  const params = useParams()
 
   useEffect(() => {
-    if (!params.id) return;
-    getContainerDetails(params.id).then(setDetails);
-  }, [params.id]);
+    const locationData = location.state || {}
+    if (!locationData) {
+        if (!params.id) {
+            return
+        }
+        getContainerDetails(params.id).then(setContainer)
+    }
+  },[params.id, location])
 
   return (
-    details && (
-      <Box>
-        <Card>
-          <CardHeader title={details.name} subheader={details.label} />
+    container && (
+      <Box sx={{display: "flex", justifyContent: "center"}}>
+        <Card sx={{width: "50dvw", alignSelf: "center"}} elevation={6}>
+          <CardHeader title={container.name} subheader={container.label} />
           <CardContent>
             <Stack spacing={2}>
-              <Typography>Location: {details.location}</Typography>
-              <Typography>Manufacturer: {details.manufacturer}</Typography>
-              <Typography>Product #: ${details.product_num}</Typography>
-              <Typography>Quantity: {details.quantity}</Typography>
-              <Typography>Stats: {details.is_opened ? 'Opened' : 'Unopened'}</Typography>
-              <Typography>Current Weight: {parseFloat(details.latest_reading.weight)} g</Typography>
-              <Typography>Percent Remaining: {details.percent_remaining}%</Typography>
+              <Typography><strong>Location:</strong> {container.location}</Typography>
+              <Typography><strong>Manufacturer:</strong> {container.manufacturer}</Typography>
+              <Typography><strong>Product #:</strong> {container.product_num}</Typography>
+              <Typography><strong>Quantity:</strong> {container.quantity}</Typography>
+              <Typography><strong>Stats:</strong> {container.is_opened ? 'Opened' : 'Unopened'}</Typography>
+              {container.latest_reading && <Typography><strong>Current Weight:</strong> {parseFloat(container.latest_reading.weight)} g</Typography>}
+              {container.percent_remaining && <Typography><strong>Percent Remaining:</strong> {container.percent_remaining}%</Typography>}
             </Stack>
           </CardContent>
         </Card>
