@@ -40,3 +40,10 @@ export const submitNewContainerForm = (data: ContainerFormDefaults): Promise<Con
 export const getContainerDetails = (id: string): Promise<Container> => {
   return apiFetch(`/inventory/containers/${id}/`);
 };
+
+export const updateContainer = (slug: string, data): Promise<Container> => {
+  return apiFetch(`/inventory/containers/${slug}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+};

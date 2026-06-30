@@ -28,6 +28,7 @@ export type ContainerWrite = components['schemas']['ContainerWrite'];
 export type Chemical = components['schemas']['Chemical'];
 export type Location = components['schemas']['Location'];
 export type StorageCategory = components['schemas']['ChemicalStorageCategories'];
+export type UnitEnums = components['schemas']['QuantityUnitEnum'];
 
 export interface CasCheck {
   mixtures: Chemical[];
