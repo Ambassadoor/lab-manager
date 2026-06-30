@@ -1,9 +1,27 @@
-import { Box, Card, CardContent, CardHeader, IconButton, Stack, Typography } from '@mui/material';
+import {
+  Box,
+  Button,
+  Card,
+  CardActions,
+  CardContent,
+  CardHeader,
+  IconButton,
+  InputAdornment,
+  Stack,
+  Typography,
+} from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { getContainerDetails } from '../../api/inventory';
-import type { Container } from '../../types';
-import { UnfoldMore } from '@mui/icons-material';
+import {
+  getContainerDetails,
+  getContainerMetaData,
+  getLocations,
+  updateContainer,
+} from '../../api/inventory';
+import type { Location, Container, ContainerOptions } from '../../types';
+import { Edit, UnfoldMore } from '@mui/icons-material';
+import { ToggleField } from '../ToggleField';
+import { Controller, FormProvider, useForm, type SubmitHandler } from 'react-hook-form';
 
 type ContainerDetailProps = {
   data?: Container;
@@ -13,10 +31,14 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [container, setContainer] = useState<Container>(data || location.state || {});
+  const [locations, setLocations] = useState<Location[]>();
+  const [options, setOptions] =
+    useState<ContainerOptions['actions']['POST']['quantity_unit']['choices']>();
+  const [editing, setEditing] = useState(false);
   const params = useParams();
 
   useEffect(() => {
-    const locationData = location.state || {};
+    const locationData = location.state;
     if (!locationData && !data) {
       if (!params.id) {
         return;
@@ -25,56 +47,291 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
     }
   }, [params.id, location, data]);
 
+  useEffect(() => {
+    if (!editing) return;
+    getLocations().then(setLocations);
+    getContainerMetaData().then((ref) => {
+      setOptions(ref.actions.POST.quantity_unit.choices);
+    });
+  }, [editing]);
+
+  const {
+    control,
+    clearErrors,
+    formState,
+    setValue,
+    trigger,
+    resetField,
+    handleSubmit,
+    ...methods
+  } = useForm({
+    mode: 'onBlur',
+    defaultValues: {
+      name: container.name || '',
+      location: container.location || '',
+      manufacturer: container.manufacturer || '',
+      product_num: container.product_num || '',
+      initial_quantity: container.initial_quantity || '',
+      quantity_unit: container.quantity_unit || '',
+    },
+  });
+
+  type ContainerDetailDefaults = {
+    name: string;
+    location: string;
+    manufacturer: string;
+    product_num: string;
+    initial_quantity: string | number;
+    quantity_unit: string;
+  };
+
+  const onSubmit: SubmitHandler<ContainerDetailDefaults> = async (data) => {
+    updateContainer(container.slug, data)
+      .then(() => getContainerDetails(container.slug))
+      .then(setContainer);
+    setEditing(false);
+  };
+
   return (
     container && (
-      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-        <Card sx={{ width: `${data ? '25dvw' : '50dvw'}`, alignSelf: 'center' }} elevation={6}>
-          <CardHeader
-            title={container.name}
-            subheader={container.label}
-            action={
-              data && (
-                <IconButton
-                  onClick={() => {
-                    navigate(`${data.slug}`, { state: data });
-                  }}
-                >
-                  <UnfoldMore />
-                </IconButton>
-              )
-            }
-          />
-          <CardContent>
-            <Stack spacing={2}>
-              <Typography>
-                <strong>Location:</strong> {container.location}
-              </Typography>
-              <Typography>
-                <strong>Manufacturer:</strong> {container.manufacturer}
-              </Typography>
-              <Typography>
-                <strong>Product #:</strong> {container.product_num}
-              </Typography>
-              <Typography>
-                <strong>Quantity:</strong> {container.quantity}
-              </Typography>
-              <Typography>
-                <strong>Status:</strong> {container.is_opened ? 'Opened' : 'Unopened'}
-              </Typography>
-              {container.latest_reading && (
+      <FormProvider
+        {...methods}
+        clearErrors={clearErrors}
+        setValue={setValue}
+        control={control}
+        trigger={trigger}
+        resetField={resetField}
+        handleSubmit={handleSubmit}
+        formState={formState}
+      >
+        <Box
+          onSubmit={handleSubmit(onSubmit)}
+          sx={{ display: 'flex', justifyContent: 'center' }}
+          component={'form'}
+        >
+          <Card sx={{ width: `${data ? '25dvw' : '50dvw'}`, alignSelf: 'center' }} elevation={6}>
+            <CardHeader
+              title={
+                !editing ? (
+                  container.name
+                ) : (
+                  <Controller
+                    control={control}
+                    name="name"
+                    render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
+                      <ToggleField
+                        {...field}
+                        textProps={{
+                          fullWidth: true,
+                          defaultValue: container.name,
+                          label: 'Name',
+                          error: !!error,
+                          helperText: error?.message,
+                          onChange: (e) => {
+                            onChange(e);
+                            clearErrors(name);
+                          },
+                        }}
+                        editing={editing}
+                      ></ToggleField>
+                    )}
+                  />
+                )
+              }
+              subheader={!editing && container.label}
+              action={
+                <Box>
+                  {data && (
+                    <IconButton
+                      onClick={() => {
+                        navigate(`${data.slug}`, { state: data });
+                      }}
+                    >
+                      <UnfoldMore />
+                    </IconButton>
+                  )}
+                  <IconButton onClick={() => setEditing((prev) => !prev)}>
+                    <Edit />
+                  </IconButton>
+                </Box>
+              }
+            />
+            <CardContent>
+              <Stack spacing={2}>
+                <Controller
+                  control={control}
+                  name="location"
+                  render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
+                    <ToggleField
+                      {...field}
+                      editing={editing}
+                      textProps={{
+                        defaultValue: container.location,
+                        label: 'Location',
+                        error: !!error,
+                        helperText: error?.message,
+                        onChange: (e) => {
+                          onChange(e);
+                          clearErrors(name);
+                        },
+                      }}
+                      options={
+                        locations &&
+                        locations?.map((l) => {
+                          return {
+                            key: l.id,
+                            value: l.full_path,
+                            text: l.full_path,
+                          };
+                        })
+                      }
+                    >
+                      {container.location}
+                    </ToggleField>
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="manufacturer"
+                  render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
+                    <ToggleField
+                      {...field}
+                      editing={editing}
+                      textProps={{
+                        error: !!error,
+                        helperText: error?.message,
+                        defaultValue: container.manufacturer,
+                        label: 'Manufacturer',
+                        onChange: (e) => {
+                          onChange(e);
+                          clearErrors(name);
+                        },
+                      }}
+                    >
+                      {container.manufacturer}
+                    </ToggleField>
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="product_num"
+                  render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
+                    <ToggleField
+                      {...field}
+                      editing={editing}
+                      textProps={{
+                        error: !!error,
+                        helperText: error?.message,
+                        defaultValue: container.product_num,
+                        label: 'Product #',
+                        onChange: (e) => {
+                          onChange(e);
+                          clearErrors(name);
+                        },
+                      }}
+                    >
+                      {container.product_num}
+                    </ToggleField>
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="initial_quantity"
+                  render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
+                    <ToggleField
+                      {...field}
+                      editing={editing}
+                      textProps={{
+                        error: !!error,
+                        helperText: error?.message,
+                        defaultValue: container.initial_quantity,
+                        label: 'Quantity',
+                        onChange: (e) => {
+                          onChange(e);
+                          clearErrors(name);
+                        },
+                        slotProps: {
+                          input: {
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                <Controller
+                                  control={control}
+                                  name="quantity_unit"
+                                  render={({
+                                    field: { name, onChange, ...field },
+                                    fieldState: { error },
+                                  }) => (
+                                    <ToggleField
+                                      {...field}
+                                      editing={editing}
+                                      textProps={{
+                                        error: !!error,
+                                        helperText: error?.message,
+                                        defaultValue: container.quantity_unit,
+                                        variant: 'standard',
+                                        label: 'Unit',
+                                        onChange: (e) => {
+                                          onChange(e);
+                                          clearErrors(name);
+                                        },
+                                        slotProps: {
+                                          select: {
+                                            variant: 'standard',
+                                          },
+                                        },
+                                      }}
+                                      options={
+                                        options &&
+                                        options.map((o) => {
+                                          return {
+                                            key: o.value,
+                                            value: o.value,
+                                            text: o.display_name,
+                                          };
+                                        })
+                                      }
+                                    ></ToggleField>
+                                  )}
+                                />
+                              </InputAdornment>
+                            ),
+                          },
+                        },
+                      }}
+                    >
+                      {container.quantity}
+                    </ToggleField>
+                  )}
+                />
+
                 <Typography>
-                  <strong>Current Weight:</strong> {parseFloat(container.latest_reading.weight)} g
+                  <strong>Status:</strong> {container.is_opened ? 'Opened' : 'Unopened'}
                 </Typography>
-              )}
-              {container.percent_remaining && (
-                <Typography>
-                  <strong>Percent Remaining:</strong> {container.percent_remaining}%
-                </Typography>
-              )}
-            </Stack>
-          </CardContent>
-        </Card>
-      </Box>
+                {container.latest_reading && (
+                  <Typography>
+                    <strong>Current Weight:</strong> {parseFloat(container.latest_reading.weight)} g
+                  </Typography>
+                )}
+                {container.percent_remaining && (
+                  <Typography>
+                    <strong>Percent Remaining:</strong> {container.percent_remaining}%
+                  </Typography>
+                )}
+              </Stack>
+            </CardContent>
+            {editing && (
+              <CardActions sx={{ ml: 'auto' }}>
+                <Button type="submit" variant="contained">
+                  Submit
+                </Button>
+                <Button variant="outlined" onClick={() => setEditing(false)}>
+                  Cancel
+                </Button>
+              </CardActions>
+            )}
+          </Card>
+        </Box>
+      </FormProvider>
     )
   );
 };
