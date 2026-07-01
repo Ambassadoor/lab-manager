@@ -223,6 +223,86 @@ export interface paths {
     patch: operations['inventory_containers_partial_update'];
     trace?: never;
   };
+  '/inventory/containers/{slug}/is_discarded/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_containers_is_discarded_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/containers/{slug}/is_valid/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_containers_is_valid_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/containers/{slug}/weigh_in/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['inventory_containers_weigh_in_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/containers/check_in/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['inventory_containers_check_in_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/containers/check_out/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['inventory_containers_check_out_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/inventory/locations/': {
     parameters: {
       query?: never;
@@ -255,12 +335,57 @@ export interface paths {
     patch: operations['inventory_locations_partial_update'];
     trace?: never;
   };
+  '/inventory/weight_readings/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_weight_readings_list'];
+    put?: never;
+    post: operations['inventory_weight_readings_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/weight_readings/{id}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_weight_readings_retrieve'];
+    put: operations['inventory_weight_readings_update'];
+    post?: never;
+    delete: operations['inventory_weight_readings_destroy'];
+    options?: never;
+    head?: never;
+    patch: operations['inventory_weight_readings_partial_update'];
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /**
+     * @description * `in` - Check In
+     *     * `out` - Check Out
+     * @enum {string}
+     */
+    ActionEnum: 'in' | 'out';
     /** @enum {unknown} */
     BlankEnum: '';
+    CheckoutEvent: {
+      readonly id: number;
+      action: components['schemas']['ActionEnum'];
+      /** Format: date-time */
+      readonly timestamp: string;
+      related_event?: number | null;
+    };
     Chemical: {
       readonly id: number;
       name: string;
@@ -444,6 +569,14 @@ export interface components {
       parent?: number | null;
       readonly full_path?: string;
     };
+    PatchedWeightReading: {
+      readonly id?: number;
+      /** Format: decimal */
+      weight?: string;
+      /** Format: date-time */
+      readonly recorded_at?: string;
+      container?: number;
+    };
     /**
      * @description * `mL` - mL
      *     * `L` - L
@@ -473,6 +606,14 @@ export interface components {
       first_name?: string;
       last_name?: string;
       readonly role: components['schemas']['RoleEnum'];
+    };
+    WeightReading: {
+      readonly id: number;
+      /** Format: decimal */
+      weight: string;
+      /** Format: date-time */
+      readonly recorded_at: string;
+      container: number;
     };
   };
   responses: never;
@@ -1078,6 +1219,125 @@ export interface operations {
       };
     };
   };
+  inventory_containers_is_discarded_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+    };
+  };
+  inventory_containers_is_valid_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+    };
+  };
+  inventory_containers_weigh_in_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Container'];
+        'application/x-www-form-urlencoded': components['schemas']['Container'];
+        'multipart/form-data': components['schemas']['Container'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+    };
+  };
+  inventory_containers_check_in_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CheckoutEvent'];
+        'application/x-www-form-urlencoded': components['schemas']['CheckoutEvent'];
+        'multipart/form-data': components['schemas']['CheckoutEvent'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CheckoutEvent'];
+        };
+      };
+    };
+  };
+  inventory_containers_check_out_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CheckoutEvent'];
+        'application/x-www-form-urlencoded': components['schemas']['CheckoutEvent'];
+        'multipart/form-data': components['schemas']['CheckoutEvent'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CheckoutEvent'];
+        };
+      };
+    };
+  };
   inventory_locations_list: {
     parameters: {
       query?: {
@@ -1222,6 +1482,154 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['Location'];
+        };
+      };
+    };
+  };
+  inventory_weight_readings_list: {
+    parameters: {
+      query?: {
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+        /** @description A search term. */
+        search?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WeightReading'][];
+        };
+      };
+    };
+  };
+  inventory_weight_readings_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['WeightReading'];
+        'application/x-www-form-urlencoded': components['schemas']['WeightReading'];
+        'multipart/form-data': components['schemas']['WeightReading'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WeightReading'];
+        };
+      };
+    };
+  };
+  inventory_weight_readings_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this weight reading. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WeightReading'];
+        };
+      };
+    };
+  };
+  inventory_weight_readings_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this weight reading. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['WeightReading'];
+        'application/x-www-form-urlencoded': components['schemas']['WeightReading'];
+        'multipart/form-data': components['schemas']['WeightReading'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WeightReading'];
+        };
+      };
+    };
+  };
+  inventory_weight_readings_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this weight reading. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No response body */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  inventory_weight_readings_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this weight reading. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedWeightReading'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedWeightReading'];
+        'multipart/form-data': components['schemas']['PatchedWeightReading'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WeightReading'];
         };
       };
     };

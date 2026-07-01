@@ -29,6 +29,8 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   if (!res.ok) {
     if (res.status === 422) {
       return (await res.json()) as T;
+    } else if (res.status === 404) {
+      return (await res.json()) as T;
     }
     throw new Error(`API error ${res.status}: ${res.statusText}`);
   }

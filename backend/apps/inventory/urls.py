@@ -1,6 +1,12 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ContainerView, ChemicalView, LocationView, ChemicalStorageCategoryView
+from .views import (
+    ContainerView,
+    ChemicalView,
+    LocationView,
+    ChemicalStorageCategoryView,
+    WeightReadingView,
+)
 
 router = DefaultRouter()
 
@@ -12,6 +18,7 @@ router.register(
     ChemicalStorageCategoryView,
     basename="chemical_storage_category",
 )
+router.register(r"weight_readings", WeightReadingView, basename="weight_reading")
 
 urlpatterns = [
     path("", include(router.urls)),

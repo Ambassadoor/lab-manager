@@ -6,6 +6,10 @@ import type {
   CasCheck,
   ContainerOptions,
   ContainerFormDefaults,
+  CheckoutEvent,
+  ContainerDetailDefaults,
+  WeighInDefaults,
+  WeightReading,
 } from '../types';
 
 export const getContainers = (): Promise<Container[] | []> => {
@@ -41,9 +45,45 @@ export const getContainerDetails = (id: string): Promise<Container> => {
   return apiFetch(`/inventory/containers/${id}/`);
 };
 
-export const updateContainer = (slug: string, data): Promise<Container> => {
+export const updateContainer = (
+  slug: string,
+  data: ContainerDetailDefaults
+): Promise<Container> => {
   return apiFetch(`/inventory/containers/${slug}/`, {
     method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+};
+
+type TTT = {
+  is_discarded?: boolean;
+  is_valid?: boolean;
+};
+export const checkIfDiscarded = (slug: string): Promise<TTT> => {
+  return apiFetch(`/inventory/containers/${slug}/is_discarded/`);
+};
+
+export const checkOutContainers = (slugs: string[]): Promise<CheckoutEvent> => {
+  return apiFetch(`/inventory/containers/check_out/`, {
+    method: 'POST',
+    body: JSON.stringify(slugs),
+  });
+};
+
+export const checkInContainers = (slugs: string[]): Promise<CheckoutEvent> => {
+  return apiFetch(`/inventory/containers/check_in/`, {
+    method: 'POST',
+    body: JSON.stringify(slugs),
+  });
+};
+
+export const checkValidId = (slug: string): Promise<{ is_valid: boolean }> => {
+  return apiFetch(`/inventory/containers/${slug}/is_valid/`);
+};
+
+export const createWeighIn = (data: WeighInDefaults): Promise<WeightReading> => {
+  return apiFetch(`/inventory/containers/${data.slug}/weigh_in/`, {
+    method: 'POST',
     body: JSON.stringify(data),
   });
 };

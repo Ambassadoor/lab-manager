@@ -1,0 +1,138 @@
+import { Add, Remove } from '@mui/icons-material';
+import {
+  Box,
+  Button,
+  ButtonGroup,
+  Card,
+  CardActions,
+  CardContent,
+  CardHeader,
+  IconButton,
+  InputAdornment,
+  Stack,
+  TextField,
+} from '@mui/material';
+import { Controller, useFieldArray, useForm, type SubmitHandler } from 'react-hook-form';
+import { checkIfDiscarded, checkInContainers, checkOutContainers } from '../../api/inventory';
+
+type CheckoutProps = {
+  event: string;
+};
+
+export const Checkout = ({ event }: CheckoutProps) => {
+  const { control, clearErrors, handleSubmit, resetField } = useForm({
+    mode: 'onBlur',
+    reValidateMode: 'onBlur',
+    defaultValues: {
+      checkout: [
+        {
+          value: '',
+        },
+      ],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'checkout',
+  });
+
+  type CheckoutDefaults = {
+    checkout: { value: string }[];
+  };
+  const onSubmit: SubmitHandler<CheckoutDefaults> = async (data) => {
+    const slugs = data.checkout.map((d) => d.value.toLocaleLowerCase());
+    const response =
+      event === 'out' ? await checkOutContainers(slugs) : await checkInContainers(slugs);
+    console.log(response);
+  };
+
+  return (
+    <Box
+      component={'form'}
+      sx={{ display: 'flex', justifyContent: 'center' }}
+      onSubmit={handleSubmit(onSubmit)}
+    >
+      <Card sx={{ width: '50dvw', alignSelf: 'center' }} elevation={6}>
+        <CardHeader
+          title={event === 'out' ? 'Checkout' : 'Check In'}
+          subheader={`Add ID's of containers you are checking ${event === 'out' ? 'out' : 'in'}. i.e. Chem-43`}
+        ></CardHeader>
+        <CardContent>
+          <Stack spacing={2}>
+            {fields.map((field, index) => (
+              <Controller
+                key={field.id}
+                control={control}
+                name={`checkout.${index}.value`}
+                rules={{
+                  pattern: {
+                    value: /^chem-\d+$/i,
+                    message: 'Must match format Chem-####',
+                  },
+                  validate: {
+                    discarded: async (value) => {
+                      const split = value.toLocaleLowerCase().split('-');
+                      const stripped = parseInt(split[1], 10);
+                      const joined = split[0] + '-' + String(stripped);
+                      const response = await checkIfDiscarded(joined);
+                      if (response.is_discarded === true) {
+                        return `This container has been discarded. Cannot check ${event === 'out' ? 'out' : 'in'}.`;
+                      } else if (response.is_valid === false) return 'Invalid ID';
+                    },
+                  },
+                }}
+                render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
+                  <TextField
+                    {...field}
+                    error={!!error}
+                    label={`Item #${index + 1}`}
+                    helperText={error?.message}
+                    onChange={(e) => {
+                      onChange(e);
+                      clearErrors(name);
+                    }}
+                    slotProps={{
+                      input: {
+                        endAdornment: (
+                          <ButtonGroup>
+                            <InputAdornment position="end">
+                              <IconButton
+                                onClick={() => {
+                                  append({ value: '' });
+                                }}
+                              >
+                                <Add />
+                              </IconButton>
+                            </InputAdornment>
+                            {index > 0 && (
+                              <IconButton
+                                onClick={() => {
+                                  remove(index);
+                                }}
+                              >
+                                <Remove />
+                              </IconButton>
+                            )}
+                          </ButtonGroup>
+                        ),
+                      },
+                    }}
+                  />
+                )}
+              />
+            ))}
+          </Stack>
+        </CardContent>
+        <CardActions>
+          <Button type="submit" variant="contained">
+            {event === 'out' ? 'Checkout' : 'Check In'}
+          </Button>
+          <Button variant="outlined" onClick={() => resetField('checkout')}>
+            Cancel
+          </Button>
+        </CardActions>
+      </Card>
+    </Box>
+  );
+};

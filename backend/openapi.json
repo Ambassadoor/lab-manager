@@ -590,6 +590,130 @@ paths:
       responses:
         '204':
           description: No response body
+  /inventory/containers/{slug}/is_discarded/:
+    get:
+      operationId: inventory_containers_is_discarded_retrieve
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Container'
+          description: ''
+  /inventory/containers/{slug}/is_valid/:
+    get:
+      operationId: inventory_containers_is_valid_retrieve
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Container'
+          description: ''
+  /inventory/containers/{slug}/weigh_in/:
+    post:
+      operationId: inventory_containers_weigh_in_create
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Container'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Container'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Container'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Container'
+          description: ''
+  /inventory/containers/check_in/:
+    post:
+      operationId: inventory_containers_check_in_create
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutEvent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CheckoutEvent'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CheckoutEvent'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutEvent'
+          description: ''
+  /inventory/containers/check_out/:
+    post:
+      operationId: inventory_containers_check_out_create
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutEvent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CheckoutEvent'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CheckoutEvent'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutEvent'
+          description: ''
   /inventory/locations/:
     get:
       operationId: inventory_locations_list
@@ -744,11 +868,192 @@ paths:
       responses:
         '204':
           description: No response body
+  /inventory/weight_readings/:
+    get:
+      operationId: inventory_weight_readings_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WeightReading'
+          description: ''
+    post:
+      operationId: inventory_weight_readings_create
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WeightReading'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WeightReading'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WeightReading'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeightReading'
+          description: ''
+  /inventory/weight_readings/{id}/:
+    get:
+      operationId: inventory_weight_readings_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this weight reading.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeightReading'
+          description: ''
+    put:
+      operationId: inventory_weight_readings_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this weight reading.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WeightReading'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WeightReading'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WeightReading'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeightReading'
+          description: ''
+    patch:
+      operationId: inventory_weight_readings_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this weight reading.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedWeightReading'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedWeightReading'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedWeightReading'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeightReading'
+          description: ''
+    delete:
+      operationId: inventory_weight_readings_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this weight reading.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
 components:
   schemas:
+    ActionEnum:
+      enum:
+      - in
+      - out
+      type: string
+      description: |-
+        * `in` - Check In
+        * `out` - Check Out
     BlankEnum:
       enum:
       - ''
+    CheckoutEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        action:
+          $ref: '#/components/schemas/ActionEnum'
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        related_event:
+          type: integer
+          nullable: true
+      required:
+      - action
+      - id
+      - timestamp
     Chemical:
       type: object
       properties:
@@ -1143,6 +1448,22 @@ components:
         full_path:
           type: string
           readOnly: true
+    PatchedWeightReading:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,4})?$
+        recorded_at:
+          type: string
+          format: date-time
+          readOnly: true
+        container:
+          type: integer
     QuantityUnitEnum:
       enum:
       - mL
@@ -1207,6 +1528,27 @@ components:
       - id
       - role
       - username
+    WeightReading:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,4})?$
+        recorded_at:
+          type: string
+          format: date-time
+          readOnly: true
+        container:
+          type: integer
+      required:
+      - container
+      - id
+      - recorded_at
+      - weight
   securitySchemes:
     cookieAuth:
       type: apiKey
