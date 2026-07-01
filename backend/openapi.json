@@ -816,6 +816,160 @@ paths:
       responses:
         '204':
           description: No response body
+  /inventory/weight_readings/:
+    get:
+      operationId: inventory_weight_readings_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WeightReading'
+          description: ''
+    post:
+      operationId: inventory_weight_readings_create
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WeightReading'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WeightReading'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WeightReading'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeightReading'
+          description: ''
+  /inventory/weight_readings/{id}/:
+    get:
+      operationId: inventory_weight_readings_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this weight reading.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeightReading'
+          description: ''
+    put:
+      operationId: inventory_weight_readings_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this weight reading.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WeightReading'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WeightReading'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WeightReading'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeightReading'
+          description: ''
+    patch:
+      operationId: inventory_weight_readings_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this weight reading.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedWeightReading'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedWeightReading'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedWeightReading'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeightReading'
+          description: ''
+    delete:
+      operationId: inventory_weight_readings_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this weight reading.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
 components:
   schemas:
     ActionEnum:
@@ -1242,6 +1396,20 @@ components:
         full_path:
           type: string
           readOnly: true
+    PatchedWeightReading:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,4})?$
+        recorded_at:
+          type: string
+          format: date-time
+          readOnly: true
     QuantityUnitEnum:
       enum:
       - mL
@@ -1306,6 +1474,24 @@ components:
       - id
       - role
       - username
+    WeightReading:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,4})?$
+        recorded_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - id
+      - recorded_at
+      - weight
   securitySchemes:
     cookieAuth:
       type: apiKey

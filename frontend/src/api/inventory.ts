@@ -7,6 +7,7 @@ import type {
   ContainerOptions,
   ContainerFormDefaults,
   CheckoutEvent,
+  ContainerDetailDefaults,
 } from '../types';
 
 export const getContainers = (): Promise<Container[] | []> => {
@@ -42,7 +43,10 @@ export const getContainerDetails = (id: string): Promise<Container> => {
   return apiFetch(`/inventory/containers/${id}/`);
 };
 
-export const updateContainer = (slug: string, data): Promise<Container> => {
+export const updateContainer = (
+  slug: string,
+  data: ContainerDetailDefaults
+): Promise<Container> => {
   return apiFetch(`/inventory/containers/${slug}/`, {
     method: 'PATCH',
     body: JSON.stringify(data),

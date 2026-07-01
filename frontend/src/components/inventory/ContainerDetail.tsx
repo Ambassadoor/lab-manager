@@ -18,7 +18,7 @@ import {
   getLocations,
   updateContainer,
 } from '../../api/inventory';
-import type { Location, Container, ContainerOptions } from '../../types';
+import type { Location, Container, ContainerOptions, ContainerDetailDefaults } from '../../types';
 import { Edit, UnfoldMore } from '@mui/icons-material';
 import { ToggleField } from '../ToggleField';
 import { Controller, FormProvider, useForm, type SubmitHandler } from 'react-hook-form';
@@ -75,15 +75,6 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
       quantity_unit: container.quantity_unit || '',
     },
   });
-
-  type ContainerDetailDefaults = {
-    name: string;
-    location: string;
-    manufacturer: string;
-    product_num: string;
-    initial_quantity: string | number;
-    quantity_unit: string;
-  };
 
   const onSubmit: SubmitHandler<ContainerDetailDefaults> = async (data) => {
     updateContainer(container.slug, data)

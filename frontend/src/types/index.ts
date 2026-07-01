@@ -23,13 +23,19 @@ export interface PreValidation {
   };
 }
 
-export type Container = components['schemas']['Container'];
+type ApiContainer = components['schemas']['Container'];
+
 export type ContainerWrite = components['schemas']['ContainerWrite'];
 export type Chemical = components['schemas']['Chemical'];
 export type Location = components['schemas']['Location'];
 export type StorageCategory = components['schemas']['ChemicalStorageCategories'];
 export type UnitEnums = components['schemas']['QuantityUnitEnum'];
 export type CheckoutEvent = components['schemas']['CheckoutEvent'];
+export type WeightReading = components['schemas']['WeightReading'];
+
+export interface Container extends Omit<ApiContainer, 'latest_reading'> {
+  readonly latest_reading: WeightReading;
+}
 
 export interface CasCheck {
   mixtures: Chemical[];
@@ -74,3 +80,12 @@ export interface ContainerOptions {
     };
   };
 }
+
+export type ContainerDetailDefaults = {
+  name: string;
+  location: string;
+  manufacturer: string;
+  product_num: string;
+  initial_quantity: string | number;
+  quantity_unit: string;
+};

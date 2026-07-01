@@ -14,7 +14,6 @@ import {
 } from '@mui/material';
 import { Controller, useFieldArray, useForm, type SubmitHandler } from 'react-hook-form';
 import { checkIfDiscarded, checkInContainers, checkOutContainers } from '../../api/inventory';
-import { useNavigate } from 'react-router-dom';
 
 type CheckoutProps = {
   event: string;
@@ -47,7 +46,6 @@ export const Checkout = ({ event }: CheckoutProps) => {
       event === 'out' ? await checkOutContainers(slugs) : await checkInContainers(slugs);
     console.log(response);
   };
-  const navigate = useNavigate();
 
   return (
     <Box

@@ -7,7 +7,6 @@ from django.http import Http404
 from .models import (
     Container,
     Chemical,
-    CheckoutEvent,
     Location,
     ChemicalStorageCategories,
     Ingredient,
@@ -21,6 +20,7 @@ from .serializers import (
     CheckoutEventWriteSerializer,
     LocationSerializer,
     ChemicalStorageCategoriesSerializer,
+    WeightReadingSerializer,
 )
 from django.db.models import Count, Q, F
 from django.db import transaction
@@ -199,3 +199,8 @@ class ChemicalStorageCategoryView(ModelViewSet):
         sorted = natsorted(queryset, key=lambda obj: obj.shorthand)
 
         return sorted
+
+
+class WeightReadingView(ModelViewSet):
+    queryset = WeightReading.objects.all()
+    serializer_class = WeightReadingSerializer
