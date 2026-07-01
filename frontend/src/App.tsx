@@ -7,7 +7,6 @@ import { Register } from './components/accounts/Register';
 import { Containers } from './components/inventory/Containers';
 import { ContainerForm } from './components/inventory/ContainerForm';
 import { ContainerDetail } from './components/inventory/ContainerDetail';
-import { Checkout } from './components/inventory/Checkout';
 import { ContainerActions } from './components/inventory/ContainerActions';
 
 function NotFound() {
