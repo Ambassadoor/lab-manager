@@ -2,7 +2,6 @@ import { Add, Remove } from '@mui/icons-material';
 import {
   Box,
   Button,
-  ButtonGroup,
   Card,
   CardActions,
   CardContent,
@@ -95,8 +94,16 @@ export const Checkout = ({ event }: CheckoutProps) => {
                     slotProps={{
                       input: {
                         endAdornment: (
-                          <ButtonGroup>
                             <InputAdornment position="end">
+                              {index > 0 && (
+                                <IconButton
+                                  onClick={() => {
+                                    remove(index);
+                                  }}
+                                >
+                                  <Remove />
+                                </IconButton>
+                            )}
                               <IconButton
                                 onClick={() => {
                                   append({ value: '' });
@@ -105,16 +112,7 @@ export const Checkout = ({ event }: CheckoutProps) => {
                                 <Add />
                               </IconButton>
                             </InputAdornment>
-                            {index > 0 && (
-                              <IconButton
-                                onClick={() => {
-                                  remove(index);
-                                }}
-                              >
-                                <Remove />
-                              </IconButton>
-                            )}
-                          </ButtonGroup>
+
                         ),
                       },
                     }}
