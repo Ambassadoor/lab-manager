@@ -223,6 +223,54 @@ export interface paths {
     patch: operations['inventory_containers_partial_update'];
     trace?: never;
   };
+  '/inventory/containers/{slug}/is_discarded/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_containers_is_discarded_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/containers/check_in/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['inventory_containers_check_in_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/containers/check_out/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['inventory_containers_check_out_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/inventory/locations/': {
     parameters: {
       query?: never;
@@ -259,8 +307,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /**
+     * @description * `in` - Check In
+     *     * `out` - Check Out
+     * @enum {string}
+     */
+    ActionEnum: 'in' | 'out';
     /** @enum {unknown} */
     BlankEnum: '';
+    CheckoutEvent: {
+      readonly id: number;
+      action: components['schemas']['ActionEnum'];
+      /** Format: date-time */
+      readonly timestamp: string;
+      related_event?: number | null;
+    };
     Chemical: {
       readonly id: number;
       name: string;
@@ -1074,6 +1135,77 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ContainerWrite'];
+        };
+      };
+    };
+  };
+  inventory_containers_is_discarded_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+    };
+  };
+  inventory_containers_check_in_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CheckoutEvent'];
+        'application/x-www-form-urlencoded': components['schemas']['CheckoutEvent'];
+        'multipart/form-data': components['schemas']['CheckoutEvent'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CheckoutEvent'];
+        };
+      };
+    };
+  };
+  inventory_containers_check_out_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CheckoutEvent'];
+        'application/x-www-form-urlencoded': components['schemas']['CheckoutEvent'];
+        'multipart/form-data': components['schemas']['CheckoutEvent'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CheckoutEvent'];
         };
       };
     };

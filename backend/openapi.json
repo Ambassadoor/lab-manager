@@ -590,6 +590,78 @@ paths:
       responses:
         '204':
           description: No response body
+  /inventory/containers/{slug}/is_discarded/:
+    get:
+      operationId: inventory_containers_is_discarded_retrieve
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Container'
+          description: ''
+  /inventory/containers/check_in/:
+    post:
+      operationId: inventory_containers_check_in_create
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutEvent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CheckoutEvent'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CheckoutEvent'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutEvent'
+          description: ''
+  /inventory/containers/check_out/:
+    post:
+      operationId: inventory_containers_check_out_create
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutEvent'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CheckoutEvent'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CheckoutEvent'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutEvent'
+          description: ''
   /inventory/locations/:
     get:
       operationId: inventory_locations_list
@@ -746,9 +818,36 @@ paths:
           description: No response body
 components:
   schemas:
+    ActionEnum:
+      enum:
+      - in
+      - out
+      type: string
+      description: |-
+        * `in` - Check In
+        * `out` - Check Out
     BlankEnum:
       enum:
       - ''
+    CheckoutEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        action:
+          $ref: '#/components/schemas/ActionEnum'
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        related_event:
+          type: integer
+          nullable: true
+      required:
+      - action
+      - id
+      - timestamp
     Chemical:
       type: object
       properties:

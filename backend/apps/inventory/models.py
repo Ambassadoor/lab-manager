@@ -220,6 +220,14 @@ class CheckoutEvent(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, related_name="events"
     )
+    related_event = models.OneToOneField(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="check_in_event",
+        unique=True,
+    )
 
     def __str__(self):
         return f"{self.container.name}: {self.action}"
