@@ -94,25 +94,24 @@ export const Checkout = ({ event }: CheckoutProps) => {
                     slotProps={{
                       input: {
                         endAdornment: (
-                            <InputAdornment position="end">
-                              {index > 0 && (
-                                <IconButton
-                                  onClick={() => {
-                                    remove(index);
-                                  }}
-                                >
-                                  <Remove />
-                                </IconButton>
-                            )}
+                          <InputAdornment position="end">
+                            {index > 0 && (
                               <IconButton
                                 onClick={() => {
-                                  append({ value: '' });
+                                  remove(index);
                                 }}
                               >
-                                <Add />
+                                <Remove />
                               </IconButton>
-                            </InputAdornment>
-
+                            )}
+                            <IconButton
+                              onClick={() => {
+                                append({ value: '' });
+                              }}
+                            >
+                              <Add />
+                            </IconButton>
+                          </InputAdornment>
                         ),
                       },
                     }}
