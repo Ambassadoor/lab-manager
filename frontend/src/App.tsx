@@ -35,7 +35,6 @@ export default function App() {
             <Route path="new" element={<ContainerForm />} />
             <Route path=":id" element={<ContainerDetail />} />
             <Route path="actions" element={<ContainerActions />} />
-            <Route path="checkout" element={<Checkout />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />
