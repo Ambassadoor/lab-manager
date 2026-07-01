@@ -127,6 +127,14 @@ class ContainerView(ModelViewSet):
             serializer.save()
             return Response({"events": serializer.data}, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=["GET"])
+    def is_valid(self, request, slug=None):
+        try:
+            self.get_object()
+            return Response({"is_valid": True}, status=status.HTTP_200_OK)
+        except Http404:
+            return Response({"is_valid": False}, status=status.HTTP_404_NOT_FOUND)
+
     @transaction.atomic
     def create(self, request):
         user = request.user
@@ -183,6 +191,21 @@ class ContainerView(ModelViewSet):
         )
         # TODO: Reset IDs on failed creates
         return Response(ContainerSerializer(container).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["POST"])
+    def weigh_in(self, request, slug=None):
+        container = self.get_object()
+        data = request.data
+
+        weigh_in = {
+            "container": container.id,
+            "weight": data.get("weight"),
+        }
+
+        serializer = WeightReadingSerializer(data=weigh_in, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class LocationView(ModelViewSet):

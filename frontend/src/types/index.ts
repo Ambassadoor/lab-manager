@@ -37,6 +37,11 @@ export interface Container extends Omit<ApiContainer, 'latest_reading'> {
   readonly latest_reading: WeightReading;
 }
 
+export type WeighInDefaults = {
+  slug: string;
+  weight: string;
+};
+
 export interface CasCheck {
   mixtures: Chemical[];
   chemicals: Chemical[];

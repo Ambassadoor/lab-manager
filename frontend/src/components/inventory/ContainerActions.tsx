@@ -2,12 +2,16 @@ import { TabContext, TabList, TabPanel } from '@mui/lab';
 import { Box, Container, Paper, Tab } from '@mui/material';
 import { useState } from 'react';
 import { Checkout } from './Checkout';
+import { WeighIn } from './WeighIn';
+import { useSearchParams } from 'react-router-dom';
 
 export const ContainerActions = () => {
-  const [value, setValue] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [value, setValue] = useState(Number(searchParams.get('tab')) || 0);
 
   const handleChange = (_: React.SyntheticEvent, value: string) => {
     setValue(Number(value));
+    setSearchParams({ tab: value });
   };
   return (
     <Container>
@@ -27,8 +31,9 @@ export const ContainerActions = () => {
             <TabPanel value={1}>
               <Checkout event={'in'} />
             </TabPanel>
-
-            <TabPanel value={2}></TabPanel>
+            <TabPanel value={2}>
+              <WeighIn />
+            </TabPanel>
           </Box>
         </TabContext>
       </Paper>

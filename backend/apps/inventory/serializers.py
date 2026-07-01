@@ -125,9 +125,11 @@ class ContainerWriteSerializer(serializers.ModelSerializer):
 
 
 class WeightReadingSerializer(serializers.ModelSerializer):
+    recorded_by = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
     class Meta:
         model = WeightReading
-        fields = ["id", "weight", "recorded_at"]
+        fields = ["id", "weight", "recorded_at", "recorded_by", "container"]
 
 
 class CheckoutEventSerializer(serializers.ModelSerializer):

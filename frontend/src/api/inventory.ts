@@ -8,6 +8,8 @@ import type {
   ContainerFormDefaults,
   CheckoutEvent,
   ContainerDetailDefaults,
+  WeighInDefaults,
+  WeightReading,
 } from '../types';
 
 export const getContainers = (): Promise<Container[] | []> => {
@@ -72,5 +74,16 @@ export const checkInContainers = (slugs: string[]): Promise<CheckoutEvent> => {
   return apiFetch(`/inventory/containers/check_in/`, {
     method: 'POST',
     body: JSON.stringify(slugs),
+  });
+};
+
+export const checkValidId = (slug: string): Promise<{ is_valid: boolean }> => {
+  return apiFetch(`/inventory/containers/${slug}/is_valid/`);
+};
+
+export const createWeighIn = (data: WeighInDefaults): Promise<WeightReading> => {
+  return apiFetch(`/inventory/containers/${data.slug}/weigh_in/`, {
+    method: 'POST',
+    body: JSON.stringify(data),
   });
 };

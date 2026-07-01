@@ -239,6 +239,38 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/inventory/containers/{slug}/is_valid/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_containers_is_valid_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/containers/{slug}/weigh_in/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['inventory_containers_weigh_in_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/inventory/containers/check_in/': {
     parameters: {
       query?: never;
@@ -543,6 +575,7 @@ export interface components {
       weight?: string;
       /** Format: date-time */
       readonly recorded_at?: string;
+      container?: number;
     };
     /**
      * @description * `mL` - mL
@@ -580,6 +613,7 @@ export interface components {
       weight: string;
       /** Format: date-time */
       readonly recorded_at: string;
+      container: number;
     };
   };
   responses: never;
@@ -1195,6 +1229,54 @@ export interface operations {
       cookie?: never;
     };
     requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+    };
+  };
+  inventory_containers_is_valid_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+    };
+  };
+  inventory_containers_weigh_in_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Container'];
+        'application/x-www-form-urlencoded': components['schemas']['Container'];
+        'multipart/form-data': components['schemas']['Container'];
+      };
+    };
     responses: {
       200: {
         headers: {

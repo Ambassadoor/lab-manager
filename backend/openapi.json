@@ -610,6 +610,58 @@ paths:
               schema:
                 $ref: '#/components/schemas/Container'
           description: ''
+  /inventory/containers/{slug}/is_valid/:
+    get:
+      operationId: inventory_containers_is_valid_retrieve
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Container'
+          description: ''
+  /inventory/containers/{slug}/weigh_in/:
+    post:
+      operationId: inventory_containers_weigh_in_create
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Container'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Container'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Container'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Container'
+          description: ''
   /inventory/containers/check_in/:
     post:
       operationId: inventory_containers_check_in_create
@@ -1410,6 +1462,8 @@ components:
           type: string
           format: date-time
           readOnly: true
+        container:
+          type: integer
     QuantityUnitEnum:
       enum:
       - mL
@@ -1488,7 +1542,10 @@ components:
           type: string
           format: date-time
           readOnly: true
+        container:
+          type: integer
       required:
+      - container
       - id
       - recorded_at
       - weight
