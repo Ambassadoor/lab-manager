@@ -6,6 +6,7 @@ import type {
   CasCheck,
   ContainerOptions,
   ContainerFormDefaults,
+  CheckoutEvent,
 } from '../types';
 
 export const getContainers = (): Promise<Container[] | []> => {
@@ -45,5 +46,27 @@ export const updateContainer = (slug: string, data): Promise<Container> => {
   return apiFetch(`/inventory/containers/${slug}/`, {
     method: 'PATCH',
     body: JSON.stringify(data),
+  });
+};
+
+type TTT = {
+  is_discarded?: boolean;
+  is_valid?: boolean;
+};
+export const checkIfDiscarded = (slug: string): Promise<TTT> => {
+  return apiFetch(`/inventory/containers/${slug}/is_discarded/`);
+};
+
+export const checkOutContainers = (slugs: string[]): Promise<CheckoutEvent> => {
+  return apiFetch(`/inventory/containers/check_out/`, {
+    method: 'POST',
+    body: JSON.stringify(slugs),
+  });
+};
+
+export const checkInContainers = (slugs: string[]): Promise<CheckoutEvent> => {
+  return apiFetch(`/inventory/containers/check_in/`, {
+    method: 'POST',
+    body: JSON.stringify(slugs),
   });
 };
