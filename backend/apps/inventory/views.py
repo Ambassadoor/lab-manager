@@ -3,9 +3,11 @@ from rest_framework import filters, status
 from rest_framework.decorators import action
 from natsort import natsorted
 from rest_framework.response import Response
+from django.http import Http404
 from .models import (
     Container,
     Chemical,
+    CheckoutEvent,
     Location,
     ChemicalStorageCategories,
     Ingredient,
@@ -15,6 +17,8 @@ from .serializers import (
     ContainerSerializer,
     ContainerWriteSerializer,
     ChemicalSerializer,
+    CheckoutEventSerializer,
+    CheckoutEventWriteSerializer,
     LocationSerializer,
     ChemicalStorageCategoriesSerializer,
 )
@@ -60,7 +64,68 @@ class ContainerView(ModelViewSet):
     def get_serializer_class(self):
         if self.action in ["create", "update", "partial_update", "metadata"]:
             return ContainerWriteSerializer
-        return ContainerSerializer
+        elif self.action in ["check_out", "check_in"]:
+            return CheckoutEventSerializer
+        else:
+            return ContainerSerializer
+
+    @action(detail=True, methods=["get"])
+    def is_discarded(self, request, slug=None):
+        try:
+            q = self.get_object()
+            return Response(
+                {"is_discarded": q.date_discarded is not None}, status=status.HTTP_200_OK
+            )
+        except Http404:
+            return Response({"is_valid": False}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=False, methods=["POST"])
+    def check_out(self, request):
+        data = request.data
+
+        events = []
+        for slug in data:
+            try:
+                container = Container.objects.get(slug=slug)
+                events.append({"container": container.id, "action": "out"})
+            except Container.DoesNotExist:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+        serializer = CheckoutEventWriteSerializer(
+            data=events, many=True, context={"request": request}
+        )
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response({"events": serializer.data}, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["POST"])
+    def check_in(self, request):
+        data = request.data
+
+        events = []
+        for slug in data:
+            try:
+                container = Container.objects.get(slug=slug)
+                try:
+                    last_check_out = container.events.filter(
+                        related_event__exact=None, action__exact="out"
+                    ).order_by("-timestamp")[:1][0]
+                except IndexError:
+                    last_check_out = None
+                events.append(
+                    {
+                        "container": container.id,
+                        "action": "in",
+                        "related_event": last_check_out.id if last_check_out is not None else None,
+                    }
+                )
+            except Container.DoesNotExist:
+                return Response(status.HTTP_400_BAD_REQUEST)
+        serializer = CheckoutEventWriteSerializer(
+            data=events, many=True, context={"request": request}
+        )
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response({"events": serializer.data}, status=status.HTTP_201_CREATED)
 
     @transaction.atomic
     def create(self, request):

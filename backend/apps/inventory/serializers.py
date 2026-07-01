@@ -131,9 +131,19 @@ class WeightReadingSerializer(serializers.ModelSerializer):
 
 
 class CheckoutEventSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
     class Meta:
         model = CheckoutEvent
         exclude = ["container"]
+
+
+class CheckoutEventWriteSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = CheckoutEvent
+        fields = "__all__"
 
 
 class IngredientSerializer(serializers.ModelSerializer):
