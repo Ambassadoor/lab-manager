@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import { Controller, useFieldArray, useForm, type SubmitHandler } from 'react-hook-form';
 import { checkIfDiscarded, checkInContainers, checkOutContainers } from '../../api/inventory';
-import { useState } from 'react';
+import { useState, type SyntheticEvent } from 'react';
 
 type CheckoutProps = {
   event: string;
@@ -47,11 +47,18 @@ export const Checkout = ({ event }: CheckoutProps) => {
     const slugs = data.checkout.map((d) => d.value.toLocaleLowerCase());
     const response =
       event === 'out' ? await checkOutContainers(slugs) : await checkInContainers(slugs);
-    if (response) {
+    if (response.events[0].id) {
       reset()
       setOpen(true)
     }
   };
+
+  const handleClose = (_: Event | SyntheticEvent, reason: string) => {
+    if (reason === 'clickaway') {
+      return
+    }
+    setOpen(false)
+  }
 
   return (
     <Box
@@ -61,6 +68,7 @@ export const Checkout = ({ event }: CheckoutProps) => {
     >
       <Snackbar
         open={open}
+        onClose={handleClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center'}}
         autoHideDuration={6000}
         action={
@@ -70,7 +78,7 @@ export const Checkout = ({ event }: CheckoutProps) => {
         }
       >
         <Alert
-          onClose={() => setOpen(false)}
+          onClose={(e) => handleClose(e, "")}
           severity='success'
           variant='filled'
           sx={{width: '100%'}}
