@@ -1,4 +1,4 @@
-import { Alert, Box, Container, Drawer, useTheme } from '@mui/material';
+import { Alert, Box, Container, Drawer, Paper, useTheme } from '@mui/material';
 import { AgGridReact } from 'ag-grid-react';
 import { useCallback, useMemo, useState } from 'react';
 import { getContainers } from '../../api/inventory';
@@ -48,7 +48,7 @@ export const Containers = () => {
   const theme = useTheme();
   const myTheme = themeMaterial.withParams({
     accentColor: theme.palette.info.main,
-    backgroundColor: theme.palette.background.paper,
+    backgroundColor: 'transparent',
     foregroundColor: theme.palette.text.primary,
     headerTextColor: theme.palette.text.primary,
     browserColorScheme: theme.palette.mode,
@@ -61,25 +61,27 @@ export const Containers = () => {
 
   return (
     <Box>
-      <Container sx={{ height: '80vh' }}>
+      <Container>
         {error && <Alert severity="error">There was an error loading the table.</Alert>}
-        <AgGridReact
-          theme={myTheme}
-          rowData={containers}
-          columnDefs={colDefs}
-          rowSelection={rowSelection}
-          pagination={pagination}
-          paginationPageSize={paginationPageSize}
-          paginationPageSizeSelector={paginationPageSizeSelector}
-          autoSizeStrategy={{ type: 'fitCellContents' }}
-          getRowId={getRowId}
-          loading={isPending}
-          onRowClicked={(e) => {
-            setSelectedRow(e.data);
-            setOpen(true);
-          }}
-        />
-      </Container>
+        <Paper elevation={4} sx={{ height: '80dvh' }}>
+          <AgGridReact
+            theme={myTheme}
+            rowData={containers}
+            columnDefs={colDefs}
+            rowSelection={rowSelection}
+            pagination={pagination}
+            paginationPageSize={paginationPageSize}
+            paginationPageSizeSelector={paginationPageSizeSelector}
+            autoSizeStrategy={{ type: 'fitCellContents' }}
+            getRowId={getRowId}
+            loading={isPending}
+            onRowClicked={(e) => {
+              setSelectedRow(e.data);
+              setOpen(true);
+            }}
+          />
+        </Paper>
+      </Container>{' '}
       <Drawer open={open} onClose={() => setOpen((prev) => !prev)} anchor="right">
         <ContainerDetail data={selectedRow} />
       </Drawer>
