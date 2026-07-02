@@ -37,6 +37,7 @@ export const WeighIn = () => {
     }
   };
 
+  //TODO: Add a dynamic tare field for ids with no tare value
   return (
     <Box
       component={'form'}

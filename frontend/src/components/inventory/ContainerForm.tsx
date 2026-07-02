@@ -406,6 +406,15 @@ export const ContainerForm = () => {
                           input: {
                             endAdornment: formValues.multiple_cas && (
                               <InputAdornment position="end">
+                                {index > 0 && (
+                                  <IconButton
+                                    onClick={() => {
+                                      remove(index);
+                                    }}
+                                  >
+                                    <Remove />
+                                  </IconButton>
+                                )}
                                 {index + 1 === fields.length && (
                                   <IconButton
                                     onClick={() => {
@@ -418,15 +427,6 @@ export const ContainerForm = () => {
                                     }}
                                   >
                                     <Add />
-                                  </IconButton>
-                                )}
-                                {index > 0 && (
-                                  <IconButton
-                                    onClick={() => {
-                                      remove(index);
-                                    }}
-                                  >
-                                    <Remove />
                                   </IconButton>
                                 )}
                               </InputAdornment>
