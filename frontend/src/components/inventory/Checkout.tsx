@@ -1,5 +1,6 @@
-import { Add, Remove } from '@mui/icons-material';
+import { Add, Close, Remove } from '@mui/icons-material';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -8,18 +9,21 @@ import {
   CardHeader,
   IconButton,
   InputAdornment,
+  Snackbar,
   Stack,
   TextField,
 } from '@mui/material';
 import { Controller, useFieldArray, useForm, type SubmitHandler } from 'react-hook-form';
 import { checkIfDiscarded, checkInContainers, checkOutContainers } from '../../api/inventory';
+import { useState } from 'react';
 
 type CheckoutProps = {
   event: string;
 };
 
 export const Checkout = ({ event }: CheckoutProps) => {
-  const { control, clearErrors, handleSubmit, resetField } = useForm({
+  const [open, setOpen] = useState(false)
+  const { control, clearErrors, handleSubmit, resetField, reset } = useForm({
     mode: 'onBlur',
     reValidateMode: 'onBlur',
     defaultValues: {
@@ -43,7 +47,10 @@ export const Checkout = ({ event }: CheckoutProps) => {
     const slugs = data.checkout.map((d) => d.value.toLocaleLowerCase());
     const response =
       event === 'out' ? await checkOutContainers(slugs) : await checkInContainers(slugs);
-    console.log(response);
+    if (response) {
+      reset()
+      setOpen(true)
+    }
   };
 
   return (
@@ -52,6 +59,25 @@ export const Checkout = ({ event }: CheckoutProps) => {
       sx={{ display: 'flex', justifyContent: 'center' }}
       onSubmit={handleSubmit(onSubmit)}
     >
+      <Snackbar
+        open={open}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center'}}
+        autoHideDuration={6000}
+        action={
+          <IconButton onClick={() => setOpen(false)} color='inherit'>
+            <Close />
+          </IconButton>
+        }
+      >
+        <Alert
+          onClose={() => setOpen(false)}
+          severity='success'
+          variant='filled'
+          sx={{width: '100%'}}
+        >
+          Checkout status updated
+        </Alert>
+      </Snackbar>
       <Card sx={{ width: '50dvw', alignSelf: 'center' }} elevation={6}>
         <CardHeader
           title={event === 'out' ? 'Checkout' : 'Check In'}
