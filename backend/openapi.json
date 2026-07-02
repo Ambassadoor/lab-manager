@@ -631,6 +631,25 @@ paths:
                 $ref: '#/components/schemas/Container'
           description: ''
   /inventory/containers/{slug}/weigh_in/:
+    get:
+      operationId: inventory_containers_weigh_in_retrieve
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Container'
+          description: ''
     post:
       operationId: inventory_containers_weigh_in_create
       parameters:

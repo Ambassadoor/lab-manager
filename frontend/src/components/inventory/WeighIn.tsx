@@ -30,14 +30,14 @@ export const WeighIn = () => {
     },
   });
 
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   const onSubmit: SubmitHandler<WeighInDefaults> = async (data) => {
     const response = await createWeighIn(data);
     if (response.id) {
       setOpen(true);
       reset();
-      queryClient.invalidateQueries({ queryKey: ['containerData']})
+      queryClient.invalidateQueries({ queryKey: ['containerData'] });
     }
   };
 

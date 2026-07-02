@@ -76,7 +76,7 @@ class ContainerSerializer(serializers.ModelSerializer):
             "is_opened",
             "latest_reading",
             "percent_remaining",
-            "checkout_status"
+            "checkout_status",
         ]
 
     def get_latest_reading(self, obj):
@@ -103,7 +103,7 @@ class ContainerSerializer(serializers.ModelSerializer):
             return ((current_weight - tare_weight) / mass) * 100
         except DecimalException:
             return None
-        
+
     def get_checkout_status(self, obj):
         latest = obj.events.order_by("-timestamp").first()
         if latest:
@@ -139,6 +139,12 @@ class WeightReadingSerializer(serializers.ModelSerializer):
     class Meta:
         model = WeightReading
         fields = ["id", "weight", "recorded_at", "recorded_by", "container"]
+
+
+class WeightReadingReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WeightReading
+        fields = "__all__"
 
 
 class CheckoutEventSerializer(serializers.ModelSerializer):

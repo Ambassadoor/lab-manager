@@ -287,7 +287,7 @@ export const ContainerForm = () => {
 
     const response = await submitNewContainerForm(data);
     sessionStorage.removeItem('container_form_cache');
-    queryClient.invalidateQueries({ queryKey: ['containerData']})
+    queryClient.invalidateQueries({ queryKey: ['containerData'] });
     navigate(`/inventory/containers/${response.id}`);
   };
 

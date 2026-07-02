@@ -21,6 +21,7 @@ from .serializers import (
     LocationSerializer,
     ChemicalStorageCategoriesSerializer,
     WeightReadingSerializer,
+    WeightReadingReadSerializer,
 )
 from django.db.models import Count, Q, F
 from django.db import transaction
@@ -192,20 +193,28 @@ class ContainerView(ModelViewSet):
         # TODO: Reset IDs on failed creates
         return Response(ContainerSerializer(container).data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=["POST"])
+    @action(detail=True, methods=["GET", "POST"])
     def weigh_in(self, request, slug=None):
         container = self.get_object()
-        data = request.data
 
-        weigh_in = {
-            "container": container.id,
-            "weight": data.get("weight"),
-        }
+        if request.method == "POST":
+            data = request.data
 
-        serializer = WeightReadingSerializer(data=weigh_in, context={"request": request})
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+            weigh_in = {
+                "container": container.id,
+                "weight": data.get("weight"),
+            }
+
+            serializer = WeightReadingSerializer(data=weigh_in, context={"request": request})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        elif request.method == "GET":
+            events = container.readings
+            serializer = WeightReadingReadSerializer(data=events, many=True)
+            serializer.is_valid()
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class LocationView(ModelViewSet):

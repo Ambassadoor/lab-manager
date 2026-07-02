@@ -22,7 +22,7 @@ type CheckoutProps = {
 };
 
 export const Checkout = ({ event }: CheckoutProps) => {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false);
   const { control, clearErrors, handleSubmit, resetField, reset } = useForm({
     mode: 'onBlur',
     reValidateMode: 'onBlur',
@@ -48,17 +48,17 @@ export const Checkout = ({ event }: CheckoutProps) => {
     const response =
       event === 'out' ? await checkOutContainers(slugs) : await checkInContainers(slugs);
     if (response.events[0].id) {
-      reset()
-      setOpen(true)
+      reset();
+      setOpen(true);
     }
   };
 
   const handleClose = (_: Event | SyntheticEvent, reason: string) => {
     if (reason === 'clickaway') {
-      return
+      return;
     }
-    setOpen(false)
-  }
+    setOpen(false);
+  };
 
   return (
     <Box
@@ -69,19 +69,19 @@ export const Checkout = ({ event }: CheckoutProps) => {
       <Snackbar
         open={open}
         onClose={handleClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center'}}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         autoHideDuration={6000}
         action={
-          <IconButton onClick={() => setOpen(false)} color='inherit'>
+          <IconButton onClick={() => setOpen(false)} color="inherit">
             <Close />
           </IconButton>
         }
       >
         <Alert
-          onClose={(e) => handleClose(e, "")}
-          severity='success'
-          variant='filled'
-          sx={{width: '100%'}}
+          onClose={(e) => handleClose(e, '')}
+          severity="success"
+          variant="filled"
+          sx={{ width: '100%' }}
         >
           Checkout status updated
         </Alert>

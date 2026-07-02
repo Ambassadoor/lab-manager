@@ -23,8 +23,7 @@ export const Containers = () => {
 
   const [open, setOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState();
-  //eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [colDefs, setColDefs] = useState<ColDef[]>([
+  const [colDefs] = useState<ColDef[]>([
     { field: 'label', headerName: 'ID' },
     { field: 'name' },
     { field: 'location', filter: true },
@@ -72,6 +71,7 @@ export const Containers = () => {
           pagination={pagination}
           paginationPageSize={paginationPageSize}
           paginationPageSizeSelector={paginationPageSizeSelector}
+          autoSizeStrategy={{ type: 'fitCellContents' }}
           getRowId={getRowId}
           loading={isPending}
           onRowClicked={(e) => {

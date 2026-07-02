@@ -63,14 +63,14 @@ export const checkIfDiscarded = (slug: string): Promise<TTT> => {
   return apiFetch(`/inventory/containers/${slug}/is_discarded/`);
 };
 
-export const checkOutContainers = (slugs: string[]): Promise<{events: CheckoutEvent[]}> => {
+export const checkOutContainers = (slugs: string[]): Promise<{ events: CheckoutEvent[] }> => {
   return apiFetch(`/inventory/containers/check_out/`, {
     method: 'POST',
     body: JSON.stringify(slugs),
   });
 };
 
-export const checkInContainers = (slugs: string[]): Promise<{events: CheckoutEvent[]}> => {
+export const checkInContainers = (slugs: string[]): Promise<{ events: CheckoutEvent[] }> => {
   return apiFetch(`/inventory/containers/check_in/`, {
     method: 'POST',
     body: JSON.stringify(slugs),
@@ -85,5 +85,11 @@ export const createWeighIn = (data: WeighInDefaults): Promise<WeightReading> => 
   return apiFetch(`/inventory/containers/${data.slug}/weigh_in/`, {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+};
+
+export const getContainerWeighIns = (slug: string): Promise<WeightReading[]> => {
+  return apiFetch(`/inventory/containers/${slug}/weigh_in`, {
+    method: 'GET',
   });
 };
