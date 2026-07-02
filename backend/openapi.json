@@ -1041,6 +1041,10 @@ components:
         id:
           type: integer
           readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/UserCheckoutEvent'
+          readOnly: true
         action:
           $ref: '#/components/schemas/ActionEnum'
         timestamp:
@@ -1054,6 +1058,7 @@ components:
       - action
       - id
       - timestamp
+      - user
     Chemical:
       type: object
       properties:
@@ -1176,7 +1181,11 @@ components:
         percent_remaining:
           type: string
           readOnly: true
+        checkout_status:
+          type: string
+          readOnly: true
       required:
+      - checkout_status
       - id
       - is_opened
       - label
@@ -1528,6 +1537,14 @@ components:
       - id
       - role
       - username
+    UserCheckoutEvent:
+      type: object
+      properties:
+        full_name:
+          type: string
+          readOnly: true
+      required:
+      - full_name
     WeightReading:
       type: object
       properties:

@@ -10,6 +10,8 @@ from .models import (
     Ingredient,
 )
 
+from apps.users.serializers import UserCheckoutEventSerializer
+
 from decimal import Decimal
 from decimal import DecimalException
 
@@ -54,6 +56,7 @@ class ContainerSerializer(serializers.ModelSerializer):
     location = serializers.ReadOnlyField(label="Location", source="location.full_path")
     percent_remaining = serializers.SerializerMethodField()
     latest_reading = serializers.SerializerMethodField()
+    checkout_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Container
@@ -73,6 +76,7 @@ class ContainerSerializer(serializers.ModelSerializer):
             "is_opened",
             "latest_reading",
             "percent_remaining",
+            "checkout_status"
         ]
 
     def get_latest_reading(self, obj):
@@ -99,6 +103,11 @@ class ContainerSerializer(serializers.ModelSerializer):
             return ((current_weight - tare_weight) / mass) * 100
         except DecimalException:
             return None
+        
+    def get_checkout_status(self, obj):
+        latest = obj.events.order_by("-timestamp").first()
+        if latest:
+            return CheckoutEventSerializer(latest).data
 
 
 class ContainerWriteSerializer(serializers.ModelSerializer):
@@ -133,7 +142,7 @@ class WeightReadingSerializer(serializers.ModelSerializer):
 
 
 class CheckoutEventSerializer(serializers.ModelSerializer):
-    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    user = UserCheckoutEventSerializer(read_only=True)
 
     class Meta:
         model = CheckoutEvent

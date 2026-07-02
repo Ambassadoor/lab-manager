@@ -9,6 +9,16 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ["id", "username", "email", "first_name", "last_name", "role"]
         read_only_fields = ["id", "role"]
 
+class UserCheckoutEventSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ["full_name"]
+
+    def get_full_name(self, obj):
+        return f'{obj.first_name} {obj.last_name}'
+
 
 class NewUserSerializer(serializers.ModelSerializer):
     class Meta:

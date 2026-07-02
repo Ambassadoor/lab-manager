@@ -296,7 +296,7 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
                 />
 
                 <Typography>
-                  <strong>Status:</strong> {container.is_opened ? 'Opened' : 'Unopened'}
+                  <strong>Status:</strong> {container.checkout_status?.action === "out" ? "Checked Out" : "Available"}
                 </Typography>
                 {container.latest_reading && (
                   <Typography>

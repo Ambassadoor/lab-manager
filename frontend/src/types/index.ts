@@ -33,8 +33,9 @@ export type UnitEnums = components['schemas']['QuantityUnitEnum'];
 export type CheckoutEvent = components['schemas']['CheckoutEvent'];
 export type WeightReading = components['schemas']['WeightReading'];
 
-export interface Container extends Omit<ApiContainer, 'latest_reading'> {
+export interface Container extends Omit<ApiContainer, 'latest_reading' | 'checkout_status'> {
   readonly latest_reading: WeightReading;
+  readonly checkout_status: CheckoutEvent;
 }
 
 export type WeighInDefaults = {
