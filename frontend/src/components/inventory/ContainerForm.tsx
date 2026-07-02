@@ -51,6 +51,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { Decimal } from 'decimal.js';
 import dayjs from 'dayjs';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const ContainerForm = () => {
   const [chemicalStorageCategories, setChemicalStorageCategories] = useState<
@@ -274,6 +275,8 @@ export const ContainerForm = () => {
     setValue('mixture_storage_category', chosenMixture?.storage_category.id || '');
   }, [formValues.mixture_id, setValue, cas]);
 
+  const queryClient = useQueryClient();
+
   const onSubmit: SubmitHandler<ContainerFormDefaults> = async (data) => {
     if (data.date_received) {
       data.date_received = data.date_received?.split('T')[0] || null;
@@ -284,6 +287,7 @@ export const ContainerForm = () => {
 
     const response = await submitNewContainerForm(data);
     sessionStorage.removeItem('container_form_cache');
+    queryClient.invalidateQueries({ queryKey: ['containerData'] });
     navigate(`/inventory/containers/${response.id}`);
   };
 

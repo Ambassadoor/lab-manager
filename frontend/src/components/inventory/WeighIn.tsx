@@ -17,6 +17,7 @@ import { checkValidId, createWeighIn } from '../../api/inventory';
 import type { WeighInDefaults } from '../../types';
 import { useState } from 'react';
 import { Close } from '@mui/icons-material';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const WeighIn = () => {
   const [open, setOpen] = useState(false);
@@ -29,11 +30,14 @@ export const WeighIn = () => {
     },
   });
 
+  const queryClient = useQueryClient();
+
   const onSubmit: SubmitHandler<WeighInDefaults> = async (data) => {
     const response = await createWeighIn(data);
     if (response.id) {
       setOpen(true);
       reset();
+      queryClient.invalidateQueries({ queryKey: ['containerData'] });
     }
   };
 
@@ -46,6 +50,7 @@ export const WeighIn = () => {
     >
       <Snackbar
         open={open}
+        onClose={() => setOpen(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         autoHideDuration={6000}
         action={

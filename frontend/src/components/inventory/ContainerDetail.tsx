@@ -5,6 +5,7 @@ import {
   CardActions,
   CardContent,
   CardHeader,
+  Collapse,
   IconButton,
   InputAdornment,
   Stack,
@@ -19,9 +20,11 @@ import {
   updateContainer,
 } from '../../api/inventory';
 import type { Location, Container, ContainerOptions, ContainerDetailDefaults } from '../../types';
-import { Edit, UnfoldMore } from '@mui/icons-material';
+import { Edit, ExpandLess, ExpandMore, UnfoldMore } from '@mui/icons-material';
 import { ToggleField } from '../ToggleField';
 import { Controller, FormProvider, useForm, type SubmitHandler } from 'react-hook-form';
+import { useQueryClient } from '@tanstack/react-query';
+import { WeighInTable } from './WeighinTable';
 
 type ContainerDetailProps = {
   data?: Container;
@@ -35,6 +38,7 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
   const [options, setOptions] =
     useState<ContainerOptions['actions']['POST']['quantity_unit']['choices']>();
   const [editing, setEditing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const params = useParams();
 
   useEffect(() => {
@@ -76,11 +80,14 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
     },
   });
 
+  const queryClient = useQueryClient();
+
   const onSubmit: SubmitHandler<ContainerDetailDefaults> = async (data) => {
     updateContainer(container.slug, data)
       .then(() => getContainerDetails(container.slug))
       .then(setContainer);
     setEditing(false);
+    queryClient.invalidateQueries({ queryKey: ['containerData'] });
   };
 
   return (
@@ -100,7 +107,7 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
           sx={{ display: 'flex', justifyContent: 'center' }}
           component={'form'}
         >
-          <Card sx={{ width: `${data ? '25dvw' : '50dvw'}`, alignSelf: 'center' }} elevation={6}>
+          <Card sx={{ width: `${data ? '25dvw' : '50dvw'}`, alignSelf: 'center' }} elevation={4}>
             <CardHeader
               title={
                 !editing ? (
@@ -296,7 +303,10 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
                 />
 
                 <Typography>
-                  <strong>Status:</strong> {container.is_opened ? 'Opened' : 'Unopened'}
+                  <strong>Status:</strong>{' '}
+                  {container.checkout_status?.action === 'out'
+                    ? `Checked out by ${container.checkout_status?.user.full_name}`
+                    : 'Available'}
                 </Typography>
                 {container.latest_reading && (
                   <Typography>
@@ -319,6 +329,21 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
                   Cancel
                 </Button>
               </CardActions>
+            )}
+            {!data && !editing && (
+              <>
+                <CardActions disableSpacing>
+                  <Box sx={{ display: 'flex', flexDirection: 'row', ml: 'auto' }}>
+                    <Typography sx={{ alignSelf: 'center' }}>Weigh In History</Typography>
+                    <IconButton onClick={() => setExpanded((prev) => !prev)}>
+                      {expanded ? <ExpandLess /> : <ExpandMore />}
+                    </IconButton>
+                  </Box>
+                </CardActions>
+                <Collapse in={expanded} timeout={'auto'} unmountOnExit sx={{ pb: 3 }}>
+                  <WeighInTable slug={container.slug} />
+                </Collapse>
+              </>
             )}
           </Card>
         </Box>

@@ -262,7 +262,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    get: operations['inventory_containers_weigh_in_retrieve'];
     put?: never;
     post: operations['inventory_containers_weigh_in_create'];
     delete?: never;
@@ -381,6 +381,7 @@ export interface components {
     BlankEnum: '';
     CheckoutEvent: {
       readonly id: number;
+      readonly user: components['schemas']['UserCheckoutEvent'];
       action: components['schemas']['ActionEnum'];
       /** Format: date-time */
       readonly timestamp: string;
@@ -438,6 +439,7 @@ export interface components {
       readonly is_opened: boolean;
       readonly latest_reading: string;
       readonly percent_remaining: string;
+      readonly checkout_status: string;
     };
     ContainerWrite: {
       name: string;
@@ -606,6 +608,9 @@ export interface components {
       first_name?: string;
       last_name?: string;
       readonly role: components['schemas']['RoleEnum'];
+    };
+    UserCheckoutEvent: {
+      readonly full_name: string;
     };
     WeightReading: {
       readonly id: number;
@@ -1241,6 +1246,27 @@ export interface operations {
     };
   };
   inventory_containers_is_valid_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+    };
+  };
+  inventory_containers_weigh_in_retrieve: {
     parameters: {
       query?: never;
       header?: never;
