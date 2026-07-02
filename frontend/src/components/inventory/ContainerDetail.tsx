@@ -22,6 +22,7 @@ import type { Location, Container, ContainerOptions, ContainerDetailDefaults } f
 import { Edit, UnfoldMore } from '@mui/icons-material';
 import { ToggleField } from '../ToggleField';
 import { Controller, FormProvider, useForm, type SubmitHandler } from 'react-hook-form';
+import { useQueryClient } from '@tanstack/react-query';
 
 type ContainerDetailProps = {
   data?: Container;
@@ -76,11 +77,14 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
     },
   });
 
+  const queryClient = useQueryClient()
+
   const onSubmit: SubmitHandler<ContainerDetailDefaults> = async (data) => {
     updateContainer(container.slug, data)
       .then(() => getContainerDetails(container.slug))
       .then(setContainer);
     setEditing(false);
+    queryClient.invalidateQueries({ queryKey: ['containerData']})
   };
 
   return (
