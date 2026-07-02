@@ -1,11 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getContainerWeighIns } from '../../api/inventory';
 import { useCallback, useState } from 'react';
-import {
-  themeMaterial,
-  type ColDef,
-  type GetRowIdParams,
-} from 'ag-grid-community';
+import { themeMaterial, type ColDef, type GetRowIdParams } from 'ag-grid-community';
 import { Container, Paper, useTheme } from '@mui/material';
 import { AgGridReact } from 'ag-grid-react';
 import Decimal from 'decimal.js';
