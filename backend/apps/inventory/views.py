@@ -8,6 +8,7 @@ from .models import (
     Container,
     Chemical,
     Location,
+    LocationTypes,
     ChemicalStorageCategories,
     Ingredient,
     WeightReading,
@@ -19,6 +20,8 @@ from .serializers import (
     CheckoutEventSerializer,
     CheckoutEventWriteSerializer,
     LocationSerializer,
+    LocationWriteSerializer,
+    LocationTypeSerializer,
     ChemicalStorageCategoriesSerializer,
     WeightReadingSerializer,
     WeightReadingReadSerializer,
@@ -219,7 +222,31 @@ class ContainerView(ModelViewSet):
 
 class LocationView(ModelViewSet):
     queryset = Location.objects.filter(parent__exact=None).order_by("name")
-    serializer_class = LocationSerializer
+
+    def get_serializer_class(self):
+        if self.action in ["create", "update", "partial_update", "add_child"]:
+            return LocationWriteSerializer
+        else:
+            return LocationSerializer
+
+    @action(detail=True, methods=["POST"])
+    def add_child(self, request, pk=None):
+        data = request.data
+        parent = self.get_object()
+
+        data["parent"] = parent.id
+        serializer = LocationWriteSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        location = serializer.save()
+
+        response_serializer = LocationSerializer(location)
+
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+
+class LocationTypeView(ModelViewSet):
+    queryset = LocationTypes.objects.all()
+    serializer_class = LocationTypeSerializer
 
 
 class ChemicalStorageCategoryView(ModelViewSet):

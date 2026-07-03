@@ -32,6 +32,7 @@ export type StorageCategory = components['schemas']['ChemicalStorageCategories']
 export type UnitEnums = components['schemas']['QuantityUnitEnum'];
 export type CheckoutEvent = components['schemas']['CheckoutEvent'];
 export type WeightReading = components['schemas']['WeightReading'];
+export type LocationType = components['schemas']['LocationType'];
 
 export interface Container extends Omit<ApiContainer, 'latest_reading' | 'checkout_status'> {
   readonly latest_reading: WeightReading;

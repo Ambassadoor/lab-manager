@@ -58,6 +58,16 @@ class LocationSerializer(serializers.ModelSerializer):
         return super().to_representation(instance)
 
 
+class LocationWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Location
+        fields = ["name", "type", "parent"]
+
+    def to_representation(self, instance):
+        self.fields["parent"] = LocationSerializer(many=False)
+        return super().to_representation(instance)
+
+
 class ContainerSerializer(serializers.ModelSerializer):
     label = serializers.ReadOnlyField(label="ID")
     is_opened = serializers.ReadOnlyField(label="Opened?")

@@ -10,7 +10,9 @@ import type {
   ContainerDetailDefaults,
   WeighInDefaults,
   WeightReading,
+  LocationType,
 } from '../types';
+import type { NewLocationDefaults } from '../components/inventory/locations/AddLocation';
 
 export const getContainers = (): Promise<Container[] | []> => {
   return apiFetch('/inventory/containers/');
@@ -92,4 +94,15 @@ export const getContainerWeighIns = (slug: string): Promise<WeightReading[]> => 
   return apiFetch(`/inventory/containers/${slug}/weigh_in`, {
     method: 'GET',
   });
+};
+
+export const addLocation = (data: NewLocationDefaults, id: string): Promise<Location> => {
+  return apiFetch(`/inventory/locations/${id.length > 0 ? 'add_child/' : ''}`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+export const getLocationTypes = (): Promise<LocationType[]> => {
+  return apiFetch(`/inventory/location_types/`);
 };
