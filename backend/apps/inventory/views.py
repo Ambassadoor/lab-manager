@@ -218,7 +218,7 @@ class ContainerView(ModelViewSet):
 
 
 class LocationView(ModelViewSet):
-    queryset = Location.objects.all()
+    queryset = Location.objects.filter(parent__exact=None).order_by("name")
     serializer_class = LocationSerializer
 
 

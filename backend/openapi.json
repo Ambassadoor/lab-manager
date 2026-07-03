@@ -1292,18 +1292,44 @@ components:
           type: string
           maxLength: 20
         type:
-          type: integer
-        parent:
-          type: integer
-          nullable: true
+          $ref: '#/components/schemas/LocationType'
+        children:
+          type: array
+          items:
+            type: integer
         full_path:
           type: string
           readOnly: true
       required:
+      - children
       - full_path
       - id
       - name
       - type
+    LocationType:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 20
+        slug:
+          type: string
+          maxLength: 40
+        description:
+          type: string
+          nullable: true
+          maxLength: 100
+        icon:
+          type: string
+          nullable: true
+          maxLength: 25
+      required:
+      - id
+      - name
+      - slug
     Nested:
       type: object
       properties:
@@ -1469,10 +1495,11 @@ components:
           type: string
           maxLength: 20
         type:
-          type: integer
-        parent:
-          type: integer
-          nullable: true
+          $ref: '#/components/schemas/LocationType'
+        children:
+          type: array
+          items:
+            type: integer
         full_path:
           type: string
           readOnly: true

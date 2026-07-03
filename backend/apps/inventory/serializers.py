@@ -4,6 +4,7 @@ from .models import (
     Chemical,
     SDS,
     Location,
+    LocationTypes,
     Container,
     WeightReading,
     CheckoutEvent,
@@ -39,13 +40,21 @@ class SDSSerializer(serializers.ModelSerializer):
         fields = ["file_name", "revision_date", "revision_number"]
 
 
+class LocationTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LocationTypes
+        fields = "__all__"
+
+
 class LocationSerializer(serializers.ModelSerializer):
+    type = LocationTypeSerializer()
+
     class Meta:
         model = Location
-        fields = ["id", "name", "type", "parent", "full_path"]
+        fields = ["id", "name", "type", "children", "full_path"]
 
     def to_representation(self, instance):
-        self.fields["parent"] = LocationSerializer(many=False, read_only=True)
+        self.fields["children"] = LocationSerializer(many=True, read_only=True)
         return super().to_representation(instance)
 
 

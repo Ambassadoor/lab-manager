@@ -486,9 +486,16 @@ export interface components {
     Location: {
       readonly id: number;
       name: string;
-      type: number;
-      parent?: number | null;
+      type: components['schemas']['LocationType'];
+      children: number[];
       readonly full_path: string;
+    };
+    LocationType: {
+      readonly id: number;
+      name: string;
+      slug: string;
+      description?: string | null;
+      icon?: string | null;
     };
     Nested: {
       readonly id: number;
@@ -567,8 +574,8 @@ export interface components {
     PatchedLocation: {
       readonly id?: number;
       name?: string;
-      type?: number;
-      parent?: number | null;
+      type?: components['schemas']['LocationType'];
+      children?: number[];
       readonly full_path?: string;
     };
     PatchedWeightReading: {

@@ -8,6 +8,7 @@ import { Containers } from './components/inventory/Containers';
 import { ContainerForm } from './components/inventory/ContainerForm';
 import { ContainerDetail } from './components/inventory/ContainerDetail';
 import { ContainerActions } from './components/inventory/ContainerActions';
+import { Locations } from './components/inventory/locations/Locations';
 
 function NotFound() {
   return (
@@ -34,6 +35,9 @@ export default function App() {
             <Route path="new" element={<ContainerForm />} />
             <Route path=":id" element={<ContainerDetail />} />
             <Route path="actions" element={<ContainerActions />} />
+          </Route>
+          <Route path="locations" element={<Outlet />}>
+            <Route path="" element={<Locations />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />

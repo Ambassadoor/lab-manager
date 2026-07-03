@@ -62,6 +62,9 @@ export const Navbar = (): JSX.Element | null => {
                 <Button component={Link} to="/inventory/containers/actions/" color="inherit">
                   Actions
                 </Button>
+                <Button component={Link} to="/inventory/locations/" color="inherit">
+                  Locations
+                </Button>
               </Stack>
             </Box>
             <DarkModeToggle />
