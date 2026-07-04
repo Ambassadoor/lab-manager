@@ -303,6 +303,38 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/inventory/location_types/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_location_types_list'];
+    put?: never;
+    post: operations['inventory_location_types_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/location_types/{id}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_location_types_retrieve'];
+    put: operations['inventory_location_types_update'];
+    post?: never;
+    delete: operations['inventory_location_types_destroy'];
+    options?: never;
+    head?: never;
+    patch: operations['inventory_location_types_partial_update'];
+    trace?: never;
+  };
   '/inventory/locations/': {
     parameters: {
       query?: never;
@@ -333,6 +365,54 @@ export interface paths {
     options?: never;
     head?: never;
     patch: operations['inventory_locations_partial_update'];
+    trace?: never;
+  };
+  '/inventory/locations/{id}/add_child/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['inventory_locations_add_child_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/locations/{id}/containers/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_locations_containers_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/locations/menu/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_locations_menu_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   '/inventory/weight_readings/': {
@@ -486,9 +566,26 @@ export interface components {
     Location: {
       readonly id: number;
       name: string;
+      type: components['schemas']['LocationType'];
+      children: number[];
+      readonly full_path: string;
+    };
+    LocationMenu: {
+      readonly id: number;
+      name: string;
+      readonly full_path: string;
+    };
+    LocationType: {
+      readonly id: number;
+      name: string;
+      slug: string;
+      description?: string | null;
+      icon?: string | null;
+    };
+    LocationWrite: {
+      name: string;
       type: number;
       parent?: number | null;
-      readonly full_path: string;
     };
     Nested: {
       readonly id: number;
@@ -564,12 +661,17 @@ export interface components {
        */
       tare_weight?: string | null;
     };
-    PatchedLocation: {
+    PatchedLocationType: {
       readonly id?: number;
+      name?: string;
+      slug?: string;
+      description?: string | null;
+      icon?: string | null;
+    };
+    PatchedLocationWrite: {
       name?: string;
       type?: number;
       parent?: number | null;
-      readonly full_path?: string;
     };
     PatchedWeightReading: {
       readonly id?: number;
@@ -1364,6 +1466,154 @@ export interface operations {
       };
     };
   };
+  inventory_location_types_list: {
+    parameters: {
+      query?: {
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+        /** @description A search term. */
+        search?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationType'][];
+        };
+      };
+    };
+  };
+  inventory_location_types_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LocationType'];
+        'application/x-www-form-urlencoded': components['schemas']['LocationType'];
+        'multipart/form-data': components['schemas']['LocationType'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationType'];
+        };
+      };
+    };
+  };
+  inventory_location_types_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this location types. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationType'];
+        };
+      };
+    };
+  };
+  inventory_location_types_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this location types. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LocationType'];
+        'application/x-www-form-urlencoded': components['schemas']['LocationType'];
+        'multipart/form-data': components['schemas']['LocationType'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationType'];
+        };
+      };
+    };
+  };
+  inventory_location_types_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this location types. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No response body */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  inventory_location_types_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this location types. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedLocationType'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedLocationType'];
+        'multipart/form-data': components['schemas']['PatchedLocationType'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationType'];
+        };
+      };
+    };
+  };
   inventory_locations_list: {
     parameters: {
       query?: {
@@ -1397,9 +1647,9 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['Location'];
-        'application/x-www-form-urlencoded': components['schemas']['Location'];
-        'multipart/form-data': components['schemas']['Location'];
+        'application/json': components['schemas']['LocationWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['LocationWrite'];
+        'multipart/form-data': components['schemas']['LocationWrite'];
       };
     };
     responses: {
@@ -1408,7 +1658,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Location'];
+          'application/json': components['schemas']['LocationWrite'];
         };
       };
     };
@@ -1447,9 +1697,9 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['Location'];
-        'application/x-www-form-urlencoded': components['schemas']['Location'];
-        'multipart/form-data': components['schemas']['Location'];
+        'application/json': components['schemas']['LocationWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['LocationWrite'];
+        'multipart/form-data': components['schemas']['LocationWrite'];
       };
     };
     responses: {
@@ -1458,7 +1708,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Location'];
+          'application/json': components['schemas']['LocationWrite'];
         };
       };
     };
@@ -1496,9 +1746,9 @@ export interface operations {
     };
     requestBody?: {
       content: {
-        'application/json': components['schemas']['PatchedLocation'];
-        'application/x-www-form-urlencoded': components['schemas']['PatchedLocation'];
-        'multipart/form-data': components['schemas']['PatchedLocation'];
+        'application/json': components['schemas']['PatchedLocationWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedLocationWrite'];
+        'multipart/form-data': components['schemas']['PatchedLocationWrite'];
       };
     };
     responses: {
@@ -1507,7 +1757,76 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
+          'application/json': components['schemas']['LocationWrite'];
+        };
+      };
+    };
+  };
+  inventory_locations_add_child_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this location. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LocationWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['LocationWrite'];
+        'multipart/form-data': components['schemas']['LocationWrite'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationWrite'];
+        };
+      };
+    };
+  };
+  inventory_locations_containers_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this location. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
           'application/json': components['schemas']['Location'];
+        };
+      };
+    };
+  };
+  inventory_locations_menu_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationMenu'];
         };
       };
     };

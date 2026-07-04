@@ -112,6 +112,9 @@ class Location(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        ordering = ["name"]
+
 
 class Container(models.Model):
     QUANTITY_UNIT_CHOICES = [

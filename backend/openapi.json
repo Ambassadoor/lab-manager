@@ -733,6 +733,160 @@ paths:
               schema:
                 $ref: '#/components/schemas/CheckoutEvent'
           description: ''
+  /inventory/location_types/:
+    get:
+      operationId: inventory_location_types_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LocationType'
+          description: ''
+    post:
+      operationId: inventory_location_types_create
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationType'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LocationType'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LocationType'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationType'
+          description: ''
+  /inventory/location_types/{id}/:
+    get:
+      operationId: inventory_location_types_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this location types.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationType'
+          description: ''
+    put:
+      operationId: inventory_location_types_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this location types.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationType'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LocationType'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LocationType'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationType'
+          description: ''
+    patch:
+      operationId: inventory_location_types_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this location types.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLocationType'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLocationType'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLocationType'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationType'
+          description: ''
+    delete:
+      operationId: inventory_location_types_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this location types.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
   /inventory/locations/:
     get:
       operationId: inventory_locations_list
@@ -770,13 +924,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Location'
+              $ref: '#/components/schemas/LocationWrite'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Location'
+              $ref: '#/components/schemas/LocationWrite'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Location'
+              $ref: '#/components/schemas/LocationWrite'
         required: true
       security:
       - cookieAuth: []
@@ -785,7 +939,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Location'
+                $ref: '#/components/schemas/LocationWrite'
           description: ''
   /inventory/locations/{id}/:
     get:
@@ -823,13 +977,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Location'
+              $ref: '#/components/schemas/LocationWrite'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Location'
+              $ref: '#/components/schemas/LocationWrite'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Location'
+              $ref: '#/components/schemas/LocationWrite'
         required: true
       security:
       - cookieAuth: []
@@ -838,7 +992,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Location'
+                $ref: '#/components/schemas/LocationWrite'
           description: ''
     patch:
       operationId: inventory_locations_partial_update
@@ -855,13 +1009,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedLocation'
+              $ref: '#/components/schemas/PatchedLocationWrite'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedLocation'
+              $ref: '#/components/schemas/PatchedLocationWrite'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedLocation'
+              $ref: '#/components/schemas/PatchedLocationWrite'
       security:
       - cookieAuth: []
       responses:
@@ -869,7 +1023,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Location'
+                $ref: '#/components/schemas/LocationWrite'
           description: ''
     delete:
       operationId: inventory_locations_destroy
@@ -887,6 +1041,74 @@ paths:
       responses:
         '204':
           description: No response body
+  /inventory/locations/{id}/add_child/:
+    post:
+      operationId: inventory_locations_add_child_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this location.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LocationWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LocationWrite'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationWrite'
+          description: ''
+  /inventory/locations/{id}/containers/:
+    get:
+      operationId: inventory_locations_containers_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this location.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+          description: ''
+  /inventory/locations/menu/:
+    get:
+      operationId: inventory_locations_menu_retrieve
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationMenu'
+          description: ''
   /inventory/weight_readings/:
     get:
       operationId: inventory_weight_readings_list
@@ -1292,16 +1514,72 @@ components:
           type: string
           maxLength: 20
         type:
+          $ref: '#/components/schemas/LocationType'
+        children:
+          type: array
+          items:
+            type: integer
+        full_path:
+          type: string
+          readOnly: true
+      required:
+      - children
+      - full_path
+      - id
+      - name
+      - type
+    LocationMenu:
+      type: object
+      properties:
+        id:
           type: integer
-        parent:
-          type: integer
-          nullable: true
+          readOnly: true
+        name:
+          type: string
+          maxLength: 20
         full_path:
           type: string
           readOnly: true
       required:
       - full_path
       - id
+      - name
+    LocationType:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 20
+        slug:
+          type: string
+          maxLength: 40
+        description:
+          type: string
+          nullable: true
+          maxLength: 100
+        icon:
+          type: string
+          nullable: true
+          maxLength: 25
+      required:
+      - id
+      - name
+      - slug
+    LocationWrite:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 20
+        type:
+          type: integer
+        parent:
+          type: integer
+          nullable: true
+      required:
       - name
       - type
     Nested:
@@ -1459,7 +1737,7 @@ components:
           pattern: ^-?\d{0,4}(?:\.\d{0,4})?$
           nullable: true
           title: Container weight
-    PatchedLocation:
+    PatchedLocationType:
       type: object
       properties:
         id:
@@ -1468,14 +1746,28 @@ components:
         name:
           type: string
           maxLength: 20
+        slug:
+          type: string
+          maxLength: 40
+        description:
+          type: string
+          nullable: true
+          maxLength: 100
+        icon:
+          type: string
+          nullable: true
+          maxLength: 25
+    PatchedLocationWrite:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 20
         type:
           type: integer
         parent:
           type: integer
           nullable: true
-        full_path:
-          type: string
-          readOnly: true
     PatchedWeightReading:
       type: object
       properties:

@@ -8,6 +8,7 @@ from .models import (
     Container,
     Chemical,
     Location,
+    LocationTypes,
     ChemicalStorageCategories,
     Ingredient,
     WeightReading,
@@ -19,6 +20,10 @@ from .serializers import (
     CheckoutEventSerializer,
     CheckoutEventWriteSerializer,
     LocationSerializer,
+    LocationContainersSerializer,
+    LocationMenuSerializer,
+    LocationWriteSerializer,
+    LocationTypeSerializer,
     ChemicalStorageCategoriesSerializer,
     WeightReadingSerializer,
     WeightReadingReadSerializer,
@@ -219,7 +224,74 @@ class ContainerView(ModelViewSet):
 
 class LocationView(ModelViewSet):
     queryset = Location.objects.all()
-    serializer_class = LocationSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.kwargs.get("pk"):
+            return queryset
+        if self.action == "menu":
+            return queryset
+        else:
+            return queryset.filter(parent__exact=None).order_by("name")
+
+    def get_serializer_class(self):
+        if self.action in ["create", "update", "partial_update", "add_child"]:
+            return LocationWriteSerializer
+        if self.action in ["menu"]:
+            return LocationMenuSerializer
+        else:
+            return LocationSerializer
+
+    def create(self, request):
+        data = request.data
+        if "new_type" in data and data.get("new_type") is not None:
+            new_type = data.get("new_type")
+            new_type["slug"] = new_type.get("name").strip().lower().replace(" ", "_")
+            serializer = LocationTypeSerializer(data=new_type)
+            serializer.is_valid(raise_exception=True)
+            type = serializer.save()
+            data["type"] = type.id
+        location_data = {
+            "name": data.get("name"),
+            "parent": data.get("parent"),
+            "type": data.get("type"),
+        }
+        location_serializer = LocationWriteSerializer(data=location_data)
+        location_serializer.is_valid(raise_exception=True)
+        location = location_serializer.save()
+        return Response(LocationSerializer(location).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["GET"])
+    def menu(self, request):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["POST"])
+    def add_child(self, request, pk=None):
+        data = request.data
+        parent = self.get_object()
+
+        data["parent"] = parent.id
+        serializer = LocationWriteSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        location = serializer.save()
+
+        response_serializer = LocationSerializer(location)
+
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["GET"])
+    def containers(self, request, pk=None):
+        location = self.get_object()
+
+        serializer = LocationContainersSerializer(location)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class LocationTypeView(ModelViewSet):
+    queryset = LocationTypes.objects.all()
+    serializer_class = LocationTypeSerializer
 
 
 class ChemicalStorageCategoryView(ModelViewSet):

@@ -24,18 +24,24 @@ export interface PreValidation {
 }
 
 type ApiContainer = components['schemas']['Container'];
+type ApiLocation = components['schemas']['Location'];
 
 export type ContainerWrite = components['schemas']['ContainerWrite'];
 export type Chemical = components['schemas']['Chemical'];
-export type Location = components['schemas']['Location'];
 export type StorageCategory = components['schemas']['ChemicalStorageCategories'];
 export type UnitEnums = components['schemas']['QuantityUnitEnum'];
 export type CheckoutEvent = components['schemas']['CheckoutEvent'];
 export type WeightReading = components['schemas']['WeightReading'];
+export type LocationType = components['schemas']['LocationType'];
 
 export interface Container extends Omit<ApiContainer, 'latest_reading' | 'checkout_status'> {
   readonly latest_reading: WeightReading;
   readonly checkout_status: CheckoutEvent;
+}
+
+export interface Location extends Omit<ApiLocation, 'children'> {
+  children: Location[];
+  containers: Container[];
 }
 
 export type WeighInDefaults = {
