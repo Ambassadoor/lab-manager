@@ -1074,6 +1074,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/LocationWrite'
           description: ''
+  /inventory/locations/{id}/containers/:
+    get:
+      operationId: inventory_locations_containers_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this location.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+          description: ''
   /inventory/weight_readings/:
     get:
       operationId: inventory_weight_readings_list

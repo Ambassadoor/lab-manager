@@ -68,6 +68,39 @@ class LocationWriteSerializer(serializers.ModelSerializer):
         return super().to_representation(instance)
 
 
+class LocationDepthOneSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Location
+        fields = ["id", "children"]
+
+    def to_representation(self, instance):
+        self.fields["children"] = LocationDepthOneSerializer(many=True)
+        return super().to_representation(instance)
+
+
+class LocationContainersSerializer(serializers.ModelSerializer):
+    containers = serializers.SerializerMethodField()
+    type = LocationTypeSerializer(many=False)
+
+    class Meta:
+        model = Location
+        fields = ["id", "name", "type", "full_path", "containers"]
+
+    def get_containers(self, obj):
+        def accumulate_ids(obj, ids=None):
+            if ids is None:
+                ids = []
+            ids.append(obj.id)
+            for child in obj.children.all():
+                ids = accumulate_ids(child, ids)
+            return ids
+
+        location_ids = accumulate_ids(obj)
+        containers = Container.objects.filter(location__id__in=location_ids)
+        serializer = ContainerSerializer(containers, many=True)
+        return serializer.data
+
+
 class ContainerSerializer(serializers.ModelSerializer):
     label = serializers.ReadOnlyField(label="ID")
     is_opened = serializers.ReadOnlyField(label="Opened?")
