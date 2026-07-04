@@ -41,6 +41,7 @@ export interface Container extends Omit<ApiContainer, 'latest_reading' | 'checko
 
 export interface Location extends Omit<ApiLocation, 'children'> {
   children: Location[];
+  containers: Container[];
 }
 
 export type WeighInDefaults = {

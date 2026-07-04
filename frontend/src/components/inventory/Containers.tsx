@@ -11,6 +11,7 @@ import {
 import { ContainerDetail } from './ContainerDetail';
 import { useQuery } from '@tanstack/react-query';
 
+//TODO: Remove container data logic outside and let parent components pass in values
 export const Containers = () => {
   const {
     isPending,

@@ -30,6 +30,10 @@ export const getLocations = (): Promise<Location[]> => {
   return apiFetch('/inventory/locations/');
 };
 
+export const getLocationContainers = (id: string): Promise<Location> => {
+  return apiFetch(`/inventory/locations/${id}/containers`);
+};
+
 export const getContainerMetaData = (): Promise<ContainerOptions> => {
   return apiFetch('/inventory/containers/', {
     method: 'OPTIONS',
