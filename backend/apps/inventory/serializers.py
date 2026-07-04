@@ -68,14 +68,10 @@ class LocationWriteSerializer(serializers.ModelSerializer):
         return super().to_representation(instance)
 
 
-class LocationDepthOneSerializer(serializers.ModelSerializer):
+class LocationMenuSerializer(serializers.ModelSerializer):
     class Meta:
         model = Location
-        fields = ["id", "children"]
-
-    def to_representation(self, instance):
-        self.fields["children"] = LocationDepthOneSerializer(many=True)
-        return super().to_representation(instance)
+        fields = ["id", "name", "full_path"]
 
 
 class LocationContainersSerializer(serializers.ModelSerializer):

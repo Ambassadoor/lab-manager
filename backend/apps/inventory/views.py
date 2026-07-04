@@ -21,6 +21,7 @@ from .serializers import (
     CheckoutEventWriteSerializer,
     LocationSerializer,
     LocationContainersSerializer,
+    LocationMenuSerializer,
     LocationWriteSerializer,
     LocationTypeSerializer,
     ChemicalStorageCategoriesSerializer,
@@ -228,14 +229,24 @@ class LocationView(ModelViewSet):
         queryset = super().get_queryset()
         if self.kwargs.get("pk"):
             return queryset
+        if self.action == "menu":
+            return queryset
         else:
             return queryset.filter(parent__exact=None).order_by("name")
 
     def get_serializer_class(self):
         if self.action in ["create", "update", "partial_update", "add_child"]:
             return LocationWriteSerializer
+        if self.action in ["menu"]:
+            return LocationMenuSerializer
         else:
             return LocationSerializer
+
+    @action(detail=False, methods=["GET"])
+    def menu(self, request):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["POST"])
     def add_child(self, request, pk=None):

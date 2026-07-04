@@ -13,6 +13,7 @@ import type {
   LocationType,
 } from '../types';
 import type { NewLocationDefaults } from '../components/inventory/locations/AddLocation';
+import type { EditLocationDefaults } from '../components/inventory/locations/EditLocation';
 
 export const getContainers = (): Promise<Container[] | []> => {
   return apiFetch('/inventory/containers/');
@@ -28,6 +29,13 @@ export const getStorageCategories = (): Promise<StorageCategory[]> => {
 
 export const getLocations = (): Promise<Location[]> => {
   return apiFetch('/inventory/locations/');
+};
+
+export const editLocation = (data: EditLocationDefaults, id: string): Promise<Location> => {
+  return apiFetch(`/inventory/locations/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
 };
 
 export const getLocationContainers = (id: string): Promise<Location> => {
@@ -109,4 +117,8 @@ export const addLocation = (data: NewLocationDefaults, id: string): Promise<Loca
 
 export const getLocationTypes = (): Promise<LocationType[]> => {
   return apiFetch(`/inventory/location_types/`);
+};
+
+export const getLocationMenu = (): Promise<Location[]> => {
+  return apiFetch(`/inventory/locations/menu/`);
 };

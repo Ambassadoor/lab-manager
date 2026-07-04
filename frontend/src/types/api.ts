@@ -399,6 +399,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/inventory/locations/menu/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_locations_menu_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/inventory/weight_readings/': {
     parameters: {
       query?: never;
@@ -552,6 +568,11 @@ export interface components {
       name: string;
       type: components['schemas']['LocationType'];
       children: number[];
+      readonly full_path: string;
+    };
+    LocationMenu: {
+      readonly id: number;
+      name: string;
       readonly full_path: string;
     };
     LocationType: {
@@ -1787,6 +1808,25 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['Location'];
+        };
+      };
+    };
+  };
+  inventory_locations_menu_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationMenu'];
         };
       };
     };

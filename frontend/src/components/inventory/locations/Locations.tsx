@@ -13,16 +13,20 @@ import {
   MeetingRoom,
   BusinessTwoTone,
   AddBox,
+  Edit,
 } from '@mui/icons-material';
 import {
   Box,
   Button,
+  ButtonGroup,
   Collapse,
   Container,
+  FormControlLabel,
   Icon,
   IconButton,
   Paper,
   Stack,
+  Switch,
   Typography,
   useTheme,
 } from '@mui/material';
@@ -31,10 +35,13 @@ import { useState } from 'react';
 import { AddLocation } from './AddLocation';
 import { AgGridReact } from 'ag-grid-react';
 import { type ColDef, themeMaterial } from 'ag-grid-community';
+import { EditLocation } from './EditLocation';
 
 type LocationProps = {
   location: Location;
+  parent?: Location;
   setSelectedLocation: React.Dispatch<React.SetStateAction<string>>;
+  editing?: boolean;
 };
 
 const iconMap = new Map([
@@ -49,13 +56,20 @@ const iconMap = new Map([
   ['BusinessTwoTone', <BusinessTwoTone />],
 ]);
 
-const Location = ({ location, setSelectedLocation }: LocationProps) => {
+const Location = ({ location, parent, setSelectedLocation, editing }: LocationProps) => {
   const [expanded, setExpanded] = useState(false);
   const [open, setOpen] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
 
   return (
     <Container>
       <AddLocation id={String(location.id)} open={open} setOpen={setOpen} />
+      <EditLocation
+        location={location}
+        parent={parent && parent}
+        open={openEdit}
+        setOpen={setOpenEdit}
+      />
       <Stack direction={'row'}>
         {location.children.length > 0 ? (
           <IconButton onClick={() => setExpanded((prev) => !prev)}>
@@ -79,14 +93,27 @@ const Location = ({ location, setSelectedLocation }: LocationProps) => {
             {location.type.icon && iconMap.get(location.type.icon)}
             {location.children.length > 0 && <Typography>({location.children.length})</Typography>}
           </Stack>
-          <IconButton onClick={() => setOpen(true)}>
-            <AddBox />
-          </IconButton>
+          {editing && (
+            <ButtonGroup variant="contained">
+              <Button onClick={() => setOpen(true)} size="small">
+                <AddBox />
+              </Button>
+              <Button size="small" onClick={() => setOpenEdit(true)}>
+                <Edit />
+              </Button>
+            </ButtonGroup>
+          )}
         </Stack>
       </Stack>
       <Collapse in={expanded}>
         {location.children.map((l) => (
-          <Location key={l.id} location={l} setSelectedLocation={setSelectedLocation} />
+          <Location
+            key={l.id}
+            location={l}
+            parent={location}
+            setSelectedLocation={setSelectedLocation}
+            editing={editing}
+          />
         ))}
       </Collapse>
     </Container>
@@ -97,6 +124,7 @@ const Location = ({ location, setSelectedLocation }: LocationProps) => {
 export const Locations = () => {
   const [open, setOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState('');
+  const [editing, setEditing] = useState(false);
   const { data: locations } = useQuery({
     queryKey: ['locationData'],
     queryFn: getLocations,
@@ -145,15 +173,27 @@ export const Locations = () => {
       <Box sx={{ display: 'flex' }}>
         <Typography variant="h3">Locations</Typography>
         <AddLocation id={''} open={open} setOpen={setOpen} />
-        <IconButton sx={{ my: 'auto' }} size="large" onClick={() => setOpen(true)}>
-          <AddBox />
-        </IconButton>
+        {editing && (
+          <IconButton sx={{ my: 'auto' }} size="large" onClick={() => setOpen(true)}>
+            <AddBox />
+          </IconButton>
+        )}
+        <FormControlLabel
+          control={<Switch checked={editing} onChange={() => setEditing((prev) => !prev)} />}
+          label="Editing"
+          sx={{ ml: 'auto' }}
+        />
       </Box>
       <Stack direction={'row'} spacing={2}>
         <Box>
           {locations &&
             locations.map((l) => (
-              <Location location={l} key={l.id} setSelectedLocation={setSelectedLocation} />
+              <Location
+                location={l}
+                key={l.id}
+                setSelectedLocation={setSelectedLocation}
+                editing={editing}
+              />
             ))}
         </Box>
         <Box sx={{ flexGrow: 1 }}>

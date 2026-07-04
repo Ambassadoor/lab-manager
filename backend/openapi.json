@@ -1095,6 +1095,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/Location'
           description: ''
+  /inventory/locations/menu/:
+    get:
+      operationId: inventory_locations_menu_retrieve
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationMenu'
+          description: ''
   /inventory/weight_readings/:
     get:
       operationId: inventory_weight_readings_list
@@ -1514,6 +1528,22 @@ components:
       - id
       - name
       - type
+    LocationMenu:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 20
+        full_path:
+          type: string
+          readOnly: true
+      required:
+      - full_path
+      - id
+      - name
     LocationType:
       type: object
       properties:
