@@ -93,6 +93,7 @@ const Location = ({ location, setSelectedLocation }: LocationProps) => {
   );
 };
 
+//TODO: Add selected location id to url query for navigation 
 export const Locations = () => {
   const [open, setOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState('');
