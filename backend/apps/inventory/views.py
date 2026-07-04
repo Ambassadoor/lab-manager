@@ -242,6 +242,25 @@ class LocationView(ModelViewSet):
         else:
             return LocationSerializer
 
+    def create(self, request):
+        data = request.data
+        if "new_type" in data and data.get("new_type") is not None:
+            new_type = data.get("new_type")
+            new_type["slug"] = new_type.get("name").strip().lower().replace(" ", "_")
+            serializer = LocationTypeSerializer(data=new_type)
+            serializer.is_valid(raise_exception=True)
+            type = serializer.save()
+            data["type"] = type.id
+        location_data = {
+            "name": data.get("name"),
+            "parent": data.get("parent"),
+            "type": data.get("type"),
+        }
+        location_serializer = LocationWriteSerializer(data=location_data)
+        location_serializer.is_valid(raise_exception=True)
+        location = location_serializer.save()
+        return Response(LocationSerializer(location).data, status=status.HTTP_201_CREATED)
+
     @action(detail=False, methods=["GET"])
     def menu(self, request):
         queryset = self.get_queryset()

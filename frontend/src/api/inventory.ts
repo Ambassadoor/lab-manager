@@ -108,8 +108,8 @@ export const getContainerWeighIns = (slug: string): Promise<WeightReading[]> => 
   });
 };
 
-export const addLocation = (data: NewLocationDefaults, id: string): Promise<Location> => {
-  return apiFetch(`/inventory/locations/${id.length > 0 ? 'add_child/' : ''}`, {
+export const addLocation = (data: NewLocationDefaults): Promise<Location> => {
+  return apiFetch(`/inventory/locations/`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
