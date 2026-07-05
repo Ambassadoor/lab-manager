@@ -40,8 +40,8 @@ export default function App() {
           <Route path="locations" element={<Outlet />}>
             <Route path="" element={<Locations />} />
           </Route>
-          <Route path="chemicals" element={<Outlet/>}>
-            <Route path="" element={<Chemicals/>}/>
+          <Route path="chemicals" element={<Outlet />}>
+            <Route path="" element={<Chemicals />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />
