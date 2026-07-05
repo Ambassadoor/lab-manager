@@ -66,8 +66,6 @@ export const Chemicals = () => {
     { field: 'storage_category.shorthand', headerName: 'Storage Category' },
   ]);
 
-  const [selectedRow, setSelectedRow] = useState();
-
   const theme = useTheme();
 
   const myTheme = themeMaterial.withParams({

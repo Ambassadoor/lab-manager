@@ -18,7 +18,7 @@ import {
 } from '../../../api/inventory';
 import { Controller, useForm } from 'react-hook-form';
 import { ToggleField } from '../../shared/ToggleField';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Decimal from 'decimal.js';
 import { Edit } from '@mui/icons-material';
 import type { ChemicalDefaults } from './AddChemical';
