@@ -135,3 +135,14 @@ export const addChemical = (data: ChemicalDefaults): Promise<Chemical> => {
     body: JSON.stringify(data),
   });
 };
+
+export const getChemicalById = (id: string): Promise<Chemical> => {
+  return apiFetch(`/inventory/chemicals/${id}/`);
+};
+
+export const updateChemical = (data: ChemicalDefaults, id: string): Promise<Chemical> => {
+  return apiFetch(`/inventory/chemicals/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+};

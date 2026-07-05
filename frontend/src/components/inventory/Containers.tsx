@@ -58,6 +58,11 @@ export const Containers = () => {
     borderColor: theme.palette.divider,
     fontFamily: theme.typography.fontFamily,
     fontSize: theme.typography.body2.fontSize,
+    checkboxCheckedShapeColor: theme.palette.text.primary,
+    checkboxCheckedBackgroundColor: theme.palette.info.main,
+    checkboxIndeterminateBackgroundColor: 'transparent',
+    checkboxIndeterminateShapeColor: theme.palette.text.primary,
+    checkboxIndeterminateBorderColor: theme.palette.info.main,
   });
 
   return (

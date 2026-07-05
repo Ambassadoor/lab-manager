@@ -10,6 +10,7 @@ import { ContainerDetail } from './components/inventory/ContainerDetail';
 import { ContainerActions } from './components/inventory/ContainerActions';
 import { Locations } from './components/inventory/locations/Locations';
 import { Chemicals } from './components/inventory/chemicals/Chemicals';
+import { ChemicalDetail } from './components/inventory/chemicals/ChemicalDetail';
 
 function NotFound() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
           </Route>
           <Route path="chemicals" element={<Outlet />}>
             <Route path="" element={<Chemicals />} />
+            <Route path=":chemId" element={<ChemicalDetail />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />

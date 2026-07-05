@@ -166,6 +166,7 @@ export const Locations = () => {
     borderColor: theme.palette.divider,
     fontFamily: theme.typography.fontFamily,
     fontSize: theme.typography.body2.fontSize,
+    checkboxCheckedShapeColor: theme.palette.text.primary,
   });
 
   return (

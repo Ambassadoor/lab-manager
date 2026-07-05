@@ -7,6 +7,7 @@ import Decimal from 'decimal.js';
 import { themeMaterial, type ColDef } from 'ag-grid-community';
 import { AddBox } from '@mui/icons-material';
 import { AddChemical } from './AddChemical';
+import { useNavigate } from 'react-router-dom';
 
 export const Chemicals = () => {
   const [open, setOpen] = useState(false);
@@ -14,6 +15,8 @@ export const Chemicals = () => {
     queryKey: ['chemicalData'],
     queryFn: getChemicals,
   });
+
+  const navigate = useNavigate();
 
   const formulaCellRenderer = (params: CustomCellRendererProps) => {
     if (typeof params.value !== 'string') return '';
@@ -63,6 +66,8 @@ export const Chemicals = () => {
     { field: 'storage_category.shorthand', headerName: 'Storage Category' },
   ]);
 
+  const [selectedRow, setSelectedRow] = useState();
+
   const theme = useTheme();
 
   const myTheme = themeMaterial.withParams({
@@ -76,6 +81,7 @@ export const Chemicals = () => {
     borderColor: theme.palette.divider,
     fontFamily: theme.typography.fontFamily,
     fontSize: theme.typography.body2.fontSize,
+    checkboxCheckedShapeColor: theme.palette.text.primary,
   });
 
   return (
@@ -102,6 +108,10 @@ export const Chemicals = () => {
             rowData={chemicals}
             columnDefs={colDefs}
             autoSizeStrategy={{ type: 'fitCellContents' }}
+            onRowClicked={(e) => {
+              console.log(e.data);
+              navigate(`${e.data.id}`, { state: e.data });
+            }}
           />
         </Paper>
       </Box>
