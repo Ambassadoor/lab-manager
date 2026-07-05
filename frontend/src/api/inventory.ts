@@ -11,6 +11,7 @@ import type {
   WeighInDefaults,
   WeightReading,
   LocationType,
+  Chemical,
 } from '../types';
 import type { NewLocationDefaults } from '../components/inventory/locations/AddLocation';
 import type { EditLocationDefaults } from '../components/inventory/locations/EditLocation';
@@ -122,3 +123,7 @@ export const getLocationTypes = (): Promise<LocationType[]> => {
 export const getLocationMenu = (): Promise<Location[]> => {
   return apiFetch(`/inventory/locations/menu/`);
 };
+
+export const getChemicals = (): Promise<Chemical[]> => {
+  return apiFetch(`/inventory/chemicals`);
+}
