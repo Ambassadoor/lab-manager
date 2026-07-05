@@ -28,6 +28,12 @@ class ChemicalSerializer(serializers.ModelSerializer):
         return super().to_representation(instance)
 
 
+class ChemicalWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Chemical
+        fields = ["name", "cas", "formula", "molecular_weight", "storage_category"]
+
+
 class ChemicalStorageCategoriesSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChemicalStorageCategories

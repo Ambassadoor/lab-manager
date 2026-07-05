@@ -484,6 +484,14 @@ export interface components {
       description: string;
       help_text: string;
     };
+    ChemicalWrite: {
+      name: string;
+      cas?: string | null;
+      formula?: string | null;
+      /** Format: decimal */
+      molecular_weight?: string | null;
+      storage_category?: number | null;
+    };
     Container: {
       readonly id: number;
       /** ID */
@@ -1050,9 +1058,9 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['Chemical'];
-        'application/x-www-form-urlencoded': components['schemas']['Chemical'];
-        'multipart/form-data': components['schemas']['Chemical'];
+        'application/json': components['schemas']['ChemicalWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['ChemicalWrite'];
+        'multipart/form-data': components['schemas']['ChemicalWrite'];
       };
     };
     responses: {
@@ -1061,7 +1069,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Chemical'];
+          'application/json': components['schemas']['ChemicalWrite'];
         };
       };
     };

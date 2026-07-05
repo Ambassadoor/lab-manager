@@ -21,7 +21,7 @@ import {
 } from '../../api/inventory';
 import type { Location, Container, ContainerOptions, ContainerDetailDefaults } from '../../types';
 import { Edit, ExpandLess, ExpandMore, UnfoldMore } from '@mui/icons-material';
-import { ToggleField } from '../ToggleField';
+import { ToggleField } from '../shared/ToggleField';
 import { Controller, FormProvider, useForm, type SubmitHandler } from 'react-hook-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { WeighInTable } from './WeighinTable';

@@ -18,6 +18,7 @@ from .serializers import (
     ContainerWriteSerializer,
     ChemicalSerializer,
     CheckoutEventSerializer,
+    ChemicalWriteSerializer,
     CheckoutEventWriteSerializer,
     LocationSerializer,
     LocationContainersSerializer,
@@ -35,6 +36,11 @@ from django.db import transaction
 class ChemicalView(ModelViewSet):
     serializer_class = ChemicalSerializer
     queryset = Chemical.objects.all()
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return ChemicalWriteSerializer
+        return super().get_serializer_class()
 
     @action(detail=False, methods=["get"])
     def check_cas(self, request):

@@ -109,6 +109,7 @@ export const AddLocation = ({ id, open, setOpen }: AddLocationProps) => {
         setOpen((prev) => !prev);
         reset();
       }}
+      disableRestoreFocus
     >
       <DialogTitle>Add Location</DialogTitle>
       <DialogContent>
