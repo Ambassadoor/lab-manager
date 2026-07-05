@@ -3,6 +3,7 @@ from rest_framework import filters, status
 from rest_framework.decorators import action
 from natsort import natsorted
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from django.http import Http404
 from .models import (
     Container,
@@ -32,10 +33,19 @@ from .serializers import (
 from django.db.models import Count, Q, F
 from django.db import transaction
 
+from .permissions import IsManager, IsCoordinator
+
 
 class ChemicalView(ModelViewSet):
     serializer_class = ChemicalSerializer
     queryset = Chemical.objects.all()
+
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ["destroy"]:
+            return [permission() for permission in [IsManager]]
+        return super().get_permissions()
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -72,6 +82,13 @@ class ContainerView(ModelViewSet):
     ordering_fields = ["id"]
     ordering = ["id"]
     lookup_field = "slug"
+
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ["destroy"]:
+            return [permission() for permission in [IsManager]]
+        return super().get_permissions()
 
     def get_serializer_class(self):
         if self.action in ["create", "update", "partial_update", "metadata"]:
@@ -231,6 +248,13 @@ class ContainerView(ModelViewSet):
 class LocationView(ModelViewSet):
     queryset = Location.objects.all()
 
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ["destroy"]:
+            return [permission() for permission in [IsManager, IsCoordinator]]
+        return super().get_permissions()
+
     def get_queryset(self):
         queryset = super().get_queryset()
         if self.kwargs.get("pk"):
@@ -248,6 +272,7 @@ class LocationView(ModelViewSet):
         else:
             return LocationSerializer
 
+    @transaction.atomic
     def create(self, request):
         data = request.data
         if "new_type" in data and data.get("new_type") is not None:
@@ -299,10 +324,24 @@ class LocationTypeView(ModelViewSet):
     queryset = LocationTypes.objects.all()
     serializer_class = LocationTypeSerializer
 
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ["destroy"]:
+            return [permission() for permission in [IsManager]]
+        return super().get_permissions()
+
 
 class ChemicalStorageCategoryView(ModelViewSet):
     queryset = ChemicalStorageCategories.objects.all()
     serializer_class = ChemicalStorageCategoriesSerializer
+
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ["destroy"]:
+            return [permission() for permission in [IsManager]]
+        return super().get_permissions()
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -314,3 +353,10 @@ class ChemicalStorageCategoryView(ModelViewSet):
 class WeightReadingView(ModelViewSet):
     queryset = WeightReading.objects.all()
     serializer_class = WeightReadingSerializer
+
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ["destroy"]:
+            return [permission() for permission in [IsManager]]
+        return super().get_permissions()
