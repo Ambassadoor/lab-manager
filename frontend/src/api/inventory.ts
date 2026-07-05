@@ -15,6 +15,7 @@ import type {
 } from '../types';
 import type { NewLocationDefaults } from '../components/inventory/locations/AddLocation';
 import type { EditLocationDefaults } from '../components/inventory/locations/EditLocation';
+import type { ChemicalDefaults } from '../components/inventory/chemicals/AddChemical';
 
 export const getContainers = (): Promise<Container[] | []> => {
   return apiFetch('/inventory/containers/');
@@ -126,4 +127,11 @@ export const getLocationMenu = (): Promise<Location[]> => {
 
 export const getChemicals = (): Promise<Chemical[]> => {
   return apiFetch(`/inventory/chemicals`);
+};
+
+export const addChemical = (data: ChemicalDefaults): Promise<Chemical> => {
+  return apiFetch(`/inventory/chemicals/`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 };

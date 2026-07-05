@@ -315,13 +315,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Chemical'
+              $ref: '#/components/schemas/ChemicalWrite'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Chemical'
+              $ref: '#/components/schemas/ChemicalWrite'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Chemical'
+              $ref: '#/components/schemas/ChemicalWrite'
         required: true
       security:
       - cookieAuth: []
@@ -330,7 +330,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Chemical'
+                $ref: '#/components/schemas/ChemicalWrite'
           description: ''
   /inventory/chemicals/{id}/:
     get:
@@ -1356,6 +1356,30 @@ components:
       - help_text
       - id
       - shorthand
+    ChemicalWrite:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        cas:
+          type: string
+          nullable: true
+          maxLength: 13
+        formula:
+          type: string
+          nullable: true
+          maxLength: 50
+        molecular_weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,3})?$
+          nullable: true
+        storage_category:
+          type: integer
+          nullable: true
+      required:
+      - name
     Container:
       type: object
       properties:

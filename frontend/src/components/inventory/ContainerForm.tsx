@@ -52,6 +52,7 @@ import { useNavigate } from 'react-router-dom';
 import { Decimal } from 'decimal.js';
 import dayjs from 'dayjs';
 import { useQueryClient } from '@tanstack/react-query';
+import { cas_is_valid } from '../shared/checkCas';
 
 export const ContainerForm = () => {
   const [chemicalStorageCategories, setChemicalStorageCategories] = useState<
@@ -152,19 +153,6 @@ export const ContainerForm = () => {
     getContainerMetaData().then(setMetaData);
   }, [formatLocations]);
 
-  const cas_is_valid = (value: string) => {
-    if (!value) return false;
-    const parts = value.split('-');
-    const check_digit = parts[2];
-    const formatted = parts.join('').split('').reverse();
-    let sum = 0;
-    formatted.forEach((d, i) => {
-      sum += i * Number(d);
-    });
-    if (sum % 10 !== Number(check_digit)) {
-      return false;
-    } else return true;
-  };
   const casRef = useRef(cas);
 
   useEffect(() => {

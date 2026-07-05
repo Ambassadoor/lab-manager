@@ -1,12 +1,15 @@
-import { Box, Container, Paper, Typography, useTheme } from '@mui/material';
+import { Box, Container, IconButton, Paper, Stack, Typography, useTheme } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { AgGridReact, type CustomCellRendererProps } from 'ag-grid-react';
 import { getChemicals } from '../../../api/inventory';
 import { useState } from 'react';
 import Decimal from 'decimal.js';
 import { themeMaterial, type ColDef } from 'ag-grid-community';
+import { AddBox } from '@mui/icons-material';
+import { AddChemical } from './AddChemical';
 
 export const Chemicals = () => {
+  const [open, setOpen] = useState(false);
   const { data: chemicals, isPending } = useQuery({
     queryKey: ['chemicalData'],
     queryFn: getChemicals,
@@ -77,7 +80,17 @@ export const Chemicals = () => {
 
   return (
     <Container>
-      <Typography variant="h4">Chemicals</Typography>
+      <Stack direction={'row'}>
+        <Typography variant="h4">Chemicals</Typography>
+        <IconButton
+          onClick={() => {
+            setOpen(true);
+          }}
+        >
+          <AddBox />
+        </IconButton>
+      </Stack>
+      <AddChemical open={open} setOpen={setOpen} />
       <Box>
         <Paper sx={{ height: '80dvh' }}>
           <AgGridReact
