@@ -37,7 +37,6 @@ import {
   getChemicalByCas,
   getContainerMetaData,
   getLocationMenu,
-  getLocations,
   getStorageCategories,
   submitNewContainerForm,
 } from '../../api/inventory';
