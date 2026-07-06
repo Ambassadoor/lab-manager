@@ -30,7 +30,7 @@ from .serializers import (
     WeightReadingSerializer,
     WeightReadingReadSerializer,
 )
-from django.db.models import Count, Q, F
+from django.db.models import Count, Q, F, ProtectedError
 from django.db import transaction
 
 from .permissions import IsManager, IsCoordinator
@@ -252,7 +252,7 @@ class LocationView(ModelViewSet):
 
     def get_permissions(self):
         if self.action in ["destroy"]:
-            return [permission() for permission in [IsManager, IsCoordinator]]
+            return [permission() for permission in [IsManager | IsCoordinator]]
         return super().get_permissions()
 
     def get_queryset(self):
@@ -318,6 +318,19 @@ class LocationView(ModelViewSet):
 
         serializer = LocationContainersSerializer(location)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def destroy(self, request, pk=None):
+        try:
+            location = self.get_object()
+            location.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ProtectedError:
+            return Response(
+                {
+                    "detail": "Cannot delete this location, there are children locations and/or containers that need to be moved first."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class LocationTypeView(ModelViewSet):

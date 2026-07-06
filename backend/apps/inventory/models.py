@@ -95,7 +95,7 @@ class Location(models.Model):
     name = models.CharField(max_length=20)
     type = models.ForeignKey(LocationTypes, on_delete=models.DO_NOTHING, related_name="locations")
     parent = models.ForeignKey(
-        "self", on_delete=models.CASCADE, null=True, blank=True, related_name="children"
+        "self", on_delete=models.PROTECT, null=True, blank=True, related_name="children"
     )
     barcode = models.CharField(max_length=75, null=True, blank=True)
 
@@ -128,7 +128,7 @@ class Container(models.Model):
     name = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
     chemical = models.ForeignKey(Chemical, on_delete=models.DO_NOTHING, related_name="containers")
-    location = models.ForeignKey(Location, on_delete=models.DO_NOTHING, related_name="containers")
+    location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="containers")
     barcode = models.CharField(max_length=80, unique=True, null=True, blank=True)
 
     manufacturer = models.CharField("manufacturer", max_length=50, null=True, blank=True)

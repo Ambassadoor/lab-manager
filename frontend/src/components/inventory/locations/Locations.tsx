@@ -1,5 +1,15 @@
-import { useQuery } from '@tanstack/react-query';
-import { getContainers, getLocationContainers, getLocations } from '../../../api/inventory';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+} from '@tanstack/react-query';
+import {
+  deleteLocation,
+  getContainers,
+  getLocationContainers,
+  getLocations,
+} from '../../../api/inventory';
 import {
   Business,
   ExpandLess,
@@ -14,8 +24,10 @@ import {
   BusinessTwoTone,
   AddBox,
   Edit,
+  Delete,
 } from '@mui/icons-material';
 import {
+  Alert,
   Box,
   Button,
   ButtonGroup,
@@ -42,6 +54,7 @@ type LocationProps = {
   parent?: Location;
   setSelectedLocation: React.Dispatch<React.SetStateAction<string>>;
   editing?: boolean;
+  onDelete: UseMutationResult;
 };
 
 const iconMap = new Map([
@@ -56,7 +69,7 @@ const iconMap = new Map([
   ['BusinessTwoTone', <BusinessTwoTone />],
 ]);
 
-const Location = ({ location, parent, setSelectedLocation, editing }: LocationProps) => {
+const Location = ({ location, parent, setSelectedLocation, editing, onDelete }: LocationProps) => {
   const [expanded, setExpanded] = useState(false);
   const [open, setOpen] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
@@ -101,6 +114,9 @@ const Location = ({ location, parent, setSelectedLocation, editing }: LocationPr
               <Button size="small" onClick={() => setOpenEdit(true)}>
                 <Edit />
               </Button>
+              <Button size="small" onClick={() => onDelete.mutate(location.id)}>
+                <Delete />
+              </Button>
             </ButtonGroup>
           )}
         </Stack>
@@ -113,6 +129,7 @@ const Location = ({ location, parent, setSelectedLocation, editing }: LocationPr
             parent={location}
             setSelectedLocation={setSelectedLocation}
             editing={editing}
+            onDelete={onDelete}
           />
         ))}
       </Collapse>
@@ -139,6 +156,17 @@ export const Locations = () => {
       } else {
         return await getContainers();
       }
+    },
+  });
+
+  const qc = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (id: string) => deleteLocation(id),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: ['locationData'],
+      });
     },
   });
 
@@ -171,6 +199,16 @@ export const Locations = () => {
 
   return (
     <Container>
+      {mutation.isError && (
+        <Alert
+          severity="error"
+          onClose={() => {
+            mutation.reset();
+          }}
+        >
+          {mutation.error.message}
+        </Alert>
+      )}
       <Box sx={{ display: 'flex' }}>
         <Typography variant="h3">Locations</Typography>
         <AddLocation id={''} open={open} setOpen={setOpen} />
@@ -194,6 +232,7 @@ export const Locations = () => {
                 key={l.id}
                 setSelectedLocation={setSelectedLocation}
                 editing={editing}
+                onDelete={mutation}
               />
             ))}
         </Box>
