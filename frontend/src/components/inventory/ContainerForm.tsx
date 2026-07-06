@@ -10,7 +10,6 @@ import {
   Container,
   Divider,
   FormControl,
-  FormControlLabel,
   FormHelperText,
   IconButton,
   InputAdornment,
@@ -281,17 +280,17 @@ export const ContainerForm = () => {
 
   //Format date fields, clear session storage, invalidate stale container data and navigate to detail page
   const onSubmit: SubmitHandler<ContainerFormDefaults> = async (data) => {
-    if (data.date_received) {
-      data.date_received = data.date_received?.split('T')[0] || null;
+    if (data.date_received && data.date_received instanceof dayjs) {
+      data.date_received = data.date_received?.toISOString().split('T')[0] || null;
     }
-    if (data.expiration_date) {
-      data.expiration_date = data.expiration_date?.split('T')[0] || null;
+    if (data.expiration_date && data.expiration_date instanceof dayjs) {
+      data.expiration_date = data.expiration_date?.toISOString().split('T')[0] || null;
     }
 
     const response = await submitNewContainerForm(data);
     sessionStorage.removeItem('container_form_cache');
     queryClient.invalidateQueries({ queryKey: ['containerData'] });
-    navigate(`/inventory/containers/${response.id}`);
+    navigate(`/inventory/containers/${response.slug}`);
   };
 
   //TODO: Need to modularize this better. Create wrapper components for Controllers and create nested forms for chems/mixtures
@@ -358,16 +357,14 @@ export const ContainerForm = () => {
                 control={control}
                 name="multiple_cas"
                 render={({ field: { value, onChange, ...field } }) => (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        {...field}
-                        checked={!!value}
-                        onChange={(e) => onChange(e.target.checked)}
-                      />
-                    }
-                    label="Multiple CAS Numbers?"
-                  />
+                  <Stack direction={'row'}>
+                    <Checkbox
+                      {...field}
+                      checked={!!value}
+                      onChange={(e) => onChange(e.target.checked)}
+                    />
+                    <Typography sx={{ alignSelf: 'center' }}>Multiple CAS numbers?</Typography>
+                  </Stack>
                 )}
               />
               {fields.map((item, index) => (
@@ -446,7 +443,7 @@ export const ContainerForm = () => {
                   />
                   {formValues?.chemicals?.[index]?.cas && (
                     <Box>
-                      <Accordion defaultExpanded>
+                      <Accordion defaultExpanded elevation={4}>
                         <AccordionSummary expandIcon={<ArrowDropDown />}>
                           <Typography
                             component={'span'}
