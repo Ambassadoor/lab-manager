@@ -11,7 +11,6 @@ from .models import (
     Location,
     LocationTypes,
     ChemicalStorageCategories,
-    Ingredient,
     WeightReading,
 )
 from .serializers import (
@@ -32,7 +31,7 @@ from .serializers import (
     WeightReadingReadSerializer,
 )
 from django.db.models import Count, Q, F, ProtectedError
-from django.db import transaction, IntegrityError
+from django.db import transaction
 
 from .permissions import IsManager, IsCoordinator
 
@@ -177,7 +176,6 @@ class ContainerView(ModelViewSet):
     # Creates new Mixture, chemicals, and containers
     @transaction.atomic
     def create(self, request):
-        user = request.user
         chemicals = Chemical.objects.all()
 
         data = request.data
