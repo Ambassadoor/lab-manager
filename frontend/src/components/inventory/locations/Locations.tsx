@@ -54,7 +54,7 @@ type LocationProps = {
   parent?: Location;
   setSelectedLocation: React.Dispatch<React.SetStateAction<string>>;
   editing?: boolean;
-  onDelete: UseMutationResult;
+  onDelete: UseMutationResult<unknown, Error, string, unknown>;
 };
 
 const iconMap = new Map([
@@ -114,7 +114,7 @@ const Location = ({ location, parent, setSelectedLocation, editing, onDelete }: 
               <Button size="small" onClick={() => setOpenEdit(true)}>
                 <Edit />
               </Button>
-              <Button size="small" onClick={() => onDelete.mutate(location.id)}>
+              <Button size="small" onClick={() => onDelete.mutate(String(location.id))}>
                 <Delete />
               </Button>
             </ButtonGroup>
