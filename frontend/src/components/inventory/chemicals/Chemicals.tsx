@@ -8,6 +8,7 @@ import { themeMaterial, type ColDef } from 'ag-grid-community';
 import { AddBox } from '@mui/icons-material';
 import { AddChemical } from './AddChemical';
 import { useNavigate } from 'react-router-dom';
+import { useColorScheme } from '@mui/material/styles';
 
 export const Chemicals = () => {
   const [open, setOpen] = useState(false);
@@ -45,13 +46,13 @@ export const Chemicals = () => {
   };
 
   const [colDefs] = useState<ColDef[]>([
-    { field: 'name', headerName: 'Chemical' },
+    { field: 'name', headerName: 'Chemical', filter: true },
     {
       field: 'molecular_weight',
       headerName: 'Molecular Weight',
       valueFormatter: (p) => (p.value ? new Decimal(p.value).toString() : ''),
     },
-    { field: 'cas', headerName: 'CAS #' },
+    { field: 'cas', headerName: 'CAS #', filter: true },
     {
       field: 'formula',
       headerName: 'Chemical Formula',
@@ -68,9 +69,10 @@ export const Chemicals = () => {
 
   const theme = useTheme();
 
+  const { mode } = useColorScheme();
+
   const myTheme = themeMaterial.withParams({
     accentColor: theme.palette.info.main,
-    backgroundColor: 'transparent',
     foregroundColor: theme.palette.text.primary,
     headerTextColor: theme.palette.text.primary,
     browserColorScheme: theme.palette.mode,
@@ -80,6 +82,9 @@ export const Chemicals = () => {
     fontFamily: theme.typography.fontFamily,
     fontSize: theme.typography.body2.fontSize,
     checkboxCheckedShapeColor: theme.palette.text.primary,
+    backgroundColor: 'transparent',
+    menuBackgroundColor: mode === 'dark' ? 'rgb(39, 39, 39)' : 'rgb(255, 255, 255)',
+    pickerListBackgroundColor: theme.palette.background.paper,
   });
 
   return (

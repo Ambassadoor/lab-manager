@@ -10,6 +10,7 @@ import {
 } from 'ag-grid-community';
 import { ContainerDetail } from './ContainerDetail';
 import { useQuery } from '@tanstack/react-query';
+import { useColorScheme } from '@mui/material/styles';
 
 //TODO: Remove container data logic outside and let parent components pass in values
 export const Containers = () => {
@@ -25,8 +26,8 @@ export const Containers = () => {
   const [open, setOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState();
   const [colDefs] = useState<ColDef[]>([
-    { field: 'label', headerName: 'ID' },
-    { field: 'name' },
+    { field: 'label', headerName: 'ID', filter: true },
+    { field: 'name', filter: true },
     { field: 'location', filter: true },
     { field: 'manufacturer' },
     { field: 'quantity' },
@@ -46,10 +47,11 @@ export const Containers = () => {
   const paginationPageSize = 50;
   const paginationPageSizeSelector = [10, 25, 50];
 
+  const { mode } = useColorScheme();
+
   const theme = useTheme();
   const myTheme = themeMaterial.withParams({
     accentColor: theme.palette.info.main,
-    backgroundColor: 'transparent',
     foregroundColor: theme.palette.text.primary,
     headerTextColor: theme.palette.text.primary,
     browserColorScheme: theme.palette.mode,
@@ -63,6 +65,9 @@ export const Containers = () => {
     checkboxIndeterminateBackgroundColor: 'transparent',
     checkboxIndeterminateShapeColor: theme.palette.text.primary,
     checkboxIndeterminateBorderColor: theme.palette.info.main,
+    backgroundColor: 'transparent',
+    menuBackgroundColor: mode === 'dark' ? 'rgb(39, 39, 39)' : 'rgb(255, 255, 255)',
+    pickerListBackgroundColor: theme.palette.background.paper,
   });
 
   return (
