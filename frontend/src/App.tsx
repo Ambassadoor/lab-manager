@@ -40,21 +40,23 @@ export default function App() {
           <Route index element={user ? <>Dashboard</> : <Login />} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
-          <Route path="inventory" element={<Outlet />}>
-            <Route path="containers" element={<Outlet />}>
-              <Route path="" element={<Containers />} />
-              <Route path="new" element={<ContainerForm />} />
-              <Route path=":id" element={<ContainerDetail />} />
-              <Route path="actions" element={<ContainerActions />} />
+          {user && (
+            <Route path="inventory" element={<Outlet />}>
+              <Route path="containers" element={<Outlet />}>
+                <Route path="" element={<Containers />} />
+                <Route path="new" element={<ContainerForm />} />
+                <Route path=":id" element={<ContainerDetail />} />
+                <Route path="actions" element={<ContainerActions />} />
+              </Route>
+              <Route path="locations" element={<Outlet />}>
+                <Route path="" element={<Locations />} />
+              </Route>
+              <Route path="chemicals" element={<Outlet />}>
+                <Route path="" element={<Chemicals />} />
+                <Route path=":chemId" element={<ChemicalDetail />} />
+              </Route>
             </Route>
-            <Route path="locations" element={<Outlet />}>
-              <Route path="" element={<Locations />} />
-            </Route>
-            <Route path="chemicals" element={<Outlet />}>
-              <Route path="" element={<Chemicals />} />
-              <Route path=":chemId" element={<ChemicalDetail />} />
-            </Route>
-          </Route>
+          )}
           <Route path="*" element={<NotFound />} />
         </Route>
       </Route>

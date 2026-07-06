@@ -52,23 +52,25 @@ export const Navbar = (): JSX.Element | null => {
               Lab Manager
             </Typography>
             <Box sx={{ flexGrow: 1, pl: 4 }}>
-              <Stack spacing={2} direction={'row'}>
-                <Button component={Link} to="/inventory/containers/" color="inherit">
-                  Containers
-                </Button>
-                <Button component={Link} to="/inventory/containers/new/" color="inherit">
-                  Add Container
-                </Button>
-                <Button component={Link} to="/inventory/containers/actions/" color="inherit">
-                  Actions
-                </Button>
-                <Button component={Link} to="/inventory/locations/" color="inherit">
-                  Locations
-                </Button>
-                <Button component={Link} to="/inventory/chemicals" color="inherit">
-                  Chemicals
-                </Button>
-              </Stack>
+              {user && (
+                <Stack spacing={2} direction={'row'}>
+                  <Button component={Link} to="/inventory/containers/" color="inherit">
+                    Containers
+                  </Button>
+                  <Button component={Link} to="/inventory/containers/new/" color="inherit">
+                    Add Container
+                  </Button>
+                  <Button component={Link} to="/inventory/containers/actions/" color="inherit">
+                    Actions
+                  </Button>
+                  <Button component={Link} to="/inventory/locations/" color="inherit">
+                    Locations
+                  </Button>
+                  <Button component={Link} to="/inventory/chemicals" color="inherit">
+                    Chemicals
+                  </Button>
+                </Stack>
+              )}
             </Box>
             <DarkModeToggle />
             {!user ? (
