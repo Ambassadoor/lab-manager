@@ -31,6 +31,9 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
       return (await res.json()) as T;
     } else if (res.status === 404) {
       throw data('Not Found', { status: 404 });
+    } else if (res.status === 400) {
+      const message = await res.json();
+      throw new Error(message.detail);
     }
     throw new Error(`API error ${res.status}: ${res.statusText}`);
   }

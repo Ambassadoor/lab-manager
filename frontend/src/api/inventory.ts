@@ -146,3 +146,9 @@ export const updateChemical = (data: ChemicalDefaults, id: string): Promise<Chem
     body: JSON.stringify(data),
   });
 };
+
+export const deleteLocation = (id: string) => {
+  return apiFetch(`/inventory/locations/${id}/`, {
+    method: 'DELETE',
+  });
+};
