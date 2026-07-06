@@ -1,4 +1,10 @@
-import { Routes, Route, Outlet } from 'react-router-dom';
+import {
+  Route,
+  Outlet,
+  createBrowserRouter,
+  RouterProvider,
+  createRoutesFromElements,
+} from 'react-router-dom';
 import { Box, Typography } from '@mui/material';
 import { Navbar } from './components/nav/Navbar';
 import { useAuth } from './context/AuthContext';
@@ -12,6 +18,10 @@ import { Locations } from './components/inventory/locations/Locations';
 import { Chemicals } from './components/inventory/chemicals/Chemicals';
 import { ChemicalDetail } from './components/inventory/chemicals/ChemicalDetail';
 
+function ErrorBoundary() {
+  return <NotFound />;
+}
+
 function NotFound() {
   return (
     <Box sx={{ p: 3 }}>
@@ -23,31 +33,35 @@ function NotFound() {
 export default function App() {
   const { user, loading } = useAuth();
 
+  const router = createBrowserRouter(
+    createRoutesFromElements(
+      <Route path="/" element={<Navbar />}>
+        <Route errorElement={<ErrorBoundary />}>
+          <Route index element={user ? <>Dashboard</> : <Login />} />
+          <Route path="login" element={<Login />} />
+          <Route path="register" element={<Register />} />
+          <Route path="inventory" element={<Outlet />}>
+            <Route path="containers" element={<Outlet />}>
+              <Route path="" element={<Containers />} />
+              <Route path="new" element={<ContainerForm />} />
+              <Route path=":id" element={<ContainerDetail />} />
+              <Route path="actions" element={<ContainerActions />} />
+            </Route>
+            <Route path="locations" element={<Outlet />}>
+              <Route path="" element={<Locations />} />
+            </Route>
+            <Route path="chemicals" element={<Outlet />}>
+              <Route path="" element={<Chemicals />} />
+              <Route path=":chemId" element={<ChemicalDetail />} />
+            </Route>
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Route>
+    )
+  );
+
   if (loading) return null;
 
-  return (
-    <Routes>
-      <Route path="/" element={<Navbar />}>
-        <Route index element={user ? <>Dashboard</> : <Login />} />
-        <Route path="login" element={<Login />} />
-        <Route path="register" element={<Register />} />
-        <Route path="inventory" element={<Outlet />}>
-          <Route path="containers" element={<Outlet />}>
-            <Route path="" element={<Containers />} />
-            <Route path="new" element={<ContainerForm />} />
-            <Route path=":id" element={<ContainerDetail />} />
-            <Route path="actions" element={<ContainerActions />} />
-          </Route>
-          <Route path="locations" element={<Outlet />}>
-            <Route path="" element={<Locations />} />
-          </Route>
-          <Route path="chemicals" element={<Outlet />}>
-            <Route path="" element={<Chemicals />} />
-            <Route path=":chemId" element={<ChemicalDetail />} />
-          </Route>
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Route>
-    </Routes>
-  );
+  return <RouterProvider router={router} />;
 }

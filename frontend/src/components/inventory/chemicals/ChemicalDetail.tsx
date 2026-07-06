@@ -40,11 +40,13 @@ export const ChemicalDetail = () => {
   const { data: chemical, isPending } = useQuery({
     queryKey: ['chemicalData'],
     queryFn: getChemical,
+    throwOnError: true,
   });
 
   const { data: storageCategories } = useQuery({
     queryKey: ['storageCategories'],
     queryFn: getStorageCategories,
+    throwOnError: true,
   });
 
   const qc = useQueryClient();
@@ -109,7 +111,7 @@ export const ChemicalDetail = () => {
                     editing={editing}
                     textProps={{
                       fullWidth: true,
-                      defaultValue: chemical.name,
+                      defaultValue: chemical?.name,
                       label: 'Name',
                       error: !!error,
                       helperText: error?.message,
@@ -153,7 +155,7 @@ export const ChemicalDetail = () => {
                     editing={editing}
                     textProps={{
                       fullWidth: true,
-                      defaultValue: chemical.cas,
+                      defaultValue: chemical?.cas,
                       label: 'CAS #',
                       error: !!error,
                       helperText: error?.message,
@@ -232,7 +234,7 @@ export const ChemicalDetail = () => {
                     editing={editing}
                     textProps={{
                       fullWidth: true,
-                      defaultValue: chemical?.storage_category.id,
+                      defaultValue: chemical?.storage_category?.id,
                       label: 'Storage Category',
                       error: !!error,
                       helperText: error?.message,
@@ -243,13 +245,13 @@ export const ChemicalDetail = () => {
                     }}
                     options={storageCategories?.map((c) => {
                       return {
-                        key: c.id,
-                        value: c.id,
-                        text: c.shorthand,
+                        key: c?.id,
+                        value: c?.id,
+                        text: c?.shorthand,
                       };
                     })}
                   >
-                    {chemical?.storage_category.shorthand}
+                    {chemical?.storage_category?.shorthand}
                   </ToggleField>
                 )}
               />

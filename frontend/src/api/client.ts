@@ -3,7 +3,7 @@
 // Uses SESSION authentication: the browser sends the session cookie
 // automatically (credentials: 'include'), and we attach Django's CSRF
 // token on unsafe requests. No tokens are stored in JavaScript.
-
+import { data } from 'react-router-dom';
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
 function getCookie(name: string): string | null {
@@ -30,7 +30,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     if (res.status === 422) {
       return (await res.json()) as T;
     } else if (res.status === 404) {
-      return (await res.json()) as T;
+      throw data('Not Found', { status: 404 });
     }
     throw new Error(`API error ${res.status}: ${res.statusText}`);
   }
