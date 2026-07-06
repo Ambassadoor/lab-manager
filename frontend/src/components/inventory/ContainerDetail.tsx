@@ -30,6 +30,7 @@ type ContainerDetailProps = {
   data?: Container;
 };
 
+//A convertible detail/edit component for containers
 export const ContainerDetail = ({ data }: ContainerDetailProps) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -41,6 +42,7 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
   const [expanded, setExpanded] = useState(false);
   const params = useParams();
 
+  //Get data if it wasn't sent via useNavigate
   useEffect(() => {
     const locationData = location.state;
     if (!locationData && !data) {
@@ -51,6 +53,7 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
     }
   }, [params.id, location, data]);
 
+  //Get select field options
   useEffect(() => {
     if (!editing) return;
     getLocations().then(setLocations);

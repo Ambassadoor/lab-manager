@@ -35,6 +35,7 @@ export const Navbar = (): JSX.Element | null => {
 
   if (loading) return null;
 
+  //TODO: Need to add support for a mobile menu add actions to a submenu for containers
   return (
     <Paper sx={{ height: '100dvh', width: '100dvw', overflow: 'auto' }} square>
       <Box sx={{ flexGrow: 1, marginBottom: 5 }}>

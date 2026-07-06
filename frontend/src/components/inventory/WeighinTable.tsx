@@ -43,6 +43,7 @@ export const WeighInTable = ({ slug }: WeighInTableProps) => {
   const paginationPageSize = 5;
   const paginationPageSizeSelector = [5, 10, 15];
 
+  //TODO: Need to update theme to fix transparency issues
   const theme = useTheme();
   const myTheme = themeMaterial.withParams({
     accentColor: theme.palette.info.main,

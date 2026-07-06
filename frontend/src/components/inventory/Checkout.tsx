@@ -21,6 +21,7 @@ type CheckoutProps = {
   event: string;
 };
 
+//Component for marking a container as checked out
 export const Checkout = ({ event }: CheckoutProps) => {
   const [open, setOpen] = useState(false);
   const { control, clearErrors, handleSubmit, resetField, reset } = useForm({
@@ -35,6 +36,7 @@ export const Checkout = ({ event }: CheckoutProps) => {
     },
   });
 
+  //Dynamically add fields to allow for multiple checkouts
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'checkout',
@@ -53,6 +55,7 @@ export const Checkout = ({ event }: CheckoutProps) => {
     }
   };
 
+  //Prevents alert closure from user clicking in the webpage
   const handleClose = (_: Event | SyntheticEvent, reason: string) => {
     if (reason === 'clickaway') {
       return;

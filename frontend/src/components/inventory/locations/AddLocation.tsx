@@ -55,6 +55,7 @@ const iconMap = new Map([
   ['BusinessTwoTone', <BusinessTwoTone />],
 ]);
 
+//Modal for in page addition of locations
 export const AddLocation = ({ id, open, setOpen }: AddLocationProps) => {
   const { data: locationTypes } = useQuery({
     queryKey: ['locationTypes'],

@@ -69,6 +69,7 @@ const iconMap = new Map([
   ['BusinessTwoTone', <BusinessTwoTone />],
 ]);
 
+//Self referencing location component to allow for tiered location listing
 const Location = ({ location, parent, setSelectedLocation, editing, onDelete }: LocationProps) => {
   const [expanded, setExpanded] = useState(false);
   const [open, setOpen] = useState(false);
@@ -138,6 +139,7 @@ const Location = ({ location, parent, setSelectedLocation, editing, onDelete }: 
 };
 
 //TODO: Add selected location id to url query for navigation
+// Component for viewing/editing locations and their assigned containers
 export const Locations = () => {
   const [open, setOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState('');
@@ -147,6 +149,7 @@ export const Locations = () => {
     queryFn: getLocations,
   });
 
+  //Get's all containers for selected location and any child locations
   const { isPending, data: locationContainers } = useQuery({
     queryKey: ['locationContainers', selectedLocation],
     queryFn: async () => {
@@ -161,6 +164,8 @@ export const Locations = () => {
 
   const qc = useQueryClient();
 
+  //Invalidates location data after successful deletion
+  //TODO: Need to add confirmation message to prevent accidental deletions
   const mutation = useMutation({
     mutationFn: (id: string) => deleteLocation(id),
     onSuccess: () => {

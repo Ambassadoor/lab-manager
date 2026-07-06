@@ -10,6 +10,7 @@ import { AddChemical } from './AddChemical';
 import { useNavigate } from 'react-router-dom';
 import { useColorScheme } from '@mui/material/styles';
 
+//Table for viewing chemicals
 export const Chemicals = () => {
   const [open, setOpen] = useState(false);
   const { data: chemicals, isPending } = useQuery({
@@ -19,6 +20,7 @@ export const Chemicals = () => {
 
   const navigate = useNavigate();
 
+  //Renders chemical formulas with subscripts
   const formulaCellRenderer = (params: CustomCellRendererProps) => {
     if (typeof params.value !== 'string') return '';
     const split: string[] = params.value.split(/(\d+)/);

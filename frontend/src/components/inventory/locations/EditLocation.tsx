@@ -26,6 +26,7 @@ export type EditLocationDefaults = {
   parent: string;
 };
 
+//Modal for quick in page editing of locations
 export const EditLocation = ({ location, parent, open, setOpen }: EditLocationProps) => {
   const qc = useQueryClient();
 

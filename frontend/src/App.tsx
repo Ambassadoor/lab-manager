@@ -18,10 +18,14 @@ import { Locations } from './components/inventory/locations/Locations';
 import { Chemicals } from './components/inventory/chemicals/Chemicals';
 import { ChemicalDetail } from './components/inventory/chemicals/ChemicalDetail';
 
+// Component to show when an error is thrown
+//TODO: Create an Error component to show when error is not 404
 function ErrorBoundary() {
   return <NotFound />;
 }
 
+//404 page
+//TODO: Expand this with error messages, navigation, and retry messages
 function NotFound() {
   return (
     <Box sx={{ p: 3 }}>
@@ -30,6 +34,7 @@ function NotFound() {
   );
 }
 
+//TODO: Switch over to using the updated react router syntax
 export default function App() {
   const { user, loading } = useAuth();
 
@@ -40,6 +45,7 @@ export default function App() {
           <Route index element={user ? <>Dashboard</> : <Login />} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
+          {/*Auth protected routes */}
           {user && (
             <Route path="inventory" element={<Outlet />}>
               <Route path="containers" element={<Outlet />}>
@@ -57,12 +63,14 @@ export default function App() {
               </Route>
             </Route>
           )}
+          {/*Catches unsupported routes */}
           <Route path="*" element={<NotFound />} />
         </Route>
       </Route>
     )
   );
 
+  // Only load page after auth has resolved
   if (loading) return null;
 
   return <RouterProvider router={router} />;
