@@ -106,7 +106,7 @@ class ContainerView(ModelViewSet):
                 {"is_discarded": q.date_discarded is not None}, status=status.HTTP_200_OK
             )
         except Http404:
-            return Response({"is_valid": False}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"is_valid": False}, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["POST"])
     def check_out(self, request):
@@ -162,7 +162,7 @@ class ContainerView(ModelViewSet):
             self.get_object()
             return Response({"is_valid": True}, status=status.HTTP_200_OK)
         except Http404:
-            return Response({"is_valid": False}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"is_valid": False}, status=status.HTTP_200_OK)
 
     @transaction.atomic
     def create(self, request):
