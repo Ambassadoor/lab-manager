@@ -1,7 +1,7 @@
-#!/bin/sh
-#Update openapi.json & api.ts
-echo "Updating openapi.json" >&2
-(cd backend && poetry run python manage.py spectacular --file openapi.json ) || { echo "Failed to update openapi.json" >&2; exit 1; }
-(cd frontend && pnpm openapi-typescript ../backend/openapi.json --output ./src/types/api.ts ) || { echo "Failed to update api.ts" >&2; exit 1; }
-(cd backend && git add openapi.json) || { echo "Failed to stage openapi.json" >&2; exit 1; }
-(cd frontend/src/types && git add api.ts) || { echo "Failed to stage api.ts" >&2; exit 1; }
+# #!/bin/sh
+# #Update openapi.json & api.ts
+# echo "Updating openapi.json" >&2
+# (cd backend && poetry run python manage.py spectacular --file openapi.json ) || { echo "Failed to update openapi.json" >&2; exit 1; }
+# (cd frontend && pnpm openapi-typescript ../backend/openapi.json --output ./src/types/api.ts ) || { echo "Failed to update api.ts" >&2; exit 1; }
+# (cd backend && git add openapi.json) || { echo "Failed to stage openapi.json" >&2; exit 1; }
+# (cd frontend/src/types && git add api.ts) || { echo "Failed to stage api.ts" >&2; exit 1; }
