@@ -107,7 +107,6 @@ export const Chemicals = () => {
             columnDefs={colDefs}
             autoSizeStrategy={{ type: 'fitCellContents' }}
             onRowClicked={(e) => {
-              console.log(e.data);
               navigate(`${e.data.id}`, { state: e.data });
             }}
           />

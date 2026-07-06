@@ -38,7 +38,7 @@ export const ChemicalDetail = () => {
   };
 
   const { data: chemical, isPending } = useQuery({
-    queryKey: ['chemicalData'],
+    queryKey: ['chemicalDetail'],
     queryFn: getChemical,
     throwOnError: true,
   });
@@ -55,7 +55,7 @@ export const ChemicalDetail = () => {
     mutationFn: ({ data, id }: { data: ChemicalDefaults; id: string }) => updateChemical(data, id),
     onSuccess: () => {
       qc.invalidateQueries({
-        queryKey: ['chemicalData'],
+        queryKey: ['chemicalDetail'],
       });
       setEditing(false);
     },

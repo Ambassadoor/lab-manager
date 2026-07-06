@@ -1020,7 +1020,14 @@ export const ContainerForm = () => {
                 <Button variant="contained" type="submit">
                   Submit
                 </Button>
-                <Button variant="outlined">Cancel</Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    navigate('/');
+                  }}
+                >
+                  Cancel
+                </Button>
               </Stack>
             </Stack>
           </Box>
