@@ -21,6 +21,7 @@ from .serializers import (
     CheckoutEventSerializer,
     ChemicalWriteSerializer,
     CheckoutEventWriteSerializer,
+    IngredientSerializer,
     LocationSerializer,
     LocationContainersSerializer,
     LocationMenuSerializer,
@@ -31,7 +32,7 @@ from .serializers import (
     WeightReadingReadSerializer,
 )
 from django.db.models import Count, Q, F, ProtectedError
-from django.db import transaction
+from django.db import transaction, IntegrityError
 
 from .permissions import IsManager, IsCoordinator
 
@@ -188,20 +189,28 @@ class ContainerView(ModelViewSet):
             else:
                 mixture_data = {
                     "name": data.get("mixture_name"),
-                    "cas": data.get("mixture_cas"),
-                    "molecular_weight": data.ge("molecular_weight"),
+                    "molecular_weight": data.get("mixture_molecular_weight"),
+                    "storage_category": data.get("mixture_storage_category"),
                 }
-                if ChemicalSerializer(data=mixture_data).isValid():
-                    chemical = Chemical.objects.create(mixture_data)
-                else:
-                    pass
+                chemical_serializer = ChemicalSerializer(data=mixture_data)
+                chemical_serializer.is_valid(raise_exception=True)
+                chemical = chemical_serializer.save()
             # Gets or creates children chemicals creates ingredients for the parent chemical
             request_chems = data.get("chemicals")
             for chem in request_chems:
                 serializer = ChemicalSerializer(data=chem)
-                serializer.isValid(raise_exception=True)
-                c, _ = chemicals.get_or_create(cas=chem.get("cas"))
-                Ingredient.objects.create({"mixture": chemical, "ingredient": c.id})
+                try:
+                    print(chem.get("cas"))
+                    c = chemicals.get(cas=chem.get("cas"))
+                except Chemical.DoesNotExist:
+                    serializer.is_valid(raise_exception=True)
+                    c = serializer.save()
+
+                ingredient_data = {"mixture": chemical.id, "ingredient": c.id}
+
+                ingredient = IngredientSerializer(data=ingredient_data)
+                ingredient.is_valid(raise_exception=True)
+                ingredient.save()
 
         else:
             # Handles creating a single chemical if only one cas# was provided
@@ -229,9 +238,17 @@ class ContainerView(ModelViewSet):
         serializer = ContainerWriteSerializer(data=new_container)
         serializer.is_valid(raise_exception=True)
         container = serializer.save()
-        WeightReading.objects.create(
-            **{"container": container, "weight": container.initial_weight, "recorded_by": user}
-        )
+        container.slug = f"chem-{container.id}"
+        container.save()
+        wr = {
+            "container": container.id,
+            "weight": container.initial_weight,
+        }
+
+        wr_serializer = WeightReadingSerializer(data=wr, context={"request": request})
+        wr_serializer.is_valid(raise_exception=True)
+        wr_serializer.save()
+
         # TODO: Reset IDs on failed creates
         return Response(ContainerSerializer(container).data, status=status.HTTP_201_CREATED)
 

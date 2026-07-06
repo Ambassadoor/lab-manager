@@ -190,11 +190,6 @@ class Container(models.Model):
     def __str__(self):
         return self.name
 
-    # Creates a slug based on id
-    def save(self):
-        if not self.slug:
-            self.slug = slugify(f"chem-{self.id}")
-
 
 class Ingredient(models.Model):
     mixture = models.ForeignKey(Chemical, on_delete=models.CASCADE, related_name="ingredients")

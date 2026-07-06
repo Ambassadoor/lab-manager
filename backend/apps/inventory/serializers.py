@@ -228,6 +228,4 @@ class CheckoutEventWriteSerializer(serializers.ModelSerializer):
 class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingredient
-        ingredient = ChemicalSerializer(read_only=True)
-        fields = ["ingredient"]
-        depth = 1
+        fields = ["mixture", "ingredient"]
