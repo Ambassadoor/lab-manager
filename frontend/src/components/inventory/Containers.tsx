@@ -67,7 +67,7 @@ export const Containers = () => {
     checkboxIndeterminateBorderColor: theme.palette.info.main,
     backgroundColor: 'transparent',
     menuBackgroundColor: mode === 'dark' ? 'rgb(39, 39, 39)' : 'rgb(255, 255, 255)',
-    pickerListBackgroundColor: theme.palette.background.paper,
+    pickerListBackgroundColor: mode === 'dark' ? 'rgb(39, 39, 39)' : 'rgb(255, 255, 255)',
   });
 
   return (
