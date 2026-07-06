@@ -1,7 +1,8 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-#Extends djano user module with additional fields
+
+# Extends djano user module with additional fields
 class User(AbstractUser):
     """Custom user model — always reference it via settings.AUTH_USER_MODEL.
 

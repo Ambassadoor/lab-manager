@@ -23,7 +23,7 @@ class ChemicalSerializer(serializers.ModelSerializer):
         exclude = ["pubchem_cid", "synonyms"]
         depth = 1
 
-    #Handles the self-reference
+    # Handles the self-reference
     def to_representation(self, instance):
         self.fields["ingredients"] = IngredientSerializer(many=True, read_only=True)
         return super().to_representation(instance)
@@ -60,7 +60,7 @@ class LocationSerializer(serializers.ModelSerializer):
         model = Location
         fields = ["id", "name", "type", "children", "full_path"]
 
-    #Handles the self reference
+    # Handles the self reference
     def to_representation(self, instance):
         self.fields["children"] = LocationSerializer(many=True, read_only=True)
         return super().to_representation(instance)
@@ -71,7 +71,7 @@ class LocationWriteSerializer(serializers.ModelSerializer):
         model = Location
         fields = ["name", "type", "parent"]
 
-    #Handles the self reference
+    # Handles the self reference
     def to_representation(self, instance):
         self.fields["parent"] = LocationSerializer(many=False)
         return super().to_representation(instance)
@@ -91,7 +91,7 @@ class LocationContainersSerializer(serializers.ModelSerializer):
         model = Location
         fields = ["id", "name", "type", "full_path", "containers"]
 
-    #Get's all containers for selected location and any of it's children locations
+    # Get's all containers for selected location and any of it's children locations
     def get_containers(self, obj):
         def accumulate_ids(obj, ids=None):
             if ids is None:
@@ -137,7 +137,7 @@ class ContainerSerializer(serializers.ModelSerializer):
             "checkout_status",
         ]
 
-    #Returns the most recent weight reading
+    # Returns the most recent weight reading
     def get_latest_reading(self, obj):
         latest = obj.readings.order_by("-recorded_at").first()
         if latest:
@@ -164,7 +164,7 @@ class ContainerSerializer(serializers.ModelSerializer):
         except DecimalException:
             return None
 
-    #Returns the current checkout status ("in/out")
+    # Returns the current checkout status ("in/out")
     def get_checkout_status(self, obj):
         latest = obj.events.order_by("-timestamp").first()
         if latest:
@@ -193,7 +193,8 @@ class ContainerWriteSerializer(serializers.ModelSerializer):
             "tare_weight",
         ]
 
-#Serializer for weight reading writes
+
+# Serializer for weight reading writes
 class WeightReadingSerializer(serializers.ModelSerializer):
     recorded_by = serializers.HiddenField(default=serializers.CurrentUserDefault())
 

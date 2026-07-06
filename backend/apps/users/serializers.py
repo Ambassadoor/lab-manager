@@ -9,7 +9,8 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ["id", "username", "email", "first_name", "last_name", "role"]
         read_only_fields = ["id", "role"]
 
-#Returns users full name for display in checkout events
+
+# Returns users full name for display in checkout events
 class UserCheckoutEventSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
 
@@ -20,7 +21,8 @@ class UserCheckoutEventSerializer(serializers.ModelSerializer):
     def get_full_name(self, obj):
         return f"{obj.first_name} {obj.last_name}"
 
-#Serializer to use for new account creation
+
+# Serializer to use for new account creation
 class NewUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User

@@ -11,7 +11,7 @@ from .models import (
     Ingredient,
 )
 
-#Adds models to admin site
+# Adds models to admin site
 admin.site.register(Chemical)
 admin.site.register(Container)
 admin.site.register(Location)

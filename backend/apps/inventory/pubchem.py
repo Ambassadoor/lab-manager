@@ -6,7 +6,8 @@ INPUT_FILE = "data.json"
 OUTPUT_FILE = "data_with_properties.json"
 PROPERTY_FIELDS = ["title", "molecularweight", "molecularformula", "iupacname"]
 
-#Script for importing chemical data from pubchem
+
+# Script for importing chemical data from pubchem
 def normalize_cids(raw_cids):
     """Return a clean list of integer CIDs from mixed input shapes."""
     if raw_cids is None:

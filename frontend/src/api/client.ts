@@ -11,7 +11,7 @@ function getCookie(name: string): string | null {
   return match ? decodeURIComponent(match[2]) : null;
 }
 
-//Fetch wrapper to add auth tokens, cookies, etc with error and json parsing. 
+//Fetch wrapper to add auth tokens, cookies, etc with error and json parsing.
 //TODO: Need to add more extensive error handling
 //TODO: Need to decide on a unified error response shape for server responses
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
