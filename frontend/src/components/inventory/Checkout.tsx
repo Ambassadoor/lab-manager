@@ -16,6 +16,7 @@ import {
 import { Controller, useFieldArray, useForm, type SubmitHandler } from 'react-hook-form';
 import { checkIfDiscarded, checkInContainers, checkOutContainers } from '../../api/inventory';
 import { useState, type SyntheticEvent } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 type CheckoutProps = {
   event: string;
@@ -45,11 +46,16 @@ export const Checkout = ({ event }: CheckoutProps) => {
   type CheckoutDefaults = {
     checkout: { value: string }[];
   };
+
+  const qc = useQueryClient();
   const onSubmit: SubmitHandler<CheckoutDefaults> = async (data) => {
     const slugs = data.checkout.map((d) => d.value.toLocaleLowerCase());
     const response =
       event === 'out' ? await checkOutContainers(slugs) : await checkInContainers(slugs);
     if (response.events[0].id) {
+      qc.invalidateQueries({
+        queryKey: ['containerData'],
+      });
       reset();
       setOpen(true);
     }
