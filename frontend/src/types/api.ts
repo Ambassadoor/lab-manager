@@ -503,7 +503,7 @@ export interface components {
        * Format: decimal
        */
       density?: string | null;
-      readonly location: string;
+      location: components['schemas']['Location'];
       manufacturer?: string | null;
       readonly quantity: string;
       /** Quantity */

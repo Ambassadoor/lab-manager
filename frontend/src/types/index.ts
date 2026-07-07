@@ -1,7 +1,7 @@
 // Shared application types.
 import type { Dayjs } from 'dayjs';
 import type { components } from './api';
-export type Role = 'lab_manager' | 'stockroom' | 'viewer';
+export type Role = 'lab_manager' | 'stockroom' | 'viewer' | 'coordinator';
 
 export interface User {
   id: number;
@@ -96,7 +96,7 @@ export interface ContainerOptions {
 
 export type ContainerDetailDefaults = {
   name: string;
-  location: string;
+  location: string | number;
   manufacturer: string;
   product_num: string;
   initial_quantity: string | number;
