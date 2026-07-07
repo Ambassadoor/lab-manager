@@ -1404,8 +1404,7 @@ components:
           nullable: true
           title: Density/specific gravity
         location:
-          type: string
-          readOnly: true
+          $ref: '#/components/schemas/Location'
         manufacturer:
           type: string
           nullable: true

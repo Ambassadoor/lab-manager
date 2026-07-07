@@ -93,11 +93,18 @@ export const AddLocation = ({ id, open, setOpen }: AddLocationProps) => {
     },
   });
 
+  const qc = useQueryClient();
   const onSubmit = (data: NewLocationDefaults) => {
     if (!data.new_type?.check) {
       data.new_type = null;
     }
     mutation.mutate({ data: { ...data, parent: id }, id: id || '' });
+    qc.invalidateQueries({
+      queryKey: ['locationTypes'],
+    });
+    qc.invalidateQueries({
+      queryKey: ['locationData'],
+    });
   };
 
   return (

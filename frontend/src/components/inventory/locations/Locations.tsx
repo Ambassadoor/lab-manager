@@ -48,6 +48,7 @@ import { AddLocation } from './AddLocation';
 import { AgGridReact } from 'ag-grid-react';
 import { type ColDef, themeMaterial } from 'ag-grid-community';
 import { EditLocation } from './EditLocation';
+import { useAuth } from '../../../context/AuthContext';
 
 type LocationProps = {
   location: Location;
@@ -74,6 +75,7 @@ const Location = ({ location, parent, setSelectedLocation, editing, onDelete }: 
   const [expanded, setExpanded] = useState(false);
   const [open, setOpen] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
+  const { user } = useAuth();
 
   return (
     <Container>
@@ -115,9 +117,11 @@ const Location = ({ location, parent, setSelectedLocation, editing, onDelete }: 
               <Button size="small" onClick={() => setOpenEdit(true)}>
                 <Edit />
               </Button>
-              <Button size="small" onClick={() => onDelete.mutate(String(location.id))}>
-                <Delete />
-              </Button>
+              {(user?.role === 'lab_manager' || user?.role === 'coordinator') && (
+                <Button size="small" onClick={() => onDelete.mutate(String(location.id))}>
+                  <Delete />
+                </Button>
+              )}
             </ButtonGroup>
           )}
         </Stack>

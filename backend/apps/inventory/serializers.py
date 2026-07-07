@@ -111,7 +111,7 @@ class ContainerSerializer(serializers.ModelSerializer):
     label = serializers.ReadOnlyField(label="ID")
     is_opened = serializers.ReadOnlyField(label="Opened?")
     quantity = serializers.ReadOnlyField(label="Quantity")
-    location = serializers.ReadOnlyField(label="Location", source="location.full_path")
+    location = LocationSerializer()
     percent_remaining = serializers.SerializerMethodField()
     latest_reading = serializers.SerializerMethodField()
     checkout_status = serializers.SerializerMethodField()
