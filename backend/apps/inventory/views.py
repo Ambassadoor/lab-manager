@@ -30,7 +30,16 @@ from .serializers import (
     WeightReadingSerializer,
     WeightReadingReadSerializer,
 )
-from django.db.models import Count, Q, F, ProtectedError
+from django.db.models import (
+    Count,
+    Q,
+    F,
+    ProtectedError,
+    OuterRef,
+    Subquery,
+    ExpressionWrapper,
+    FloatField,
+)
 from django.db import transaction
 
 from .permissions import IsManager, IsCoordinator
@@ -408,3 +417,32 @@ class WeightReadingView(ModelViewSet):
         if self.action in ["destroy"]:
             return [permission() for permission in [IsManager]]
         return super().get_permissions()
+
+
+# class DashboardView(ModelViewSet):
+#     queryset = Container.objects.all()
+#     serializer_class = ContainerSerializer
+
+#     permission_classes = [IsAuthenticated]
+
+#     most_recent_reading_time = WeightReading.objects.filter(
+#         container_id=OuterRef('pk')
+#     ).order_by('-recorded_at').values('recorded_at')[:1]
+
+#     most_recent_reading_weight = WeightReading.objects.filter(
+#         container_id=OuterRef('pk')
+#     ).order_by('-recorded_at').values('weight')[:1]
+
+
+#     restock_soon = Container.objects.annotate(
+#         most_recent_reading_time=Subquery(most_recent_reading_time)
+#     ).annotate(most_recent_reading_weight=Subquery(most_recent_reading_weight)).order_by('most_recent_reading_time').annotate(
+#         percent_remaining=ExpressionWrapper(F('most_recent_reading_weight')/F('initial_weight'), output_field=FloatField())
+#     ).filter(percent_remaining__lte=0.1)[:5]
+
+
+#     def list(self, request):
+#         queryset = self.get_queryset()
+#         recently_added = queryset.order_by('-date_received')[:5]
+#         restock_soon = queryset.annotate(percentage_remaining=(((readings__ - tare_weight)/initial_content_mass) * 100)).filter(percentage_remaining__lte=10)
+#         checked_out = queryset.filter(checkout_status_action__exact="out", checkout_status_related_event=None).order_by('-checkout_status_timestamp')[:5]

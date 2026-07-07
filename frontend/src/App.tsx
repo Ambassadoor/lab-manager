@@ -17,6 +17,7 @@ import { ContainerActions } from './components/inventory/ContainerActions';
 import { Locations } from './components/inventory/locations/Locations';
 import { Chemicals } from './components/inventory/chemicals/Chemicals';
 import { ChemicalDetail } from './components/inventory/chemicals/ChemicalDetail';
+import { Dashboard } from './components/inventory/Dashboard';
 
 // Component to show when an error is thrown
 //TODO: Create an Error component to show when error is not 404
@@ -42,7 +43,7 @@ export default function App() {
     createRoutesFromElements(
       <Route path="/" element={<Navbar />}>
         <Route errorElement={<ErrorBoundary />}>
-          <Route index element={user ? <>Dashboard</> : <Login />} />
+          <Route index element={user ? <Dashboard /> : <Login />} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
           {/*Auth protected routes */}
