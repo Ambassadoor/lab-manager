@@ -1,6 +1,7 @@
 import { createTheme, ThemeProvider } from '@mui/material';
 import { type PropsWithChildren } from 'react';
 
+//Theme to support light/dark mode
 const theme = createTheme({
   colorSchemes: {
     light: {

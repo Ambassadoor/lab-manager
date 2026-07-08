@@ -16,7 +16,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   getContainerDetails,
   getContainerMetaData,
-  getLocations,
+  getLocationMenu,
   updateContainer,
 } from '../../api/inventory';
 import type { Location, Container, ContainerOptions, ContainerDetailDefaults } from '../../types';
@@ -30,6 +30,7 @@ type ContainerDetailProps = {
   data?: Container;
 };
 
+//A convertible detail/edit component for containers
 export const ContainerDetail = ({ data }: ContainerDetailProps) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -42,22 +43,29 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
   const params = useParams();
 
   useEffect(() => {
-    const locationData = location.state;
-    if (!locationData && !data) {
-      if (!params.id) {
-        return;
-      }
-      getContainerDetails(params.id).then(setContainer);
-    }
-  }, [params.id, location, data]);
+    if (!params.id) return;
+    getContainerDetails(params.id).then(setContainer);
+  }, [params.id]);
 
+  //Get select field options
   useEffect(() => {
     if (!editing) return;
-    getLocations().then(setLocations);
+    getLocationMenu().then(setLocations);
     getContainerMetaData().then((ref) => {
       setOptions(ref.actions.POST.quantity_unit.choices);
     });
   }, [editing]);
+
+  console.log(container.location.id);
+
+  const defaultValues = {
+    name: container.name || '',
+    location: String(container.location.id),
+    manufacturer: container.manufacturer || '',
+    product_num: container.product_num || '',
+    initial_quantity: container.initial_quantity || '',
+    quantity_unit: container.quantity_unit || '',
+  };
 
   const {
     control,
@@ -70,14 +78,7 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
     ...methods
   } = useForm({
     mode: 'onBlur',
-    defaultValues: {
-      name: container.name || '',
-      location: container.location || '',
-      manufacturer: container.manufacturer || '',
-      product_num: container.product_num || '',
-      initial_quantity: container.initial_quantity || '',
-      quantity_unit: container.quantity_unit || '',
-    },
+    defaultValues: defaultValues,
   });
 
   const queryClient = useQueryClient();
@@ -164,7 +165,7 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
                       {...field}
                       editing={editing}
                       textProps={{
-                        defaultValue: container.location,
+                        defaultValue: container.location.id,
                         label: 'Location',
                         error: !!error,
                         helperText: error?.message,
@@ -178,13 +179,13 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
                         locations?.map((l) => {
                           return {
                             key: l.id,
-                            value: l.full_path,
+                            value: l.id,
                             text: l.full_path,
                           };
                         })
                       }
                     >
-                      {container.location}
+                      {container.location.full_path}
                     </ToggleField>
                   )}
                 />

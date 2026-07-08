@@ -16,11 +16,13 @@ import {
 import { Controller, useFieldArray, useForm, type SubmitHandler } from 'react-hook-form';
 import { checkIfDiscarded, checkInContainers, checkOutContainers } from '../../api/inventory';
 import { useState, type SyntheticEvent } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 type CheckoutProps = {
   event: string;
 };
 
+//Component for marking a container as checked out
 export const Checkout = ({ event }: CheckoutProps) => {
   const [open, setOpen] = useState(false);
   const { control, clearErrors, handleSubmit, resetField, reset } = useForm({
@@ -35,6 +37,7 @@ export const Checkout = ({ event }: CheckoutProps) => {
     },
   });
 
+  //Dynamically add fields to allow for multiple checkouts
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'checkout',
@@ -43,16 +46,22 @@ export const Checkout = ({ event }: CheckoutProps) => {
   type CheckoutDefaults = {
     checkout: { value: string }[];
   };
+
+  const qc = useQueryClient();
   const onSubmit: SubmitHandler<CheckoutDefaults> = async (data) => {
     const slugs = data.checkout.map((d) => d.value.toLocaleLowerCase());
     const response =
       event === 'out' ? await checkOutContainers(slugs) : await checkInContainers(slugs);
     if (response.events[0].id) {
+      qc.invalidateQueries({
+        queryKey: ['containerData'],
+      });
       reset();
       setOpen(true);
     }
   };
 
+  //Prevents alert closure from user clicking in the webpage
   const handleClose = (_: Event | SyntheticEvent, reason: string) => {
     if (reason === 'clickaway') {
       return;

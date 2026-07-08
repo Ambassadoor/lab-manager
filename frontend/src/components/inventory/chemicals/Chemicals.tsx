@@ -10,6 +10,7 @@ import { AddChemical } from './AddChemical';
 import { useNavigate } from 'react-router-dom';
 import { useColorScheme } from '@mui/material/styles';
 
+//Table for viewing chemicals
 export const Chemicals = () => {
   const [open, setOpen] = useState(false);
   const { data: chemicals, isPending } = useQuery({
@@ -19,6 +20,7 @@ export const Chemicals = () => {
 
   const navigate = useNavigate();
 
+  //Renders chemical formulas with subscripts
   const formulaCellRenderer = (params: CustomCellRendererProps) => {
     if (typeof params.value !== 'string') return '';
     const split: string[] = params.value.split(/(\d+)/);
@@ -84,7 +86,7 @@ export const Chemicals = () => {
     checkboxCheckedShapeColor: theme.palette.text.primary,
     backgroundColor: 'transparent',
     menuBackgroundColor: mode === 'dark' ? 'rgb(39, 39, 39)' : 'rgb(255, 255, 255)',
-    pickerListBackgroundColor: theme.palette.background.paper,
+    pickerListBackgroundColor: mode === 'dark' ? 'rgb(39, 39, 39)' : 'rgb(255, 255, 255)',
   });
 
   return (

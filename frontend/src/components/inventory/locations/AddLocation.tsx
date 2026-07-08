@@ -55,6 +55,7 @@ const iconMap = new Map([
   ['BusinessTwoTone', <BusinessTwoTone />],
 ]);
 
+//Modal for in page addition of locations
 export const AddLocation = ({ id, open, setOpen }: AddLocationProps) => {
   const { data: locationTypes } = useQuery({
     queryKey: ['locationTypes'],
@@ -92,11 +93,18 @@ export const AddLocation = ({ id, open, setOpen }: AddLocationProps) => {
     },
   });
 
+  const qc = useQueryClient();
   const onSubmit = (data: NewLocationDefaults) => {
     if (!data.new_type?.check) {
       data.new_type = null;
     }
     mutation.mutate({ data: { ...data, parent: id }, id: id || '' });
+    qc.invalidateQueries({
+      queryKey: ['locationTypes'],
+    });
+    qc.invalidateQueries({
+      queryKey: ['locationData'],
+    });
   };
 
   return (

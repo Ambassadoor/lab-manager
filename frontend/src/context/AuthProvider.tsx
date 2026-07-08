@@ -14,6 +14,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  //Set CSRF header, verify and set user
   useEffect(() => {
     initCsrf()
       .then(() => getMe())

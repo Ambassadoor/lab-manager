@@ -5,10 +5,12 @@ import { Checkout } from './Checkout';
 import { WeighIn } from './WeighIn';
 import { useSearchParams } from 'react-router-dom';
 
+// A quick access component for various container actions
 export const ContainerActions = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [value, setValue] = useState(Number(searchParams.get('tab')) || 0);
 
+  //Adds the tab index to the url for better user navigation
   const handleChange = (_: React.SyntheticEvent, value: string) => {
     setValue(Number(value));
     setSearchParams({ tab: value });

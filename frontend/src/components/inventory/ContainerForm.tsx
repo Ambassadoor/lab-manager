@@ -10,7 +10,6 @@ import {
   Container,
   Divider,
   FormControl,
-  FormControlLabel,
   FormHelperText,
   IconButton,
   InputAdornment,
@@ -36,7 +35,7 @@ import {
 import {
   getChemicalByCas,
   getContainerMetaData,
-  getLocations,
+  getLocationMenu,
   getStorageCategories,
   submitNewContainerForm,
 } from '../../api/inventory';
@@ -54,6 +53,7 @@ import dayjs from 'dayjs';
 import { useQueryClient } from '@tanstack/react-query';
 import { cas_is_valid } from '../shared/checkCas';
 
+//TODO: Create wrapper component for Controller/TextFields and use DRF OPTIONS to dynamically format
 export const ContainerForm = () => {
   const [chemicalStorageCategories, setChemicalStorageCategories] = useState<
     StorageCategory[] | []
@@ -92,11 +92,13 @@ export const ContainerForm = () => {
     mixture_id: '',
   };
 
+  //Retrieve cached values from sessionStorage
   const getContainerCachedValues = () => {
     const cached = sessionStorage.getItem('container_form_cache');
     return cached ? JSON.parse(cached) : defaultValues;
   };
 
+  //Set up rhf form
   const {
     control,
     clearErrors,
@@ -110,25 +112,30 @@ export const ContainerForm = () => {
     mode: 'onBlur',
     defaultValues: getContainerCachedValues(),
   });
+  //Allows for dynamically added cas/chemical fields
   const { fields, append, remove } = useFieldArray({
     control: control,
     name: 'chemicals',
     keyName: 'rhfId',
   });
 
+  //Watches the form for changes
   const formValues = useWatch({ control });
 
+  //Values from all cas fields
   const allCas = useWatch({
     control,
     name: fields.map((_, index) => `chemicals.${index}.cas` as Path<ContainerFormDefaults>),
   }) as string[];
 
+  //Store field values in session storage for form memory on reloads
   useEffect(() => {
     sessionStorage.setItem('container_form_cache', JSON.stringify(formValues));
   }, [formValues]);
 
   type GroupedLocations = Record<string, Location[]>;
 
+  //Format locations to group them by room number in select drop down
   const formatLocations = useCallback((locations: Location[]) => {
     const groups: GroupedLocations = {};
     locations.forEach((l) => {
@@ -147,14 +154,17 @@ export const ContainerForm = () => {
     return Object.fromEntries(Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)));
   }, []);
 
+  //Get form select options
+  //TODO: Need to move to tanstack query for these
   useEffect(() => {
     getStorageCategories().then(setChemicalStorageCategories);
-    getLocations().then(formatLocations).then(setLocations);
+    getLocationMenu().then(formatLocations).then(setLocations);
     getContainerMetaData().then(setMetaData);
   }, [formatLocations]);
 
   const casRef = useRef(cas);
 
+  //Check db for input cas nums and update fields with info if already in system
   useEffect(() => {
     if (!allCas) return;
     const validCasNum: { index: number; cas: string }[] = [];
@@ -194,6 +204,7 @@ export const ContainerForm = () => {
       });
   }, [errors.chemicals, setValue, allCas]);
 
+  // Helper to convert values if unit changes
   const convertUnits = (defaultUnit: string, currentUnit: string, quantity: string | number) => {
     const massUnits = ['mg', 'g', 'kg'];
     const volumeUnits = ['mL', 'L'];
@@ -210,6 +221,7 @@ export const ContainerForm = () => {
     return parseFloat(String(quantity));
   };
 
+  //Calculate and populate the tare weight field using previously input fields
   useEffect(() => {
     let initial_quantity = formValues.initial_quantity,
       initial_weight = formValues.initial_weight,
@@ -255,6 +267,7 @@ export const ContainerForm = () => {
     setValue,
   ]);
 
+  //Set fields values for chosen mixture if present
   useEffect(() => {
     if (!formValues.mixture_id) return;
     const chosenMixture = cas?.mixtures.find((mix) => mix.id === Number(formValues.mixture_id));
@@ -265,20 +278,22 @@ export const ContainerForm = () => {
 
   const queryClient = useQueryClient();
 
+  //Format date fields, clear session storage, invalidate stale container data and navigate to detail page
   const onSubmit: SubmitHandler<ContainerFormDefaults> = async (data) => {
-    if (data.date_received) {
-      data.date_received = data.date_received?.split('T')[0] || null;
+    if (data.date_received && data.date_received instanceof dayjs) {
+      data.date_received = data.date_received?.toISOString().split('T')[0] || null;
     }
-    if (data.expiration_date) {
-      data.expiration_date = data.expiration_date?.split('T')[0] || null;
+    if (data.expiration_date && data.expiration_date instanceof dayjs) {
+      data.expiration_date = data.expiration_date?.toISOString().split('T')[0] || null;
     }
 
     const response = await submitNewContainerForm(data);
     sessionStorage.removeItem('container_form_cache');
     queryClient.invalidateQueries({ queryKey: ['containerData'] });
-    navigate(`/inventory/containers/${response.id}`);
+    navigate(`/inventory/containers/${response.slug}`);
   };
 
+  //TODO: Need to modularize this better. Create wrapper components for Controllers and create nested forms for chems/mixtures
   return (
     <Container
       sx={{
@@ -342,16 +357,14 @@ export const ContainerForm = () => {
                 control={control}
                 name="multiple_cas"
                 render={({ field: { value, onChange, ...field } }) => (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        {...field}
-                        checked={!!value}
-                        onChange={(e) => onChange(e.target.checked)}
-                      />
-                    }
-                    label="Multiple CAS Numbers?"
-                  />
+                  <Stack direction={'row'}>
+                    <Checkbox
+                      {...field}
+                      checked={!!value}
+                      onChange={(e) => onChange(e.target.checked)}
+                    />
+                    <Typography sx={{ alignSelf: 'center' }}>Multiple CAS numbers?</Typography>
+                  </Stack>
                 )}
               />
               {fields.map((item, index) => (
@@ -430,7 +443,7 @@ export const ContainerForm = () => {
                   />
                   {formValues?.chemicals?.[index]?.cas && (
                     <Box>
-                      <Accordion defaultExpanded>
+                      <Accordion defaultExpanded elevation={4}>
                         <AccordionSummary expandIcon={<ArrowDropDown />}>
                           <Typography
                             component={'span'}

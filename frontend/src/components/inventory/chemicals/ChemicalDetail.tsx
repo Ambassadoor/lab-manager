@@ -24,11 +24,13 @@ import { Edit } from '@mui/icons-material';
 import type { ChemicalDefaults } from './AddChemical';
 import { cas_is_valid } from '../../shared/checkCas';
 
+//Convertible detail/edit component for chemicals
 export const ChemicalDetail = () => {
   const [editing, setEditing] = useState(false);
   const location = useLocation();
   const { chemId } = useParams();
 
+  //Gets chemical from server if not send with useNavigate
   const getChemical = () => {
     if (location.state) {
       return location.state;

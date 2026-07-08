@@ -26,6 +26,7 @@ export type ChemicalDefaults = {
   storage_category?: string;
 };
 
+//Modal for in page addition of new chemicals
 export const AddChemical = ({ open, setOpen }: AddChemicalProps) => {
   const { data: storageCategory } = useQuery({
     queryKey: ['storageCategoryData'],

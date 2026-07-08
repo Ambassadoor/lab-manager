@@ -1,3 +1,4 @@
+//Helper function to verify cas is valid
 export const cas_is_valid = (value: string) => {
   if (!value) return false;
   const parts = value.split('-');

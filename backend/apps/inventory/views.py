@@ -11,7 +11,6 @@ from .models import (
     Location,
     LocationTypes,
     ChemicalStorageCategories,
-    Ingredient,
     WeightReading,
 )
 from .serializers import (
@@ -21,6 +20,7 @@ from .serializers import (
     CheckoutEventSerializer,
     ChemicalWriteSerializer,
     CheckoutEventWriteSerializer,
+    IngredientSerializer,
     LocationSerializer,
     LocationContainersSerializer,
     LocationMenuSerializer,
@@ -42,6 +42,7 @@ class ChemicalView(ModelViewSet):
 
     permission_classes = [IsAuthenticated]
 
+    # Only managers allowed to delete
     def get_permissions(self):
         if self.action in ["destroy"]:
             return [permission() for permission in [IsManager]]
@@ -52,6 +53,7 @@ class ChemicalView(ModelViewSet):
             return ChemicalWriteSerializer
         return super().get_serializer_class()
 
+    # Returns any mixtures or chemicals associated with the provided cas nums
     @action(detail=False, methods=["get"])
     def check_cas(self, request):
         q = Chemical.objects.all()
@@ -85,11 +87,13 @@ class ContainerView(ModelViewSet):
 
     permission_classes = [IsAuthenticated]
 
+    # Only managers can delete
     def get_permissions(self):
         if self.action in ["destroy"]:
             return [permission() for permission in [IsManager]]
         return super().get_permissions()
 
+    # Determine which serialize to use
     def get_serializer_class(self):
         if self.action in ["create", "update", "partial_update", "metadata"]:
             return ContainerWriteSerializer
@@ -98,6 +102,7 @@ class ContainerView(ModelViewSet):
         else:
             return ContainerSerializer
 
+    # Validates if a container has been discarded
     @action(detail=True, methods=["get"])
     def is_discarded(self, request, slug=None):
         try:
@@ -108,6 +113,7 @@ class ContainerView(ModelViewSet):
         except Http404:
             return Response({"is_valid": False}, status=status.HTTP_200_OK)
 
+    # Creates checkout events for the provided containers
     @action(detail=False, methods=["POST"])
     def check_out(self, request):
         data = request.data
@@ -126,6 +132,7 @@ class ContainerView(ModelViewSet):
             serializer.save()
             return Response({"events": serializer.data}, status=status.HTTP_201_CREATED)
 
+    # Creates check in events for the provided containers
     @action(detail=False, methods=["POST"])
     def check_in(self, request):
         data = request.data
@@ -134,6 +141,7 @@ class ContainerView(ModelViewSet):
         for slug in data:
             try:
                 container = Container.objects.get(slug=slug)
+                # Adds a relation to the most recent event if it is a checkout event
                 try:
                     last_check_out = container.events.filter(
                         related_event__exact=None, action__exact="out"
@@ -156,6 +164,7 @@ class ContainerView(ModelViewSet):
             serializer.save()
             return Response({"events": serializer.data}, status=status.HTTP_201_CREATED)
 
+    # Returns if the provided container is valid or not
     @action(detail=True, methods=["GET"])
     def is_valid(self, request, slug=None):
         try:
@@ -164,40 +173,52 @@ class ContainerView(ModelViewSet):
         except Http404:
             return Response({"is_valid": False}, status=status.HTTP_200_OK)
 
+    # Creates new Mixture, chemicals, and containers
     @transaction.atomic
     def create(self, request):
-        user = request.user
         chemicals = Chemical.objects.all()
 
         data = request.data
 
+        # Creates a new parent chemical if one does not exist already
         if data.get("multiple_cas"):
             if data.get("mixture_id") != "":
                 chemical = Chemical.objects.get(pk=data.get("mixture_id"))
             else:
                 mixture_data = {
                     "name": data.get("mixture_name"),
-                    "cas": data.get("mixture_cas"),
-                    "molecular_weight": data.ge("molecular_weight"),
+                    "molecular_weight": data.get("mixture_molecular_weight"),
+                    "storage_category": data.get("mixture_storage_category"),
                 }
-                if ChemicalSerializer(data=mixture_data).isValid():
-                    chemical = Chemical.objects.create(mixture_data)
-                else:
-                    pass
+                chemical_serializer = ChemicalSerializer(data=mixture_data)
+                chemical_serializer.is_valid(raise_exception=True)
+                chemical = chemical_serializer.save()
+            # Gets or creates children chemicals creates ingredients for the parent chemical
             request_chems = data.get("chemicals")
             for chem in request_chems:
                 serializer = ChemicalSerializer(data=chem)
-                serializer.isValid(raise_exception=True)
-                c, _ = chemicals.get_or_create(cas=chem.get("cas"))
-                Ingredient.objects.create({"mixture": chemical, "ingredient": c.id})
+                try:
+                    print(chem.get("cas"))
+                    c = chemicals.get(cas=chem.get("cas"))
+                except Chemical.DoesNotExist:
+                    serializer.is_valid(raise_exception=True)
+                    c = serializer.save()
+
+                ingredient_data = {"mixture": chemical.id, "ingredient": c.id}
+
+                ingredient = IngredientSerializer(data=ingredient_data)
+                ingredient.is_valid(raise_exception=True)
+                ingredient.save()
 
         else:
+            # Handles creating a single chemical if only one cas# was provided
             request_chem = data.get("chemicals")[0]
             chemical, created = Chemical.objects.get_or_create(cas=request_chem.get("cas"))
             if created:
                 chemical.molecular_weight = request_chem.get("molecular_weight")
                 chemical.name = request_chem.get("name")
                 chemical.storage_category = request_chem.get("storage_category")
+        # Creates the new container
         new_container = {
             "name": data.get("name"),
             "chemical": chemical.id,
@@ -215,12 +236,21 @@ class ContainerView(ModelViewSet):
         serializer = ContainerWriteSerializer(data=new_container)
         serializer.is_valid(raise_exception=True)
         container = serializer.save()
-        WeightReading.objects.create(
-            **{"container": container, "weight": container.initial_weight, "recorded_by": user}
-        )
+        container.slug = f"chem-{container.id}"
+        container.save()
+        wr = {
+            "container": container.id,
+            "weight": container.initial_weight,
+        }
+
+        wr_serializer = WeightReadingSerializer(data=wr, context={"request": request})
+        wr_serializer.is_valid(raise_exception=True)
+        wr_serializer.save()
+
         # TODO: Reset IDs on failed creates
         return Response(ContainerSerializer(container).data, status=status.HTTP_201_CREATED)
 
+    # Creates new weigh in event
     @action(detail=True, methods=["GET", "POST"])
     def weigh_in(self, request, slug=None):
         container = self.get_object()
@@ -272,6 +302,7 @@ class LocationView(ModelViewSet):
         else:
             return LocationSerializer
 
+    # Handles creating new locations/location types
     @transaction.atomic
     def create(self, request):
         data = request.data
@@ -292,12 +323,14 @@ class LocationView(ModelViewSet):
         location = location_serializer.save()
         return Response(LocationSerializer(location).data, status=status.HTTP_201_CREATED)
 
+    # Returns the locations in a format easily usable in select menus
     @action(detail=False, methods=["GET"])
     def menu(self, request):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    # Adds a new child location
     @action(detail=True, methods=["POST"])
     def add_child(self, request, pk=None):
         data = request.data
@@ -312,6 +345,7 @@ class LocationView(ModelViewSet):
 
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
+    # Returns all containers for a given location, including nested child locations
     @action(detail=True, methods=["GET"])
     def containers(self, request, pk=None):
         location = self.get_object()
@@ -319,6 +353,7 @@ class LocationView(ModelViewSet):
         serializer = LocationContainersSerializer(location)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    # Deletes a location or returns an error message if the selected location has any child locations or containers
     def destroy(self, request, pk=None):
         try:
             location = self.get_object()

@@ -3,10 +3,10 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.utils import timezone
-from django.utils.text import slugify
 from django.db.models import Max
 
 
+# Validator for submitted cas nums
 def validate_cas(cas: str):
     """Checks that the provided CAS number is the correct format, and is valid.
 
@@ -188,10 +188,6 @@ class Container(models.Model):
 
     def __str__(self):
         return self.name
-
-    def save(self):
-        if not self.slug:
-            self.slug = slugify(f"chem-{self.id}")
 
 
 class Ingredient(models.Model):
