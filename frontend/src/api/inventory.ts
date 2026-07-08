@@ -14,6 +14,7 @@ import type {
   WeightReading,
   LocationType,
   Chemical,
+  Dashboard,
 } from '../types';
 import type { NewLocationDefaults } from '../components/inventory/locations/AddLocation';
 import type { EditLocationDefaults } from '../components/inventory/locations/EditLocation';
@@ -153,4 +154,8 @@ export const deleteLocation = (id: string) => {
   return apiFetch(`/inventory/locations/${id}/`, {
     method: 'DELETE',
   });
+};
+
+export const getDashboard = (): Promise<Dashboard> => {
+  return apiFetch('/inventory/dashboard');
 };

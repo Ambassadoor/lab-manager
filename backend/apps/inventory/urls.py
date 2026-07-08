@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     ContainerView,
     ChemicalView,
+    DashboardView,
     LocationView,
     LocationTypeView,
     ChemicalStorageCategoryView,
@@ -21,6 +22,7 @@ router.register(
 )
 router.register(r"weight_readings", WeightReadingView, basename="weight_reading")
 router.register(r"location_types", LocationTypeView, basename="location_type")
+router.register(r"dashboard", DashboardView, basename="dashboard")
 urlpatterns = [
     path("", include(router.urls)),
 ]
