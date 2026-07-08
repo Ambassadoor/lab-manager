@@ -11,7 +11,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   getContainerDetails,
@@ -19,8 +19,8 @@ import {
   getLocationMenu,
   updateContainer,
 } from '../../api/inventory';
-import { containerKeys } from '../../api/queryKeys';
-import type { Location, Container, ContainerOptions, ContainerDetailDefaults } from '../../types';
+import { containerKeys, locationKeys } from '../../api/queryKeys';
+import type { Container, ContainerDetailDefaults } from '../../types';
 import { Edit, ExpandLess, ExpandMore, UnfoldMore } from '@mui/icons-material';
 import { ToggleField } from '../shared/ToggleField';
 import { Controller, FormProvider, useForm, type SubmitHandler } from 'react-hook-form';
@@ -35,9 +35,6 @@ type ContainerDetailProps = {
 export const ContainerDetail = ({ data }: ContainerDetailProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [locations, setLocations] = useState<Location[]>();
-  const [options, setOptions] =
-    useState<ContainerOptions['actions']['POST']['quantity_unit']['choices']>();
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const params = useParams();
@@ -53,13 +50,18 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
   });
 
   //Get select field options
-  useEffect(() => {
-    if (!editing) return;
-    getLocationMenu().then(setLocations);
-    getContainerMetaData().then((ref) => {
-      setOptions(ref.actions.POST.quantity_unit.choices);
-    });
-  }, [editing]);
+  const { data: locations } = useQuery({
+    queryKey: locationKeys.menu(),
+    queryFn: getLocationMenu,
+    enabled: editing,
+  });
+
+  const { data: metaData } = useQuery({
+    queryKey: containerKeys.metaData(),
+    queryFn: getContainerMetaData,
+    enabled: editing,
+  });
+  const options = metaData?.actions.POST.quantity_unit.choices;
 
   const defaultValues = {
     name: container?.name || '',

@@ -22,7 +22,7 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Controller,
   FormProvider,
@@ -39,28 +39,17 @@ import {
   getStorageCategories,
   submitNewContainerForm,
 } from '../../api/inventory';
-import { containerKeys } from '../../api/queryKeys';
+import { containerKeys, chemicalKeys, locationKeys } from '../../api/queryKeys';
 import { DateField } from '@mui/x-date-pickers';
-import {
-  type ContainerFormDefaults,
-  type CasCheck,
-  type Location,
-  type StorageCategory,
-  type ContainerOptions,
-} from '../../types';
+import { type ContainerFormDefaults, type CasCheck, type Location } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { Decimal } from 'decimal.js';
 import dayjs from 'dayjs';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { cas_is_valid } from '../shared/checkCas';
 
 //TODO: Create wrapper component for Controller/TextFields and use DRF OPTIONS to dynamically format
 export const ContainerForm = () => {
-  const [chemicalStorageCategories, setChemicalStorageCategories] = useState<
-    StorageCategory[] | []
-  >([]);
-  const [locations, setLocations] = useState<GroupedLocations>({});
-  const [metaData, setMetaData] = useState<ContainerOptions | undefined>();
   const [cas, setCas] = useState<CasCheck | undefined>();
 
   const theme = useTheme();
@@ -156,12 +145,24 @@ export const ContainerForm = () => {
   }, []);
 
   //Get form select options
-  //TODO: Need to move to tanstack query for these
-  useEffect(() => {
-    getStorageCategories().then(setChemicalStorageCategories);
-    getLocationMenu().then(formatLocations).then(setLocations);
-    getContainerMetaData().then(setMetaData);
-  }, [formatLocations]);
+  const { data: chemicalStorageCategories = [] } = useQuery({
+    queryKey: chemicalKeys.storageCategories(),
+    queryFn: getStorageCategories,
+  });
+
+  const { data: locationMenu } = useQuery({
+    queryKey: locationKeys.menu(),
+    queryFn: getLocationMenu,
+  });
+  const locations = useMemo(
+    () => formatLocations(locationMenu ?? []),
+    [locationMenu, formatLocations]
+  );
+
+  const { data: metaData } = useQuery({
+    queryKey: containerKeys.metaData(),
+    queryFn: getContainerMetaData,
+  });
 
   const casRef = useRef(cas);
 

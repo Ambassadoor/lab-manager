@@ -7,6 +7,7 @@ export const containerKeys = {
   list: () => [...containerKeys.all, 'list'] as const,
   detail: (slug: string) => [...containerKeys.all, 'detail', slug] as const,
   weighIns: (slug: string) => [...containerKeys.all, 'weighIns', slug] as const,
+  metaData: () => [...containerKeys.all, 'metaData'] as const,
 };
 
 export const chemicalKeys = {
