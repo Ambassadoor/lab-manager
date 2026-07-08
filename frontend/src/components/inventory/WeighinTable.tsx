@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getContainerWeighIns } from '../../api/inventory';
+import { containerKeys } from '../../api/queryKeys';
 import { useCallback, useState } from 'react';
 import { themeMaterial, type ColDef, type GetRowIdParams } from 'ag-grid-community';
 import { Container, Paper, useTheme } from '@mui/material';
@@ -12,7 +13,7 @@ type WeighInTableProps = {
 
 export const WeighInTable = ({ slug }: WeighInTableProps) => {
   const { isPending, data: weighInEvents } = useQuery({
-    queryKey: ['weighInData'],
+    queryKey: containerKeys.weighIns(slug),
     queryFn: () => getContainerWeighIns(slug),
   });
   const [colDefs] = useState<ColDef[]>([

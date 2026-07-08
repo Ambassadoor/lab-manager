@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { Controller, useForm, type SubmitHandler } from 'react-hook-form';
 import { checkValidId, createWeighIn } from '../../api/inventory';
+import { containerKeys } from '../../api/queryKeys';
 import type { WeighInDefaults } from '../../types';
 import { useState } from 'react';
 import { Close } from '@mui/icons-material';
@@ -37,7 +38,8 @@ export const WeighIn = () => {
     if (response.id) {
       setOpen(true);
       reset();
-      queryClient.invalidateQueries({ queryKey: ['containerData'] });
+      // .all, not .list() — also refreshes this container's weigh-in history table
+      queryClient.invalidateQueries({ queryKey: containerKeys.all });
     }
   };
 

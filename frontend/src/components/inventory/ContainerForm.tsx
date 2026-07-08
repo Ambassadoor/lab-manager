@@ -39,6 +39,7 @@ import {
   getStorageCategories,
   submitNewContainerForm,
 } from '../../api/inventory';
+import { containerKeys } from '../../api/queryKeys';
 import { DateField } from '@mui/x-date-pickers';
 import {
   type ContainerFormDefaults,
@@ -289,7 +290,7 @@ export const ContainerForm = () => {
 
     const response = await submitNewContainerForm(data);
     sessionStorage.removeItem('container_form_cache');
-    queryClient.invalidateQueries({ queryKey: ['containerData'] });
+    queryClient.invalidateQueries({ queryKey: containerKeys.list() });
     navigate(`/inventory/containers/${response.slug}`);
   };
 

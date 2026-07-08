@@ -10,6 +10,7 @@ import {
   getLocationContainers,
   getLocations,
 } from '../../../api/inventory';
+import { locationKeys } from '../../../api/queryKeys';
 import {
   Business,
   ExpandLess,
@@ -149,13 +150,13 @@ export const Locations = () => {
   const [selectedLocation, setSelectedLocation] = useState('');
   const [editing, setEditing] = useState(false);
   const { data: locations } = useQuery({
-    queryKey: ['locationData'],
+    queryKey: locationKeys.list(),
     queryFn: getLocations,
   });
 
   //Get's all containers for selected location and any child locations
   const { isPending, data: locationContainers } = useQuery({
-    queryKey: ['locationContainers', selectedLocation],
+    queryKey: locationKeys.containers(selectedLocation),
     queryFn: async () => {
       if (selectedLocation.length > 0) {
         const location = await getLocationContainers(selectedLocation);
@@ -173,8 +174,9 @@ export const Locations = () => {
   const mutation = useMutation({
     mutationFn: (id: string) => deleteLocation(id),
     onSuccess: () => {
+      // .all — a deleted location can also affect the menu dropdown and any open containers view
       qc.invalidateQueries({
-        queryKey: ['locationData'],
+        queryKey: locationKeys.all,
       });
     },
   });

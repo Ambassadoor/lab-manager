@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { Controller, useForm } from 'react-hook-form';
 import { addChemical, getChemicalByCas, getStorageCategories } from '../../../api/inventory';
+import { chemicalKeys } from '../../../api/queryKeys';
 import { cas_is_valid } from '../../shared/checkCas';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -29,7 +30,7 @@ export type ChemicalDefaults = {
 //Modal for in page addition of new chemicals
 export const AddChemical = ({ open, setOpen }: AddChemicalProps) => {
   const { data: storageCategory } = useQuery({
-    queryKey: ['storageCategoryData'],
+    queryKey: chemicalKeys.storageCategories(),
     queryFn: getStorageCategories,
   });
 
@@ -51,7 +52,7 @@ export const AddChemical = ({ open, setOpen }: AddChemicalProps) => {
     mutationFn: addChemical,
     onSuccess: () => {
       qc.invalidateQueries({
-        queryKey: ['chemicalData'],
+        queryKey: chemicalKeys.list(),
       });
     },
   });

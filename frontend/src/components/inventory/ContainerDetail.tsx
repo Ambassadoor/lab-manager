@@ -19,11 +19,12 @@ import {
   getLocationMenu,
   updateContainer,
 } from '../../api/inventory';
+import { containerKeys } from '../../api/queryKeys';
 import type { Location, Container, ContainerOptions, ContainerDetailDefaults } from '../../types';
 import { Edit, ExpandLess, ExpandMore, UnfoldMore } from '@mui/icons-material';
 import { ToggleField } from '../shared/ToggleField';
 import { Controller, FormProvider, useForm, type SubmitHandler } from 'react-hook-form';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { WeighInTable } from './WeighinTable';
 
 type ContainerDetailProps = {
@@ -34,7 +35,6 @@ type ContainerDetailProps = {
 export const ContainerDetail = ({ data }: ContainerDetailProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [container, setContainer] = useState<Container>(data || location.state || {});
   const [locations, setLocations] = useState<Location[]>();
   const [options, setOptions] =
     useState<ContainerOptions['actions']['POST']['quantity_unit']['choices']>();
@@ -42,10 +42,15 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
   const [expanded, setExpanded] = useState(false);
   const params = useParams();
 
-  useEffect(() => {
-    if (!params.id) return;
-    getContainerDetails(params.id).then(setContainer);
-  }, [params.id]);
+  const seed: Container | undefined = data ?? location.state ?? undefined;
+
+  // enabled only for the routed (:id) view — the drawer/expand views already have full data via `seed`
+  const { data: container, isPending } = useQuery({
+    queryKey: containerKeys.detail(params.id ?? seed?.slug ?? ''),
+    queryFn: () => getContainerDetails(params.id!),
+    enabled: !!params.id,
+    initialData: seed,
+  });
 
   //Get select field options
   useEffect(() => {
@@ -56,15 +61,13 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
     });
   }, [editing]);
 
-  console.log(container.location.id);
-
   const defaultValues = {
-    name: container.name || '',
-    location: String(container.location.id),
-    manufacturer: container.manufacturer || '',
-    product_num: container.product_num || '',
-    initial_quantity: container.initial_quantity || '',
-    quantity_unit: container.quantity_unit || '',
+    name: container?.name || '',
+    location: String(container?.location?.id || ''),
+    manufacturer: container?.manufacturer || '',
+    product_num: container?.product_num || '',
+    initial_quantity: container?.initial_quantity || '',
+    quantity_unit: container?.quantity_unit || '',
   };
 
   const {
@@ -78,17 +81,18 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
     ...methods
   } = useForm({
     mode: 'onBlur',
+    values: defaultValues,
     defaultValues: defaultValues,
   });
 
   const queryClient = useQueryClient();
 
-  const onSubmit: SubmitHandler<ContainerDetailDefaults> = async (data) => {
-    updateContainer(container.slug, data)
-      .then(() => getContainerDetails(container.slug))
-      .then(setContainer);
+  if (isPending || !container) return null;
+
+  const onSubmit: SubmitHandler<ContainerDetailDefaults> = async (formData) => {
+    await updateContainer(container.slug, formData);
     setEditing(false);
-    queryClient.invalidateQueries({ queryKey: ['containerData'] });
+    queryClient.invalidateQueries({ queryKey: containerKeys.all });
   };
 
   return (
@@ -165,7 +169,7 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
                       {...field}
                       editing={editing}
                       textProps={{
-                        defaultValue: container.location.id,
+                        defaultValue: container.location?.id,
                         label: 'Location',
                         error: !!error,
                         helperText: error?.message,
@@ -185,7 +189,7 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
                         })
                       }
                     >
-                      {container.location.full_path}
+                      {container.location?.full_path}
                     </ToggleField>
                   )}
                 />

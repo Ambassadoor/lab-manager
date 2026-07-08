@@ -2,6 +2,7 @@ import { Box, Container, IconButton, Paper, Stack, Typography, useTheme } from '
 import { useQuery } from '@tanstack/react-query';
 import { AgGridReact, type CustomCellRendererProps } from 'ag-grid-react';
 import { getChemicals } from '../../../api/inventory';
+import { chemicalKeys } from '../../../api/queryKeys';
 import { useState } from 'react';
 import Decimal from 'decimal.js';
 import { themeMaterial, type ColDef } from 'ag-grid-community';
@@ -14,7 +15,7 @@ import { useColorScheme } from '@mui/material/styles';
 export const Chemicals = () => {
   const [open, setOpen] = useState(false);
   const { data: chemicals, isPending } = useQuery({
-    queryKey: ['chemicalData'],
+    queryKey: chemicalKeys.list(),
     queryFn: getChemicals,
   });
 

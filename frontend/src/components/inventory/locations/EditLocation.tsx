@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { editLocation, getLocationMenu, getLocationTypes } from '../../../api/inventory';
+import { locationKeys } from '../../../api/queryKeys';
 import { Controller, useForm } from 'react-hook-form';
 import type { Location } from '../../../types';
 import {
@@ -31,12 +32,12 @@ export const EditLocation = ({ location, parent, open, setOpen }: EditLocationPr
   const qc = useQueryClient();
 
   const { data: types } = useQuery({
-    queryKey: ['locationTypes'],
+    queryKey: locationKeys.types(),
     queryFn: getLocationTypes,
   });
 
   const { data: locations } = useQuery({
-    queryKey: ['locationMenu'],
+    queryKey: locationKeys.menu(),
     queryFn: getLocationMenu,
   });
 
@@ -55,7 +56,8 @@ export const EditLocation = ({ location, parent, open, setOpen }: EditLocationPr
       return editLocation(data, String(location.id));
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['locationData'] });
+      // .all — also refreshes the parent/menu dropdown, which shares the edited location's name
+      qc.invalidateQueries({ queryKey: locationKeys.all });
       setOpen(false);
       reset();
     },

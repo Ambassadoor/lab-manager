@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { Controller, useFieldArray, useForm, type SubmitHandler } from 'react-hook-form';
 import { checkIfDiscarded, checkInContainers, checkOutContainers } from '../../api/inventory';
+import { containerKeys } from '../../api/queryKeys';
 import { useState, type SyntheticEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -54,7 +55,7 @@ export const Checkout = ({ event }: CheckoutProps) => {
       event === 'out' ? await checkOutContainers(slugs) : await checkInContainers(slugs);
     if (response.events[0].id) {
       qc.invalidateQueries({
-        queryKey: ['containerData'],
+        queryKey: containerKeys.list(),
       });
       reset();
       setOpen(true);

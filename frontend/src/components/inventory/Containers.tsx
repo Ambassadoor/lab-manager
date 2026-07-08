@@ -2,6 +2,7 @@ import { Alert, Box, Container, Drawer, Paper, useTheme } from '@mui/material';
 import { AgGridReact } from 'ag-grid-react';
 import { useCallback, useMemo, useState } from 'react';
 import { getContainers } from '../../api/inventory';
+import { containerKeys } from '../../api/queryKeys';
 import {
   type ColDef,
   themeMaterial,
@@ -19,7 +20,7 @@ export const Containers = () => {
     error,
     data: containers,
   } = useQuery({
-    queryKey: ['containerData'],
+    queryKey: containerKeys.list(),
     queryFn: getContainers,
   });
 
