@@ -28,7 +28,7 @@ export const Containers = () => {
   const [colDefs] = useState<ColDef[]>([
     { field: 'label', headerName: 'ID', filter: true },
     { field: 'name', filter: true },
-    { field: 'location', filter: true },
+    { field: 'location.full_path', headerName: 'Location', filter: true },
     { field: 'manufacturer' },
     { field: 'quantity' },
     { field: 'product_num', headerName: 'Product #' },
