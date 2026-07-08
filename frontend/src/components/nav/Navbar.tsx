@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   IconButton,
+  LinearProgress,
   ListItemIcon,
   Menu,
   MenuItem,
@@ -12,13 +13,14 @@ import {
   Toolbar,
   Tooltip,
   Typography,
+  useTheme,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useState, type JSX } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Logout } from '@mui/icons-material';
 import { DarkModeToggle } from './DarkModeToggle';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate, useNavigation } from 'react-router-dom';
 
 export const Navbar = (): JSX.Element | null => {
   const { user, loading, logout } = useAuth();
@@ -32,6 +34,9 @@ export const Navbar = (): JSX.Element | null => {
   };
 
   const navigate = useNavigate();
+  const navigation = useNavigation();
+
+  const theme = useTheme();
 
   if (loading) return null;
 
@@ -55,19 +60,84 @@ export const Navbar = (): JSX.Element | null => {
             <Box sx={{ flexGrow: 1, pl: 4 }}>
               {user && (
                 <Stack spacing={2} direction={'row'}>
-                  <Button component={Link} to="/inventory/containers/" color="inherit">
+                  <Button
+                    component={NavLink}
+                    to="/inventory/containers/"
+                    color="inherit"
+                    sx={{
+                      '&.active': {
+                        textDecorationLine: 'underline',
+                        textDecorationColor: theme.palette.secondary.main,
+                        textDecorationThickness: 2,
+                        textUnderlineOffset: 5,
+                      },
+                    }}
+                    end
+                  >
                     Containers
                   </Button>
-                  <Button component={Link} to="/inventory/containers/new/" color="inherit">
+                  <Button
+                    component={NavLink}
+                    to="/inventory/containers/new/"
+                    color="inherit"
+                    sx={{
+                      '&.active': {
+                        textDecorationLine: 'underline',
+                        textDecorationColor: theme.palette.secondary.main,
+                        textDecorationThickness: 2,
+                        textUnderlineOffset: 5,
+                      },
+                    }}
+                    end
+                  >
                     Add Container
                   </Button>
-                  <Button component={Link} to="/inventory/containers/actions/" color="inherit">
+                  <Button
+                    component={NavLink}
+                    to="/inventory/containers/actions/"
+                    color="inherit"
+                    sx={{
+                      '&.active': {
+                        textDecorationLine: 'underline',
+                        textDecorationColor: theme.palette.secondary.main,
+                        textDecorationThickness: 2,
+                        textUnderlineOffset: 5,
+                      },
+                    }}
+                    end
+                  >
                     Actions
                   </Button>
-                  <Button component={Link} to="/inventory/locations/" color="inherit">
+                  <Button
+                    component={NavLink}
+                    to="/inventory/locations/"
+                    color="inherit"
+                    sx={{
+                      '&.active': {
+                        textDecorationLine: 'underline',
+                        textDecorationColor: theme.palette.secondary.main,
+                        textDecorationThickness: 2,
+                        textUnderlineOffset: 5,
+                      },
+                    }}
+                    end
+                  >
                     Locations
                   </Button>
-                  <Button component={Link} to="/inventory/chemicals" color="inherit">
+                  <Button
+                    component={NavLink}
+                    to="/inventory/chemicals"
+                    color="inherit"
+                    sx={{
+                      '&.active': {
+                        textDecorationLine: 'underline',
+                        textDecorationColor: theme.palette.secondary.main,
+                        textDecorationThickness: 2,
+                        textUnderlineOffset: 5,
+                      },
+                    }}
+                    end
+                  >
                     Chemicals
                   </Button>
                 </Stack>
@@ -119,6 +189,7 @@ export const Navbar = (): JSX.Element | null => {
             )}
           </Toolbar>
         </AppBar>
+        {navigation.state !== 'idle' && <LinearProgress />}
       </Box>
       <Outlet />
     </Paper>
