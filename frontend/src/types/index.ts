@@ -102,3 +102,8 @@ export type ContainerDetailDefaults = {
   initial_quantity: string | number;
   quantity_unit: string;
 };
+
+export type BalanceReading = {
+  weight: number;
+  unit: string;
+};
