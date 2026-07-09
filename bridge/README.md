@@ -7,14 +7,14 @@ and the Brother label printer.
 ## Stack
 - FastAPI + Uvicorn
 - pyserial (USB balance)
-- pywin32 (Brother b-PAC) — install on the Windows lab PC only
+- stdlib `socket` (Brother printer — P-touch Template protocol over plain
+  TCP/IP, no SDK or Windows-only dependency needed)
 - Poetry, Ruff
 
 ## Setup
 ```bash
-cp .env.example .env                 # set the balance's serial port
+cp .env.example .env                 # set the balance's serial port and printer IP
 poetry install --no-root
-poetry add pywin32                   # Windows lab PC only — Brother printing
 poetry run uvicorn app.main:app --port 8200 --reload
 ```
 
@@ -44,13 +44,29 @@ fix). Device Manager → Ports (COM & LPT) shows the port list too, if
 you'd rather check without a terminal open — it just won't show serial
 numbers.
 
+### Printer setup
+
+The printer must be on the **wired** network, not WiFi — some networks
+firewall wireless clients off from wired device subnets, which is the
+case on this one. Find its IP from the printer's own network status
+screen (or its Web Based Management page once you know it:
+`http://<printer_ip>/`) and set `PRINTER_IP` in `.env`. `PRINTER_PORT`
+defaults to `9100`, the standard raw/JetDirect print port for this class
+of network printer.
+
+`GET /print/status` works with no further setup. `POST /print/label`
+additionally requires a label template to already be transferred onto
+the printer's own memory — a one-time, manual step using P-touch Editor's
+Transfer Manager on Windows (not something this service can do). Each
+transferred template gets an assigned number (1-99); pass that as
+`template` in the request, along with a `fields` object mapping the
+template's named objects (e.g. `Text1`, `Barcode1`) to their values.
+
 ## Endpoints
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/health` | GET | Liveness check |
 | `/balance/read` | GET | Current weight from the USB balance |
 | `/balance/tare` | POST | Zero the USB balance |
-| `/print/label` | POST | Print a label on the Brother printer (stub) |
-
-The printer handler is still a stub — the hardware spike proved it
-feasible; wire up the real b-PAC logic here.
+| `/print/label` | POST | Print a label from a pre-loaded template |
+| `/print/status` | GET | Printer's media, battery, and error status |
