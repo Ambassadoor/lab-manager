@@ -22,8 +22,9 @@ poetry run uvicorn app.main:app --port 8200 --reload
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/health` | GET | Liveness check |
-| `/balance/read` | GET | Current weight from the USB balance (stub) |
+| `/balance/read` | GET | Current weight from the USB balance |
+| `/balance/tare` | POST | Zero the USB balance |
 | `/print/label` | POST | Print a label on the Brother printer (stub) |
 
-The balance and printer handlers are stubs — the hardware spikes proved
-them feasible; wire up the real logic here.
+The printer handler is still a stub — the hardware spike proved it
+feasible; wire up the real b-PAC logic here.

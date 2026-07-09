@@ -9,9 +9,15 @@ Run:  poetry run uvicorn app.main:app --port 8200 --reload
 
 import os
 
-from fastapi import FastAPI
+import serial
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+load_dotenv()
+
+from app import balance  # noqa: E402 — must import after load_dotenv() populates os.environ
 
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
 
@@ -34,12 +40,20 @@ def health():
 
 @app.get("/balance/read")
 def read_balance():
-    """Return the current weight from the USB balance.
+    """Return the current weight from the USB balance."""
+    try:
+        return balance.read_weight()
+    except serial.SerialException as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
 
-    TODO: open the serial port with pyserial and parse a reading.
-    The hardware spike confirmed the balance is reachable; wire it up here.
-    """
-    return {"weight": None, "unit": "g", "detail": "not yet implemented"}
+
+@app.post("/balance/tare")
+def tare_balance():
+    """Zero the USB balance."""
+    try:
+        return balance.tare()
+    except serial.SerialException as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
 
 
 class LabelRequest(BaseModel):
