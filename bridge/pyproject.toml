@@ -10,7 +10,8 @@ dependencies = [
     "fastapi (>=0.136.1,<0.137.0)",
     "uvicorn[standard] (>=0.47.0,<0.48.0)",
     "pyserial (>=3.5,<4.0)",
-    "python-dotenv (>=1.2.2,<2.0.0)"
+    "python-dotenv (>=1.2.2,<2.0.0)",
+    "pywin32 (>=312,<313) ; sys_platform == 'win32'"
 ]
 
 
