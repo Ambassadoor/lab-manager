@@ -16,13 +16,14 @@ import { Controller, useForm, type SubmitHandler } from 'react-hook-form';
 import { checkValidId, createWeighIn } from '../../api/inventory';
 import { containerKeys } from '../../api/queryKeys';
 import type { WeighInDefaults } from '../../types';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Close } from '@mui/icons-material';
 import { useQueryClient } from '@tanstack/react-query';
+import { parseBarcode } from '../shared/parseBarcode';
 
 export const WeighIn = () => {
   const [open, setOpen] = useState(false);
-  const { control, handleSubmit, clearErrors, reset } = useForm({
+  const { control, handleSubmit, clearErrors, reset, setFocus } = useForm({
     mode: 'onBlur',
     reValidateMode: 'onBlur',
     defaultValues: {
@@ -32,6 +33,10 @@ export const WeighIn = () => {
   });
 
   const queryClient = useQueryClient();
+
+  // Tracks whether the last onChange was a completed barcode scan, so we only
+  // swallow the scanner's own trailing Enter keystroke, not a manual submit.
+  const justScannedRef = useRef(false);
 
   const onSubmit: SubmitHandler<WeighInDefaults> = async (data) => {
     const response = await createWeighIn(data);
@@ -97,6 +102,7 @@ export const WeighIn = () => {
                 },
                 validate: {
                   valid_id: async (value: string) => {
+                    if (!!value || value === '') return;
                     const parts = value.toLocaleLowerCase().split('-');
                     const stripped = parseFloat(parts[1]);
                     const joined = parts[0] + '-' + String(stripped);
@@ -105,16 +111,31 @@ export const WeighIn = () => {
                   },
                 },
               }}
-              render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
+              render={({ field: { name, onChange, ref, ...field }, fieldState: { error } }) => (
                 <TextField
                   {...field}
+                  inputRef={ref}
                   onChange={(e) => {
-                    onChange(e);
+                    const scannedId = parseBarcode(e.target.value);
+                    justScannedRef.current = !!scannedId;
+                    if (scannedId) {
+                      onChange(scannedId);
+                      setFocus('weight');
+                    } else {
+                      onChange(e);
+                    }
                     clearErrors(name);
                   }}
                   error={!!error}
                   helperText={error?.message}
                   label="ID"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && justScannedRef.current) {
+                      e.preventDefault();
+                      justScannedRef.current = false;
+                    }
+                  }}
                 />
               )}
             />
@@ -131,9 +152,10 @@ export const WeighIn = () => {
                   message: 'Please input integer or decimal value.',
                 },
               }}
-              render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
+              render={({ field: { name, onChange, ref, ...field }, fieldState: { error } }) => (
                 <TextField
                   {...field}
+                  inputRef={ref}
                   onChange={(e) => {
                     onChange(e);
                     clearErrors(name);
@@ -145,6 +167,12 @@ export const WeighIn = () => {
                     input: {
                       endAdornment: <InputAdornment position="end">g</InputAdornment>,
                     },
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && justScannedRef.current) {
+                      e.preventDefault();
+                      justScannedRef.current = false;
+                    }
                   }}
                 />
               )}
