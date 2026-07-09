@@ -8,7 +8,9 @@ and the Brother label printer.
 - FastAPI + Uvicorn
 - pyserial (USB balance)
 - stdlib `socket` (Brother printer — P-touch Template protocol over plain
-  TCP/IP, no SDK or Windows-only dependency needed)
+  TCP/IP for printing, no SDK or Windows-only dependency needed)
+- pysnmp (Brother printer — status/media/supply queries; the network
+  print connection above doesn't support these, see Printer setup)
 - Poetry, Ruff
 
 ## Setup
@@ -50,17 +52,28 @@ The printer must be on the **wired** network, not WiFi — some networks
 firewall wireless clients off from wired device subnets, which is the
 case on this one. Find its IP from the printer's own network status
 screen (or its Web Based Management page once you know it:
-`http://<printer_ip>/`) and set `PRINTER_IP` in `.env`. `PRINTER_PORT`
-defaults to `9100`, the standard raw/JetDirect print port for this class
-of network printer.
+`http://<printer_ip>/`) and set `PRINTER_IP` in `.env`.
 
-`GET /print/status` works with no further setup. `POST /print/label`
-additionally requires a label template to already be transferred onto
-the printer's own memory — a one-time, manual step using P-touch Editor's
-Transfer Manager on Windows (not something this service can do). Each
-transferred template gets an assigned number (1-99); pass that as
-`template` in the request, along with a `fields` object mapping the
-template's named objects (e.g. `Text1`, `Barcode1`) to their values.
+**For `POST /print/label`:** in the printer's Web Based Management page,
+under Network > Protocol, the raw printing protocol must be set to
+**Raw**, not **LPR** — these are different wire protocols on different
+ports (Raw is `PRINTER_PORT`, default `9100`; LPR is port 515 and won't
+work with this bridge at all). This tripped us up once already — a
+printer freshly added to a network often defaults to LPR. A label
+template also needs to already be transferred onto the printer's own
+memory — a one-time, manual step using P-touch Editor's Transfer Manager
+on Windows (not something this service can do). Each transferred
+template gets an assigned number (1-99); pass that as `template` in the
+request, along with a `fields` object mapping the template's named
+objects (e.g. `Text1`, `Barcode1`) to their values.
+
+**For `GET /print/status`:** this uses SNMP, not the raw print
+connection — Brother's own docs show the raw network connection only
+supports one-directional print data, not status queries (that's a
+USB/Bluetooth-only feature of the same command protocol). `PRINTER_SNMP_COMMUNITY`
+defaults to `public`, the near-universal default for read-only SNMP;
+only change it if the printer's SNMP settings have been customized away
+from that.
 
 ## Endpoints
 | Endpoint | Method | Description |

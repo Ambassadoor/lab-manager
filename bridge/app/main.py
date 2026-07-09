@@ -72,9 +72,9 @@ def print_label(req: PrintLabelRequest):
 
 
 @app.get("/print/status")
-def print_status():
-    """Return the printer's current media, battery, and error status."""
+async def print_status():
+    """Return the printer's current media, battery, and error status (via SNMP)."""
     try:
-        return printer.get_status()
+        return await printer.get_status()
     except OSError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e

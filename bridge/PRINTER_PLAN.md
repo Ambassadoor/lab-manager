@@ -158,25 +158,116 @@ is sufficient if the bridge ever moves to a different machine.
 Wireless LAN, Wireless Direct, and Bluetooth are all enabled on the
 printer but unused/irrelevant now that we're going wired network.
 
+## Debugging log: getting the network connection working
+
+Real sequence of issues hit getting `bridge/app/printer.py` talking to
+the printer, in case any of this recurs:
+
+1. **Printer was configured for LPR (port 515), not Raw (port 9100).**
+   `GET /print/status` first returned "connection actively refused" on
+   port 9100 — an *active* refusal (not a timeout) meant the network path
+   itself was fine, something was just listening on the wrong protocol.
+   Windows' "Add Printer → TCP/IP" wizard failing to detect a "Generic
+   Network Card" device confirmed it. Found under the printer's Web Based
+   Management → Network → Protocol settings: it was set to LPR, switched
+   to Raw. LPR and Raw are genuinely different wire protocols (LPR wraps
+   data in its own job-control handshake; Raw just streams bytes) — not
+   interchangeable, and this fully explained the refusal.
+
+2. **After switching to Raw, connection succeeds but `^SR` gets zero
+   response.** Ruled out wrong command mode (confirmed P-touch Template
+   mode both via the printer's own Settings Tool *and* by prepending an
+   explicit `ESC i a` mode-select command before every request — no
+   change). Ruled out "just needs more time" (tested standalone, outside
+   the bridge, with a 20s timeout — still `TimeoutError`). Ruled out our
+   bridge code specifically (same result from a raw isolated Python
+   script with no FastAPI/printer.py involved).
+
+3. **Root cause: status queries appear to not be supported over the
+   network raw connection at all.** Compared the raster doc's flow charts
+   directly — 5.1 (USB) explicitly shows a bidirectional "Status
+   information request → Status (response)" exchange before printing
+   starts; 5.6 (Network/Standard TCP/IP) shows *only* one-directional
+   data flow (computer → printer, printer shows BUSY) with no status
+   exchange anywhere in the diagram. This is Brother's own documentation,
+   not a guess — the network raw port looks like it's designed as a dumb
+   one-way pipe (matches generic OS print-spooler "port monitor"
+   behavior), while the full bidirectional command protocol (including
+   status) is a USB/Bluetooth-only feature.
+
+**Consequence:** `printer.get_status()` likely cannot work as written
+against the network connection, regardless of further tweaking — this
+isn't a bug to keep chasing in `printer.py`. Printing itself should still
+work fine over network raw (that's exactly what flow chart 5.6 shows
+succeeding, and it doesn't require a response to know it worked). If
+status/supply-level checking is still wanted, it needs a different
+mechanism — candidates to explore later: scraping the Web Based
+Management HTML status page (fragile, but known to work — see
+`Using Web Based Management _ Brother.pdf`), or checking whether the
+printer exposes SNMP (standard, actually built for this, worth checking
+before assuming HTML scraping is the only option).
+
+## Status as of this session
+
+Implemented: `bridge/app/printer.py` (`get_status()`, `print_label()`),
+wired into `main.py` as `GET /print/status` / `POST /print/label`,
+`PRINTER_IP`/`PRINTER_PORT` in `.env`/`.env.example`, README updated.
+Network connection to the printer (port 9100, Raw protocol) confirmed
+working.
+
+**`print_label` is fully verified against real hardware** — printed a
+real label (QR code + text) using the pre-existing `ChemicalQRCodes.lbx`
+template (already transferred to the printer, assigned template number
+**1**, with object names **`Barcode1`** and **`Text1`** — confirmed via
+P-touch Editor's Transfer Manager). Test request used
+`{"template": 1, "fields": {"Barcode1": "...", "Text1": "..."}}` and
+returned `{"printed": true}`, with a real label coming out of the
+printer. Core feature works end-to-end.
+
+**`get_status()` reimplemented over SNMP, replacing the raw-socket
+attempt entirely.** Brother confirmed (via their own support material)
+that OID `1.3.6.1.4.1.2435.3.3.9.1.6.1.0` returns the identical 32-byte
+status structure as the ESC/P status command, over SNMP GET, on the
+PT-P950NW specifically (it's in Brother's listed supported-models set).
+Added `pysnmp` as a dependency (+ `pyasn1` transitively) and
+`PRINTER_SNMP_COMMUNITY` (defaults to `public`) to `.env`/`.env.example`.
+Same byte-offset parsing logic as before, just fetched differently —
+`get_status()`/`/print/status` are now `async def` since pysnmp's
+high-level API is asyncio-only, while `print_label`/`/print/label` stay
+synchronous (raw socket I/O, unchanged).
+
+One real bug caught before it ever reached real hardware: `SnmpDispatcher()`
+needs a running asyncio event loop at construction time, but was
+initially created at module level (which runs during plain import,
+before uvicorn's event loop exists) — would have crashed the app on
+startup. Fixed with lazy initialization (`_get_snmp_dispatcher()`,
+created on first call inside `get_status()`, cached afterward). Caught by
+actually running `from app.main import app` locally, not just by ruff —
+worth doing that check after any change here given how easy this kind of
+import-time-vs-runtime bug is to miss.
+
+**Verified against real hardware — working.** `GET /print/status`
+returned real data: `{"battery_level": 4, "media_width_mm": 12,
+"media_length_mm": 0, "media_type": "laminated tape", "errors": []}`.
+Confirms the byte-offset parsing, the media-type lookup table, and the
+error-flag decoding are all correct — `media_width_mm: 12` matches the
+documented TZe tape table (`0x0C` = 12mm), `media_length_mm: 0` is
+correct since tape media always has a fixed-zero length field (only
+cut-sheet media has a real one). Both bridge endpoints are now fully
+implemented and confirmed working end-to-end.
+
 ## Open questions for next session
 
-1. Confirm the actual TCP port for raw network printing (check printer's
-   Web Based Management page, or the escp/ptemp docs' network sections
-   which weren't searched yet).
-2. Read the P-touch Template "Control Command Details" section in full
-   (page ~34 onward) to get exact command byte sequences and the
-   delimiter-based field data format for `^TS`/`^SS`.
-3. Decide whether to reuse `print-server/templates/ChemicalQRCodes.lbx`
-   as-is, or design fresh templates — and how to transfer a template onto
-   the printer's memory (P-touch Editor's transfer tool, referenced in
-   `BPAC_INTEGRATION.md` and the ptemp doc's "Transferring templates"
-   section).
-4. Design the bridge-side interface: likely fill in the existing
-   `POST /print/label` stub, plus probably a new `GET /print/status`
-   endpoint for the media/supply-level feature — mirroring the
-   `containerKeys`-style query-key/endpoint pattern already used for the
-   balance on the frontend side.
-5. Pick a Python networking approach (stdlib `socket` is probably enough
-   for a raw TCP send + read-response, given the balance code already
-   shows the pattern of a small synchronous I/O module called from a
-   sync FastAPI route).
+1. Frontend wiring (bridge client functions in `api/bridge.ts`, UI
+   buttons) — not started yet. Both bridge endpoints are confirmed
+   working, so this is unblocked whenever it's picked up.
+2. `CLAUDE.md`'s repo-level line still mentions b-PAC/`pywin32` for the
+   printer — worth a follow-up edit now that the actual approach (raw
+   socket + SNMP, no Windows/COM dependency) is settled and working.
+
+## Resolved this session
+- ~~Test `POST /print/label` for real~~ — done, printed successfully
+  using the pre-existing `ChemicalQRCodes.lbx` (template 1, fields
+  `Barcode1`/`Text1`).
+- ~~Decide what to do about `/print/status`~~ — reimplemented over SNMP
+  rather than dropped, verified working against real hardware.
