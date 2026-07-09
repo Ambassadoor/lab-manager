@@ -16,8 +16,9 @@ import {
 import { Controller, useFieldArray, useForm, type SubmitHandler } from 'react-hook-form';
 import { checkIfDiscarded, checkInContainers, checkOutContainers } from '../../api/inventory';
 import { containerKeys } from '../../api/queryKeys';
-import { useState, type SyntheticEvent } from 'react';
+import { useRef, useState, type SyntheticEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { parseBarcode } from '../shared/parseBarcode';
 
 type CheckoutProps = {
   event: string;
@@ -26,7 +27,7 @@ type CheckoutProps = {
 //Component for marking a container as checked out
 export const Checkout = ({ event }: CheckoutProps) => {
   const [open, setOpen] = useState(false);
-  const { control, clearErrors, handleSubmit, resetField, reset } = useForm({
+  const { control, clearErrors, handleSubmit, resetField, reset, setFocus, getValues } = useForm({
     mode: 'onBlur',
     reValidateMode: 'onBlur',
     defaultValues: {
@@ -48,9 +49,16 @@ export const Checkout = ({ event }: CheckoutProps) => {
     checkout: { value: string }[];
   };
 
+  // Tracks whether the last onChange was a completed barcode scan, so we only
+  // swallow the scanner's own trailing Enter keystroke, not a manual submit.
+  const justScannedRef = useRef(false);
+
   const qc = useQueryClient();
   const onSubmit: SubmitHandler<CheckoutDefaults> = async (data) => {
-    const slugs = data.checkout.map((d) => d.value.toLocaleLowerCase());
+    const slugs = data.checkout
+      .map((d) => d.value.trim().toLocaleLowerCase())
+      .filter((slug) => slug.length > 0);
+    if (slugs.length === 0) return;
     const response =
       event === 'out' ? await checkOutContainers(slugs) : await checkInContainers(slugs);
     if (response.events[0].id) {
@@ -115,6 +123,7 @@ export const Checkout = ({ event }: CheckoutProps) => {
                   },
                   validate: {
                     discarded: async (value) => {
+                      if (!value || value === '') return;
                       const split = value.toLocaleLowerCase().split('-');
                       const stripped = parseInt(split[1], 10);
                       const joined = split[0] + '-' + String(stripped);
@@ -128,13 +137,35 @@ export const Checkout = ({ event }: CheckoutProps) => {
                 render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
                   <TextField
                     {...field}
+                    value={field.value}
                     error={!!error}
                     label={`Item #${index + 1}`}
                     helperText={error?.message}
                     onChange={(e) => {
-                      onChange(e);
+                      const scannedId = parseBarcode(e.target.value);
+                      justScannedRef.current = !!scannedId;
+                      if (scannedId) {
+                        const isDuplicate = getValues('checkout').some(
+                          (c) => c.value.toLocaleLowerCase() === scannedId.toLocaleLowerCase()
+                        );
+                        if (isDuplicate) {
+                          resetField(name);
+                          return;
+                        }
+                        onChange(scannedId);
+                        append({ value: '' });
+                      } else {
+                        onChange(e);
+                      }
                       clearErrors(name);
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && justScannedRef.current) {
+                        e.preventDefault();
+                        justScannedRef.current = false;
+                      }
+                    }}
+                    autoFocus
                     slotProps={{
                       input: {
                         endAdornment: (
@@ -151,6 +182,7 @@ export const Checkout = ({ event }: CheckoutProps) => {
                             <IconButton
                               onClick={() => {
                                 append({ value: '' });
+                                setFocus(`checkout.${fields.length}.value`);
                               }}
                             >
                               <Add />
