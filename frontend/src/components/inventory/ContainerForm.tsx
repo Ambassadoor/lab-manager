@@ -1,8 +1,9 @@
-import { Add, ArrowDropDown, Remove } from '@mui/icons-material';
+import { Add, ArrowDropDown, MonitorWeight, Remove } from '@mui/icons-material';
 import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Alert,
   Box,
   Button,
   Card,
@@ -17,6 +18,7 @@ import {
   ListSubheader,
   MenuItem,
   Select,
+  Snackbar,
   Stack,
   TextField,
   Typography,
@@ -39,18 +41,20 @@ import {
   getStorageCategories,
   submitNewContainerForm,
 } from '../../api/inventory';
+import { getBalanceWeight } from '../../api/bridge';
 import { containerKeys, chemicalKeys, locationKeys } from '../../api/queryKeys';
 import { DateField } from '@mui/x-date-pickers';
 import { type ContainerFormDefaults, type CasCheck, type Location } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { Decimal } from 'decimal.js';
 import dayjs from 'dayjs';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { cas_is_valid } from '../shared/checkCas';
 
 //TODO: Create wrapper component for Controller/TextFields and use DRF OPTIONS to dynamically format
 export const ContainerForm = () => {
   const [cas, setCas] = useState<CasCheck | undefined>();
+  const [scaleError, setScaleError] = useState<string | null>(null);
 
   const theme = useTheme();
   const navigate = useNavigate();
@@ -280,6 +284,17 @@ export const ContainerForm = () => {
 
   const queryClient = useQueryClient();
 
+  const scaleMutation = useMutation({
+    mutationFn: getBalanceWeight,
+    onSuccess: (reading) => {
+      setValue('initial_weight', String(reading.weight));
+      clearErrors('initial_weight');
+    },
+    onError: (error: Error) => {
+      setScaleError(error.message);
+    },
+  });
+
   //Format date fields, clear session storage, invalidate stale container data and navigate to detail page
   const onSubmit: SubmitHandler<ContainerFormDefaults> = async (data) => {
     if (data.date_received && data.date_received instanceof dayjs) {
@@ -302,6 +317,21 @@ export const ContainerForm = () => {
         padding: 4,
       }}
     >
+      <Snackbar
+        open={!!scaleError}
+        onClose={() => setScaleError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        autoHideDuration={6000}
+      >
+        <Alert
+          onClose={() => setScaleError(null)}
+          severity="error"
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {scaleError}
+        </Alert>
+      </Snackbar>
       <FormProvider
         {...methods}
         clearErrors={clearErrors}
@@ -957,7 +987,19 @@ export const ContainerForm = () => {
                       }}
                       slotProps={{
                         input: {
-                          endAdornment: <InputAdornment position="end">g</InputAdornment>,
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                type="button"
+                                aria-label="Read from scale"
+                                disabled={scaleMutation.isPending}
+                                onClick={() => scaleMutation.mutate()}
+                              >
+                                <MonitorWeight />
+                              </IconButton>
+                              g
+                            </InputAdornment>
+                          ),
                         },
                       }}
                     />
