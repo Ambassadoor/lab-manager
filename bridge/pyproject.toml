@@ -11,7 +11,8 @@ dependencies = [
     "uvicorn[standard] (>=0.47.0,<0.48.0)",
     "pyserial (>=3.5,<4.0)",
     "python-dotenv (>=1.2.2,<2.0.0)",
-    "pywin32 (>=312,<313) ; sys_platform == 'win32'"
+    "pywin32 (>=312,<313) ; sys_platform == 'win32'",
+    "pysnmp (>=7.1.27,<8.0.0)"
 ]
 
 

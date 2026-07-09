@@ -17,7 +17,7 @@ from pydantic import BaseModel
 
 load_dotenv()
 
-from app import balance  # noqa: E402 — must import after load_dotenv() populates os.environ
+from app import balance, printer  # noqa: E402 — must import after load_dotenv() populates os.environ
 
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
 
@@ -56,16 +56,25 @@ def tare_balance():
         raise HTTPException(status_code=503, detail=str(e)) from e
 
 
-class LabelRequest(BaseModel):
-    text: str
-    barcode: str | None = None
+class PrintLabelRequest(BaseModel):
+    template: int
+    fields: dict[str, str]
+    copies: int = 1
 
 
 @app.post("/print/label")
-def print_label(req: LabelRequest):
-    """Print a label on the Brother printer.
+def print_label(req: PrintLabelRequest):
+    """Print a label from a template already transferred onto the printer."""
+    try:
+        return printer.print_label(req.template, req.fields, req.copies)
+    except OSError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
 
-    TODO: drive the Brother SDK (b-PAC via pywin32) on the lab PC.
-    On that machine, install the Windows-only dependency:  poetry add pywin32
-    """
-    return {"printed": False, "detail": "not yet implemented", "echo": req.text}
+
+@app.get("/print/status")
+async def print_status():
+    """Return the printer's current media, battery, and error status (via SNMP)."""
+    try:
+        return await printer.get_status()
+    except OSError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
