@@ -184,8 +184,11 @@ def print_label(template: int, fields: dict[str, str], copies: int = 1) -> dict:
     approach the old b-PAC integration used (GetObject(name) over index).
     """
     command = bytearray(_SELECT_PTOUCH_TEMPLATE_MODE)
-    command += b"^ID"
     command += f"^TS0{template:02d}".encode("ascii")
+    # ^ID resets the *currently selected* template's data — must come
+    # after ^TS, not before, or it resets whatever template was left
+    # selected from a previous call instead of the one we just chose.
+    command += b"^ID"
 
     for name, value in fields.items():
         command += b"^ON" + name.encode("ascii") + b"\x00" + value.encode("ascii") + DELIMITER

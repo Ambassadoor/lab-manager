@@ -95,9 +95,18 @@ P-touch Editor but is *not* a runtime dependency — once transferred, the
 printer remembers it independently.
 
 Print sequence (send as one stream of bytes over the socket):
-1. `^ID` — initialize template data (clean slate)
-2. `^TS0NN` — select template number NN, e.g. `^TS003` for template 3
+1. `^TS0NN` — select template number NN, e.g. `^TS003` for template 3
    (`5Eh 54h 53h 30h 30h 33h`)
+2. `^ID` — initialize template data (resets the *currently selected*
+   template to its as-transferred state). Must come after `^TS`, not
+   before — `^ID` operates on whatever template is currently selected at
+   the moment it's sent, so sending it first just resets whatever
+   template was left selected from a previous call, and the one just
+   chosen via `^TS` never gets reset at all. (Caught in review — the
+   original implementation had this backwards; didn't surface in testing
+   since that test always populated every field the template had, which
+   masks the bug. Only shows up with a partial `fields` dict, where the
+   omitted field would silently retain stale data from a previous print.)
 3. For each field: `^ON<name>\0<value><delimiter>` — select object by
    name (`^ON` + name + `00h` terminator), immediately followed by the
    field's text, ended by the delimiter (default `09h`/tab, configurable
@@ -256,14 +265,50 @@ correct since tape media always has a fixed-zero length field (only
 cut-sheet media has a real one). Both bridge endpoints are now fully
 implemented and confirmed working end-to-end.
 
+## Cancelling a held/buffered print job — abandoned, both candidates failed
+
+Explored this for the scenario where a print is attempted during an
+error state (wrong media, etc.) and the printer holds the job rather
+than discarding it — auto-resuming and printing a stale job once the
+physical issue is resolved, unless explicitly cancelled first. Tried and
+removed a `printer.cancel()` / `POST /print/cancel` implementation twice:
+
+1. **`^II`** (P-touch Template's own "initialize" command) — documented
+   wording ("all data already fed in... initialized") sounded like it
+   should clear a held job. Tested: sent `^II` after an intentional
+   error, got a normal response, resolved the error, and the original
+   held job printed anyway. Didn't work.
+2. **`ESC @`** (raster mode, switched into briefly since it's not in the
+   P-touch Template command list) — the raster doc's own words are
+   explicit: *"Also used to cancel printing."* More direct wording than
+   `^II`, tried it anyway given how directly it discusses cancelling.
+   Also tested, also didn't clear the held job.
+
+Both looked like the right command based on documentation; neither
+actually worked in practice. Same class of gap as the network
+status-query issue earlier in this session — documented wording isn't a
+reliable guide to actual behavior on this printer, only testing is.
+Removed the dead code rather than leave an endpoint that claims
+`{"cancelled": true}` without actually cancelling anything. If this
+becomes a real operational problem later (not just a theoretical one —
+confirm it's actually happening before spending more time here), worth
+a fresh angle rather than a third guess at documented command wording:
+possibly Web Based Management's job-queue view (if it has one), or
+asking Brother support directly the same way the status OID was obtained.
+
 ## Open questions for next session
 
 1. Frontend wiring (bridge client functions in `api/bridge.ts`, UI
-   buttons) — not started yet. Both bridge endpoints are confirmed
-   working, so this is unblocked whenever it's picked up.
+   buttons) — not started yet. `/print/label` and `/print/status` are
+   both implemented and confirmed working against real hardware.
 2. `CLAUDE.md`'s repo-level line still mentions b-PAC/`pywin32` for the
    printer — worth a follow-up edit now that the actual approach (raw
    socket + SNMP, no Windows/COM dependency) is settled and working.
+3. Label-type DB table (Django) + pre-print media check + post-print
+   status check — the flow discussed this session, minus the cancel
+   step (abandoned, see above). `/print/label` and `/print/status` cover
+   what's needed; the DB model, comparison logic, and user-facing
+   alerting are frontend/backend work for later.
 
 ## Resolved this session
 - ~~Test `POST /print/label` for real~~ — done, printed successfully
