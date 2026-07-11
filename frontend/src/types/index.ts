@@ -56,6 +56,7 @@ export interface CasCheck {
 }
 
 export interface ContainerFormDefaults {
+  print: boolean;
   name: string;
   multiple_cas: boolean;
   mixture_name: string;
@@ -106,4 +107,22 @@ export type ContainerDetailDefaults = {
 export type BalanceReading = {
   weight: number;
   unit: string;
+};
+
+export type PrinterStatus = {
+  battery_level: number;
+  media_width_mm: number;
+  media_length: number;
+  media_type: string;
+  errors: string[];
+};
+
+export type PrintParams = {
+  template: number;
+  fields: Record<string, string>;
+  copies: 1;
+};
+
+export type PrintConfirmation = {
+  printed: true;
 };

@@ -95,9 +95,18 @@ P-touch Editor but is *not* a runtime dependency — once transferred, the
 printer remembers it independently.
 
 Print sequence (send as one stream of bytes over the socket):
-1. `^ID` — initialize template data (clean slate)
-2. `^TS0NN` — select template number NN, e.g. `^TS003` for template 3
+1. `^TS0NN` — select template number NN, e.g. `^TS003` for template 3
    (`5Eh 54h 53h 30h 30h 33h`)
+2. `^ID` — initialize template data (resets the *currently selected*
+   template to its as-transferred state). Must come after `^TS`, not
+   before — `^ID` operates on whatever template is currently selected at
+   the moment it's sent, so sending it first just resets whatever
+   template was left selected from a previous call, and the one just
+   chosen via `^TS` never gets reset at all. (Caught in review — the
+   original implementation had this backwards; didn't surface in testing
+   since that test always populated every field the template had, which
+   masks the bug. Only shows up with a partial `fields` dict, where the
+   omitted field would silently retain stale data from a previous print.)
 3. For each field: `^ON<name>\0<value><delimiter>` — select object by
    name (`^ON` + name + `00h` terminator), immediately followed by the
    field's text, ended by the delimiter (default `09h`/tab, configurable
