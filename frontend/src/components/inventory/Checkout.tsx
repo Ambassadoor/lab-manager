@@ -137,7 +137,7 @@ export const Checkout = ({ event }: CheckoutProps) => {
                 render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
                   <TextField
                     {...field}
-                    value={field.value}
+                    value={field.value.includes('{') ? '' : field.value}
                     error={!!error}
                     label={`Item #${index + 1}`}
                     helperText={error?.message}

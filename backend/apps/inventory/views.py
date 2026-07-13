@@ -274,6 +274,29 @@ class ContainerView(ModelViewSet):
             serializer.is_valid()
             return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=["PATCH"])
+    @transaction.atomic
+    def transfer(self, request):
+        processed = []
+        data = request.data
+        slugs = [c["slug"] for c in data["containers"]]
+        location = data["location"]
+        containers = Container.objects.filter(slug__in=slugs)
+        missing = set(slugs) - {c.slug for c in containers}
+        if missing:
+            return Response(
+                {"detail": f"Container(s) not found: {', '.join(sorted(missing))}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        for item in containers:
+            serializer = ContainerWriteSerializer(
+                instance=item, data={"location": location}, partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            updated = serializer.save()
+            processed.append(updated)
+        return Response(ContainerSerializer(processed, many=True).data, status=status.HTTP_200_OK)
+
 
 class LocationView(ModelViewSet):
     queryset = Location.objects.all()
