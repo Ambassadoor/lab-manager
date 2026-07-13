@@ -153,3 +153,13 @@ export const deleteLocation = (id: string) => {
     method: 'DELETE',
   });
 };
+
+export const transferContainers = (data: {
+  containers: { slug: string }[];
+  location: string;
+}): Promise<Container[]> => {
+  return apiFetch(`/inventory/containers/transfer/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+};
