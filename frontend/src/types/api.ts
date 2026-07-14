@@ -4,2221 +4,2245 @@
  */
 
 export interface paths {
-    "/api/auth/csrf/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description GET once on app load so Django sets the csrftoken cookie. */
-        get: operations["api_auth_csrf_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+  '/api/auth/csrf/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/auth/login/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Session login. Expects {username, password}; returns the user. */
-        post: operations["api_auth_login_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** @description GET once on app load so Django sets the csrftoken cookie. */
+    get: operations['api_auth_csrf_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/login/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/auth/logout/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Ends the current session. */
-        post: operations["api_auth_logout_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** @description Session login. Expects {username, password}; returns the user. */
+    post: operations['api_auth_login_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/logout/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/auth/me/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Returns the currently authenticated user. */
-        get: operations["api_auth_me_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /** @description Ends the current session. */
+    post: operations['api_auth_logout_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/me/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/auth/register/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Handles the creation of a new user for authentication
-         *
-         *     Method arguments:
-         *     request -- The full HTTP request object
-         */
-        post: operations["api_auth_register_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** @description Returns the currently authenticated user. */
+    get: operations['api_auth_me_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/register/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/auth/validate/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Validates username availability and checks if account for email exists already */
-        get: operations["api_auth_validate_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * @description Handles the creation of a new user for authentication
+     *
+     *     Method arguments:
+     *     request -- The full HTTP request object
+     */
+    post: operations['api_auth_register_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/validate/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/chemical_storage_categories/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_chemical_storage_categories_list"];
-        put?: never;
-        post: operations["inventory_chemical_storage_categories_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** @description Validates username availability and checks if account for email exists already */
+    get: operations['api_auth_validate_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/chemical_storage_categories/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/chemical_storage_categories/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_chemical_storage_categories_retrieve"];
-        put: operations["inventory_chemical_storage_categories_update"];
-        post?: never;
-        delete: operations["inventory_chemical_storage_categories_destroy"];
-        options?: never;
-        head?: never;
-        patch: operations["inventory_chemical_storage_categories_partial_update"];
-        trace?: never;
+    get: operations['inventory_chemical_storage_categories_list'];
+    put?: never;
+    post: operations['inventory_chemical_storage_categories_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/chemical_storage_categories/{id}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/chemicals/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_chemicals_list"];
-        put?: never;
-        post: operations["inventory_chemicals_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['inventory_chemical_storage_categories_retrieve'];
+    put: operations['inventory_chemical_storage_categories_update'];
+    post?: never;
+    delete: operations['inventory_chemical_storage_categories_destroy'];
+    options?: never;
+    head?: never;
+    patch: operations['inventory_chemical_storage_categories_partial_update'];
+    trace?: never;
+  };
+  '/inventory/chemicals/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/chemicals/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_chemicals_retrieve"];
-        put: operations["inventory_chemicals_update"];
-        post?: never;
-        delete: operations["inventory_chemicals_destroy"];
-        options?: never;
-        head?: never;
-        patch: operations["inventory_chemicals_partial_update"];
-        trace?: never;
+    get: operations['inventory_chemicals_list'];
+    put?: never;
+    post: operations['inventory_chemicals_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/chemicals/{id}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/chemicals/check_cas/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_chemicals_check_cas_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['inventory_chemicals_retrieve'];
+    put: operations['inventory_chemicals_update'];
+    post?: never;
+    delete: operations['inventory_chemicals_destroy'];
+    options?: never;
+    head?: never;
+    patch: operations['inventory_chemicals_partial_update'];
+    trace?: never;
+  };
+  '/inventory/chemicals/check_cas/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/containers/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_containers_list"];
-        put?: never;
-        post: operations["inventory_containers_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['inventory_chemicals_check_cas_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/containers/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/containers/{slug}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_containers_retrieve"];
-        put: operations["inventory_containers_update"];
-        post?: never;
-        delete: operations["inventory_containers_destroy"];
-        options?: never;
-        head?: never;
-        patch: operations["inventory_containers_partial_update"];
-        trace?: never;
+    get: operations['inventory_containers_list'];
+    put?: never;
+    post: operations['inventory_containers_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/containers/{slug}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/containers/{slug}/is_discarded/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_containers_is_discarded_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['inventory_containers_retrieve'];
+    put: operations['inventory_containers_update'];
+    post?: never;
+    delete: operations['inventory_containers_destroy'];
+    options?: never;
+    head?: never;
+    patch: operations['inventory_containers_partial_update'];
+    trace?: never;
+  };
+  '/inventory/containers/{slug}/is_discarded/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/containers/{slug}/is_valid/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_containers_is_valid_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['inventory_containers_is_discarded_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/containers/{slug}/is_valid/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/containers/{slug}/weigh_in/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_containers_weigh_in_retrieve"];
-        put?: never;
-        post: operations["inventory_containers_weigh_in_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['inventory_containers_is_valid_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/containers/{slug}/weigh_in/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/containers/check_in/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["inventory_containers_check_in_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['inventory_containers_weigh_in_retrieve'];
+    put?: never;
+    post: operations['inventory_containers_weigh_in_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/containers/check_in/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/containers/check_out/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["inventory_containers_check_out_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post: operations['inventory_containers_check_in_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/containers/check_out/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/containers/transfer/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: operations["inventory_containers_transfer_partial_update"];
-        trace?: never;
+    get?: never;
+    put?: never;
+    post: operations['inventory_containers_check_out_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/containers/transfer/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/dashboard/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_dashboard_list"];
-        put?: never;
-        post: operations["inventory_dashboard_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch: operations['inventory_containers_transfer_partial_update'];
+    trace?: never;
+  };
+  '/inventory/dashboard/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/dashboard/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_dashboard_retrieve"];
-        put: operations["inventory_dashboard_update"];
-        post?: never;
-        delete: operations["inventory_dashboard_destroy"];
-        options?: never;
-        head?: never;
-        patch: operations["inventory_dashboard_partial_update"];
-        trace?: never;
+    get: operations['inventory_dashboard_list'];
+    put?: never;
+    post: operations['inventory_dashboard_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/dashboard/{id}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/location_types/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_location_types_list"];
-        put?: never;
-        post: operations["inventory_location_types_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['inventory_dashboard_retrieve'];
+    put: operations['inventory_dashboard_update'];
+    post?: never;
+    delete: operations['inventory_dashboard_destroy'];
+    options?: never;
+    head?: never;
+    patch: operations['inventory_dashboard_partial_update'];
+    trace?: never;
+  };
+  '/inventory/location_types/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/location_types/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_location_types_retrieve"];
-        put: operations["inventory_location_types_update"];
-        post?: never;
-        delete: operations["inventory_location_types_destroy"];
-        options?: never;
-        head?: never;
-        patch: operations["inventory_location_types_partial_update"];
-        trace?: never;
+    get: operations['inventory_location_types_list'];
+    put?: never;
+    post: operations['inventory_location_types_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/location_types/{id}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/locations/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_locations_list"];
-        put?: never;
-        post: operations["inventory_locations_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['inventory_location_types_retrieve'];
+    put: operations['inventory_location_types_update'];
+    post?: never;
+    delete: operations['inventory_location_types_destroy'];
+    options?: never;
+    head?: never;
+    patch: operations['inventory_location_types_partial_update'];
+    trace?: never;
+  };
+  '/inventory/locations/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/locations/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_locations_retrieve"];
-        put: operations["inventory_locations_update"];
-        post?: never;
-        delete: operations["inventory_locations_destroy"];
-        options?: never;
-        head?: never;
-        patch: operations["inventory_locations_partial_update"];
-        trace?: never;
+    get: operations['inventory_locations_list'];
+    put?: never;
+    post: operations['inventory_locations_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/locations/{id}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/locations/{id}/add_child/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["inventory_locations_add_child_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['inventory_locations_retrieve'];
+    put: operations['inventory_locations_update'];
+    post?: never;
+    delete: operations['inventory_locations_destroy'];
+    options?: never;
+    head?: never;
+    patch: operations['inventory_locations_partial_update'];
+    trace?: never;
+  };
+  '/inventory/locations/{id}/add_child/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/locations/{id}/containers/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_locations_containers_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post: operations['inventory_locations_add_child_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/locations/{id}/containers/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/locations/menu/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_locations_menu_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['inventory_locations_containers_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/locations/menu/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/weight_readings/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_weight_readings_list"];
-        put?: never;
-        post: operations["inventory_weight_readings_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations['inventory_locations_menu_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/weight_readings/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/inventory/weight_readings/{id}/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["inventory_weight_readings_retrieve"];
-        put: operations["inventory_weight_readings_update"];
-        post?: never;
-        delete: operations["inventory_weight_readings_destroy"];
-        options?: never;
-        head?: never;
-        patch: operations["inventory_weight_readings_partial_update"];
-        trace?: never;
+    get: operations['inventory_weight_readings_list'];
+    put?: never;
+    post: operations['inventory_weight_readings_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/weight_readings/{id}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    get: operations['inventory_weight_readings_retrieve'];
+    put: operations['inventory_weight_readings_update'];
+    post?: never;
+    delete: operations['inventory_weight_readings_destroy'];
+    options?: never;
+    head?: never;
+    patch: operations['inventory_weight_readings_partial_update'];
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        /**
-         * @description * `in` - Check In
-         *     * `out` - Check Out
-         * @enum {string}
-         */
-        ActionEnum: "in" | "out";
-        /** @enum {unknown} */
-        BlankEnum: "";
-        CheckoutEvent: {
-            readonly id: number;
-            readonly user: components["schemas"]["UserCheckoutEvent"];
-            action: components["schemas"]["ActionEnum"];
-            /** Format: date-time */
-            readonly timestamp: string;
-            related_event?: number | null;
-        };
-        Chemical: {
-            readonly id: number;
-            name: string;
-            iupac?: string | null;
-            cas?: string | null;
-            formula?: string | null;
-            /** Format: decimal */
-            molecular_weight?: string | null;
-            is_organic?: boolean | null;
-            readonly storage_category: components["schemas"]["Nested"];
-        };
-        ChemicalStorageCategories: {
-            readonly id: number;
-            shorthand: string;
-            description: string;
-            help_text: string;
-        };
-        ChemicalWrite: {
-            name: string;
-            cas?: string | null;
-            formula?: string | null;
-            /** Format: decimal */
-            molecular_weight?: string | null;
-            storage_category?: number | null;
-        };
-        Container: {
-            readonly id: number;
-            /** ID */
-            readonly label: string;
-            slug: string;
-            name: string;
-            /**
-             * Density/specific gravity
-             * Format: decimal
-             */
-            density?: string | null;
-            location: components["schemas"]["Location"];
-            manufacturer?: string | null;
-            readonly quantity: string;
-            /** Quantity */
-            initial_quantity?: number | null;
-            /** Unit */
-            quantity_unit?: (components["schemas"]["QuantityUnitEnum"] | components["schemas"]["BlankEnum"] | components["schemas"]["NullEnum"]) | null;
-            /** Product # */
-            product_num?: string | null;
-            /**
-             * Received on
-             * Format: date
-             */
-            date_received?: string | null;
-            /** Opened? */
-            readonly is_opened: boolean;
-            readonly latest_reading: string;
-            readonly percent_remaining: string;
-            readonly checkout_status: string;
-        };
-        ContainerWrite: {
-            name: string;
-            chemical: number;
-            location: number;
-            manufacturer?: string | null;
-            initial_quantity: number;
-            /** Unit */
-            quantity_unit?: (components["schemas"]["QuantityUnitEnum"] | components["schemas"]["BlankEnum"] | components["schemas"]["NullEnum"]) | null;
-            /** Product # */
-            product_num?: string | null;
-            /**
-             * Received on
-             * Format: date
-             */
-            date_received?: string | null;
-            /**
-             * Density/specific gravity
-             * Format: decimal
-             */
-            density?: string | null;
-            /**
-             * Expires on
-             * Format: date
-             */
-            expiration_date?: string | null;
-            /** Format: decimal */
-            initial_weight?: string | null;
-            /**
-             * Container weight
-             * Format: decimal
-             */
-            tare_weight?: string | null;
-        };
-        InvalidRequest: {
-            detail: string;
-        };
-        Location: {
-            readonly id: number;
-            name: string;
-            type: components["schemas"]["LocationType"];
-            children: number[];
-            readonly full_path: string;
-        };
-        LocationMenu: {
-            readonly id: number;
-            name: string;
-            readonly full_path: string;
-        };
-        LocationType: {
-            readonly id: number;
-            name: string;
-            slug: string;
-            description?: string | null;
-            icon?: string | null;
-        };
-        LocationWrite: {
-            name: string;
-            type: number;
-            parent?: number | null;
-        };
-        Nested: {
-            readonly id: number;
-            shorthand: string;
-            description: string;
-            help_text: string;
-        };
-        NewUser: {
-            /** Format: email */
-            email: string;
-            lipscomb_id?: string | null;
-            /** @description Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only. */
-            username: string;
-            first_name?: string;
-            last_name?: string;
-            password: string;
-        };
-        /** @enum {unknown} */
-        NullEnum: null;
-        PatchedChemical: {
-            readonly id?: number;
-            name?: string;
-            iupac?: string | null;
-            cas?: string | null;
-            formula?: string | null;
-            /** Format: decimal */
-            molecular_weight?: string | null;
-            is_organic?: boolean | null;
-            readonly storage_category?: components["schemas"]["Nested"];
-        };
-        PatchedChemicalStorageCategories: {
-            readonly id?: number;
-            shorthand?: string;
-            description?: string;
-            help_text?: string;
-        };
-        PatchedContainer: {
-            readonly id?: number;
-            /** ID */
-            readonly label?: string;
-            slug?: string;
-            name?: string;
-            /**
-             * Density/specific gravity
-             * Format: decimal
-             */
-            density?: string | null;
-            location?: components["schemas"]["Location"];
-            manufacturer?: string | null;
-            readonly quantity?: string;
-            /** Quantity */
-            initial_quantity?: number | null;
-            /** Unit */
-            quantity_unit?: (components["schemas"]["QuantityUnitEnum"] | components["schemas"]["BlankEnum"] | components["schemas"]["NullEnum"]) | null;
-            /** Product # */
-            product_num?: string | null;
-            /**
-             * Received on
-             * Format: date
-             */
-            date_received?: string | null;
-            /** Opened? */
-            readonly is_opened?: boolean;
-            readonly latest_reading?: string;
-            readonly percent_remaining?: string;
-            readonly checkout_status?: string;
-        };
-        PatchedContainerWrite: {
-            name?: string;
-            chemical?: number;
-            location?: number;
-            manufacturer?: string | null;
-            initial_quantity?: number;
-            /** Unit */
-            quantity_unit?: (components["schemas"]["QuantityUnitEnum"] | components["schemas"]["BlankEnum"] | components["schemas"]["NullEnum"]) | null;
-            /** Product # */
-            product_num?: string | null;
-            /**
-             * Received on
-             * Format: date
-             */
-            date_received?: string | null;
-            /**
-             * Density/specific gravity
-             * Format: decimal
-             */
-            density?: string | null;
-            /**
-             * Expires on
-             * Format: date
-             */
-            expiration_date?: string | null;
-            /** Format: decimal */
-            initial_weight?: string | null;
-            /**
-             * Container weight
-             * Format: decimal
-             */
-            tare_weight?: string | null;
-        };
-        PatchedLocationType: {
-            readonly id?: number;
-            name?: string;
-            slug?: string;
-            description?: string | null;
-            icon?: string | null;
-        };
-        PatchedLocationWrite: {
-            name?: string;
-            type?: number;
-            parent?: number | null;
-        };
-        PatchedWeightReading: {
-            readonly id?: number;
-            /** Format: decimal */
-            weight?: string;
-            /** Format: date-time */
-            readonly recorded_at?: string;
-            container?: number;
-        };
-        /**
-         * @description * `mL` - mL
-         *     * `L` - L
-         *     * `mg` - mg
-         *     * `g` - g
-         *     * `kg` - kg
-         * @enum {string}
-         */
-        QuantityUnitEnum: "mL" | "L" | "mg" | "g" | "kg";
-        /**
-         * @description * `lab_manager` - Lab Manager
-         *     * `coordinator` - Coordinator
-         *     * `stockroom` - Stockroom
-         *     * `viewer` - Viewer
-         * @enum {string}
-         */
-        RoleEnum: "lab_manager" | "coordinator" | "stockroom" | "viewer";
-        SuccessMessage: {
-            detail: string;
-        };
-        User: {
-            readonly id: number;
-            /** @description Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only. */
-            username: string;
-            /** Format: email */
-            email: string;
-            first_name?: string;
-            last_name?: string;
-            readonly role: components["schemas"]["RoleEnum"];
-        };
-        UserCheckoutEvent: {
-            readonly full_name: string;
-        };
-        WeightReading: {
-            readonly id: number;
-            /** Format: decimal */
-            weight: string;
-            /** Format: date-time */
-            readonly recorded_at: string;
-            container: number;
-        };
+  schemas: {
+    /**
+     * @description * `in` - Check In
+     *     * `out` - Check Out
+     * @enum {string}
+     */
+    ActionEnum: 'in' | 'out';
+    /** @enum {unknown} */
+    BlankEnum: '';
+    CheckoutEvent: {
+      readonly id: number;
+      readonly user: components['schemas']['UserCheckoutEvent'];
+      action: components['schemas']['ActionEnum'];
+      /** Format: date-time */
+      readonly timestamp: string;
+      related_event?: number | null;
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    Chemical: {
+      readonly id: number;
+      name: string;
+      iupac?: string | null;
+      cas?: string | null;
+      formula?: string | null;
+      /** Format: decimal */
+      molecular_weight?: string | null;
+      is_organic?: boolean | null;
+      readonly storage_category: components['schemas']['Nested'];
+    };
+    ChemicalStorageCategories: {
+      readonly id: number;
+      shorthand: string;
+      description: string;
+      help_text: string;
+    };
+    ChemicalWrite: {
+      name: string;
+      cas?: string | null;
+      formula?: string | null;
+      /** Format: decimal */
+      molecular_weight?: string | null;
+      storage_category?: number | null;
+    };
+    Container: {
+      readonly id: number;
+      /** ID */
+      readonly label: string;
+      slug: string;
+      name: string;
+      /**
+       * Density/specific gravity
+       * Format: decimal
+       */
+      density?: string | null;
+      location: components['schemas']['Location'];
+      manufacturer?: string | null;
+      readonly quantity: string;
+      /** Quantity */
+      initial_quantity?: number | null;
+      /** Unit */
+      quantity_unit?:
+        | (
+            | components['schemas']['QuantityUnitEnum']
+            | components['schemas']['BlankEnum']
+            | components['schemas']['NullEnum']
+          )
+        | null;
+      /** Product # */
+      product_num?: string | null;
+      /**
+       * Received on
+       * Format: date
+       */
+      date_received?: string | null;
+      /** Opened? */
+      readonly is_opened: boolean;
+      readonly latest_reading: string;
+      readonly percent_remaining: string;
+      readonly checkout_status: string;
+    };
+    ContainerWrite: {
+      name: string;
+      chemical: number;
+      location: number;
+      manufacturer?: string | null;
+      initial_quantity: number;
+      /** Unit */
+      quantity_unit?:
+        | (
+            | components['schemas']['QuantityUnitEnum']
+            | components['schemas']['BlankEnum']
+            | components['schemas']['NullEnum']
+          )
+        | null;
+      /** Product # */
+      product_num?: string | null;
+      /**
+       * Received on
+       * Format: date
+       */
+      date_received?: string | null;
+      /**
+       * Density/specific gravity
+       * Format: decimal
+       */
+      density?: string | null;
+      /**
+       * Expires on
+       * Format: date
+       */
+      expiration_date?: string | null;
+      /** Format: decimal */
+      initial_weight?: string | null;
+      /**
+       * Container weight
+       * Format: decimal
+       */
+      tare_weight?: string | null;
+    };
+    InvalidRequest: {
+      detail: string;
+    };
+    Location: {
+      readonly id: number;
+      name: string;
+      type: components['schemas']['LocationType'];
+      children: number[];
+      readonly full_path: string;
+    };
+    LocationMenu: {
+      readonly id: number;
+      name: string;
+      readonly full_path: string;
+    };
+    LocationType: {
+      readonly id: number;
+      name: string;
+      slug: string;
+      description?: string | null;
+      icon?: string | null;
+    };
+    LocationWrite: {
+      name: string;
+      type: number;
+      parent?: number | null;
+    };
+    Nested: {
+      readonly id: number;
+      shorthand: string;
+      description: string;
+      help_text: string;
+    };
+    NewUser: {
+      /** Format: email */
+      email: string;
+      lipscomb_id?: string | null;
+      /** @description Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only. */
+      username: string;
+      first_name?: string;
+      last_name?: string;
+      password: string;
+    };
+    /** @enum {unknown} */
+    NullEnum: null;
+    PatchedChemical: {
+      readonly id?: number;
+      name?: string;
+      iupac?: string | null;
+      cas?: string | null;
+      formula?: string | null;
+      /** Format: decimal */
+      molecular_weight?: string | null;
+      is_organic?: boolean | null;
+      readonly storage_category?: components['schemas']['Nested'];
+    };
+    PatchedChemicalStorageCategories: {
+      readonly id?: number;
+      shorthand?: string;
+      description?: string;
+      help_text?: string;
+    };
+    PatchedContainer: {
+      readonly id?: number;
+      /** ID */
+      readonly label?: string;
+      slug?: string;
+      name?: string;
+      /**
+       * Density/specific gravity
+       * Format: decimal
+       */
+      density?: string | null;
+      location?: components['schemas']['Location'];
+      manufacturer?: string | null;
+      readonly quantity?: string;
+      /** Quantity */
+      initial_quantity?: number | null;
+      /** Unit */
+      quantity_unit?:
+        | (
+            | components['schemas']['QuantityUnitEnum']
+            | components['schemas']['BlankEnum']
+            | components['schemas']['NullEnum']
+          )
+        | null;
+      /** Product # */
+      product_num?: string | null;
+      /**
+       * Received on
+       * Format: date
+       */
+      date_received?: string | null;
+      /** Opened? */
+      readonly is_opened?: boolean;
+      readonly latest_reading?: string;
+      readonly percent_remaining?: string;
+      readonly checkout_status?: string;
+    };
+    PatchedContainerWrite: {
+      name?: string;
+      chemical?: number;
+      location?: number;
+      manufacturer?: string | null;
+      initial_quantity?: number;
+      /** Unit */
+      quantity_unit?:
+        | (
+            | components['schemas']['QuantityUnitEnum']
+            | components['schemas']['BlankEnum']
+            | components['schemas']['NullEnum']
+          )
+        | null;
+      /** Product # */
+      product_num?: string | null;
+      /**
+       * Received on
+       * Format: date
+       */
+      date_received?: string | null;
+      /**
+       * Density/specific gravity
+       * Format: decimal
+       */
+      density?: string | null;
+      /**
+       * Expires on
+       * Format: date
+       */
+      expiration_date?: string | null;
+      /** Format: decimal */
+      initial_weight?: string | null;
+      /**
+       * Container weight
+       * Format: decimal
+       */
+      tare_weight?: string | null;
+    };
+    PatchedLocationType: {
+      readonly id?: number;
+      name?: string;
+      slug?: string;
+      description?: string | null;
+      icon?: string | null;
+    };
+    PatchedLocationWrite: {
+      name?: string;
+      type?: number;
+      parent?: number | null;
+    };
+    PatchedWeightReading: {
+      readonly id?: number;
+      /** Format: decimal */
+      weight?: string;
+      /** Format: date-time */
+      readonly recorded_at?: string;
+      container?: number;
+    };
+    /**
+     * @description * `mL` - mL
+     *     * `L` - L
+     *     * `mg` - mg
+     *     * `g` - g
+     *     * `kg` - kg
+     * @enum {string}
+     */
+    QuantityUnitEnum: 'mL' | 'L' | 'mg' | 'g' | 'kg';
+    /**
+     * @description * `lab_manager` - Lab Manager
+     *     * `coordinator` - Coordinator
+     *     * `stockroom` - Stockroom
+     *     * `viewer` - Viewer
+     * @enum {string}
+     */
+    RoleEnum: 'lab_manager' | 'coordinator' | 'stockroom' | 'viewer';
+    SuccessMessage: {
+      detail: string;
+    };
+    User: {
+      readonly id: number;
+      /** @description Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only. */
+      username: string;
+      /** Format: email */
+      email: string;
+      first_name?: string;
+      last_name?: string;
+      readonly role: components['schemas']['RoleEnum'];
+    };
+    UserCheckoutEvent: {
+      readonly full_name: string;
+    };
+    WeightReading: {
+      readonly id: number;
+      /** Format: decimal */
+      weight: string;
+      /** Format: date-time */
+      readonly recorded_at: string;
+      container: number;
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    api_auth_csrf_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessMessage"];
-                };
-            };
-        };
+  api_auth_csrf_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    api_auth_login_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["User"];
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InvalidRequest"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['SuccessMessage'];
         };
+      };
     };
-    api_auth_logout_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  api_auth_login_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    api_auth_me_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["User"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['User'];
         };
+      };
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['InvalidRequest'];
+        };
+      };
     };
-    api_auth_register_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NewUser"];
-                "application/x-www-form-urlencoded": components["schemas"]["NewUser"];
-                "multipart/form-data": components["schemas"]["NewUser"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["User"];
-                };
-            };
-        };
+  };
+  api_auth_logout_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    api_auth_validate_retrieve: {
-        parameters: {
-            query?: {
-                /** @description Check for existing account */
-                email?: string;
-                /** @description Check for username availability */
-                username?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description No response body */
+      204: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No response body */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+        content?: never;
+      };
     };
-    inventory_chemical_storage_categories_list: {
-        parameters: {
-            query?: {
-                /** @description Which field to use when ordering the results. */
-                ordering?: string;
-                /** @description A search term. */
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChemicalStorageCategories"][];
-                };
-            };
-        };
+  };
+  api_auth_me_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    inventory_chemical_storage_categories_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChemicalStorageCategories"];
-                "application/x-www-form-urlencoded": components["schemas"]["ChemicalStorageCategories"];
-                "multipart/form-data": components["schemas"]["ChemicalStorageCategories"];
-            };
+        content: {
+          'application/json': components['schemas']['User'];
         };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChemicalStorageCategories"];
-                };
-            };
-        };
+      };
     };
-    inventory_chemical_storage_categories_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this chemical storage categories. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChemicalStorageCategories"];
-                };
-            };
-        };
+  };
+  api_auth_register_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    inventory_chemical_storage_categories_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this chemical storage categories. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChemicalStorageCategories"];
-                "application/x-www-form-urlencoded": components["schemas"]["ChemicalStorageCategories"];
-                "multipart/form-data": components["schemas"]["ChemicalStorageCategories"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChemicalStorageCategories"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NewUser'];
+        'application/x-www-form-urlencoded': components['schemas']['NewUser'];
+        'multipart/form-data': components['schemas']['NewUser'];
+      };
     };
-    inventory_chemical_storage_categories_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this chemical storage categories. */
-                id: number;
-            };
-            cookie?: never;
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+        content: {
+          'application/json': components['schemas']['User'];
         };
+      };
     };
-    inventory_chemical_storage_categories_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this chemical storage categories. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedChemicalStorageCategories"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedChemicalStorageCategories"];
-                "multipart/form-data": components["schemas"]["PatchedChemicalStorageCategories"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChemicalStorageCategories"];
-                };
-            };
-        };
+  };
+  api_auth_validate_retrieve: {
+    parameters: {
+      query?: {
+        /** @description Check for existing account */
+        email?: string;
+        /** @description Check for username availability */
+        username?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    inventory_chemicals_list: {
-        parameters: {
-            query?: {
-                /** @description Which field to use when ordering the results. */
-                ordering?: string;
-                /** @description A search term. */
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description No response body */
+      204: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Chemical"][];
-                };
-            };
+        content?: never;
+      };
+      /** @description No response body */
+      422: {
+        headers: {
+          [name: string]: unknown;
         };
+        content?: never;
+      };
     };
-    inventory_chemicals_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChemicalWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["ChemicalWrite"];
-                "multipart/form-data": components["schemas"]["ChemicalWrite"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChemicalWrite"];
-                };
-            };
-        };
+  };
+  inventory_chemical_storage_categories_list: {
+    parameters: {
+      query?: {
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+        /** @description A search term. */
+        search?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    inventory_chemicals_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this chemical. */
-                id: number;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Chemical"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['ChemicalStorageCategories'][];
         };
+      };
     };
-    inventory_chemicals_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this chemical. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Chemical"];
-                "application/x-www-form-urlencoded": components["schemas"]["Chemical"];
-                "multipart/form-data": components["schemas"]["Chemical"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Chemical"];
-                };
-            };
-        };
+  };
+  inventory_chemical_storage_categories_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    inventory_chemicals_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this chemical. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChemicalStorageCategories'];
+        'application/x-www-form-urlencoded': components['schemas']['ChemicalStorageCategories'];
+        'multipart/form-data': components['schemas']['ChemicalStorageCategories'];
+      };
     };
-    inventory_chemicals_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this chemical. */
-                id: number;
-            };
-            cookie?: never;
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedChemical"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedChemical"];
-                "multipart/form-data": components["schemas"]["PatchedChemical"];
-            };
+        content: {
+          'application/json': components['schemas']['ChemicalStorageCategories'];
         };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Chemical"];
-                };
-            };
-        };
+      };
     };
-    inventory_chemicals_check_cas_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Chemical"];
-                };
-            };
-        };
+  };
+  inventory_chemical_storage_categories_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this chemical storage categories. */
+        id: number;
+      };
+      cookie?: never;
     };
-    inventory_containers_list: {
-        parameters: {
-            query?: {
-                /** @description Which field to use when ordering the results. */
-                ordering?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"][];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['ChemicalStorageCategories'];
         };
+      };
     };
-    inventory_containers_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ContainerWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["ContainerWrite"];
-                "multipart/form-data": components["schemas"]["ContainerWrite"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContainerWrite"];
-                };
-            };
-        };
+  };
+  inventory_chemical_storage_categories_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this chemical storage categories. */
+        id: number;
+      };
+      cookie?: never;
     };
-    inventory_containers_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChemicalStorageCategories'];
+        'application/x-www-form-urlencoded': components['schemas']['ChemicalStorageCategories'];
+        'multipart/form-data': components['schemas']['ChemicalStorageCategories'];
+      };
     };
-    inventory_containers_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ContainerWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["ContainerWrite"];
-                "multipart/form-data": components["schemas"]["ContainerWrite"];
-            };
+        content: {
+          'application/json': components['schemas']['ChemicalStorageCategories'];
         };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContainerWrite"];
-                };
-            };
-        };
+      };
     };
-    inventory_containers_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  inventory_chemical_storage_categories_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this chemical storage categories. */
+        id: number;
+      };
+      cookie?: never;
     };
-    inventory_containers_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description No response body */
+      204: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedContainerWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedContainerWrite"];
-                "multipart/form-data": components["schemas"]["PatchedContainerWrite"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContainerWrite"];
-                };
-            };
-        };
+        content?: never;
+      };
     };
-    inventory_containers_is_discarded_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"];
-                };
-            };
-        };
+  };
+  inventory_chemical_storage_categories_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this chemical storage categories. */
+        id: number;
+      };
+      cookie?: never;
     };
-    inventory_containers_is_valid_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"];
-                };
-            };
-        };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedChemicalStorageCategories'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedChemicalStorageCategories'];
+        'multipart/form-data': components['schemas']['PatchedChemicalStorageCategories'];
+      };
     };
-    inventory_containers_weigh_in_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['ChemicalStorageCategories'];
         };
+      };
     };
-    inventory_containers_weigh_in_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Container"];
-                "application/x-www-form-urlencoded": components["schemas"]["Container"];
-                "multipart/form-data": components["schemas"]["Container"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"];
-                };
-            };
-        };
+  };
+  inventory_chemicals_list: {
+    parameters: {
+      query?: {
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+        /** @description A search term. */
+        search?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    inventory_containers_check_in_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CheckoutEvent"];
-                "application/x-www-form-urlencoded": components["schemas"]["CheckoutEvent"];
-                "multipart/form-data": components["schemas"]["CheckoutEvent"];
-            };
+        content: {
+          'application/json': components['schemas']['Chemical'][];
         };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CheckoutEvent"];
-                };
-            };
-        };
+      };
     };
-    inventory_containers_check_out_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CheckoutEvent"];
-                "application/x-www-form-urlencoded": components["schemas"]["CheckoutEvent"];
-                "multipart/form-data": components["schemas"]["CheckoutEvent"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CheckoutEvent"];
-                };
-            };
-        };
+  };
+  inventory_chemicals_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    inventory_containers_transfer_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedContainer"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedContainer"];
-                "multipart/form-data": components["schemas"]["PatchedContainer"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChemicalWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['ChemicalWrite'];
+        'multipart/form-data': components['schemas']['ChemicalWrite'];
+      };
     };
-    inventory_dashboard_list: {
-        parameters: {
-            query?: {
-                /** @description Which field to use when ordering the results. */
-                ordering?: string;
-                /** @description A search term. */
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"][];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['ChemicalWrite'];
         };
+      };
     };
-    inventory_dashboard_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Container"];
-                "application/x-www-form-urlencoded": components["schemas"]["Container"];
-                "multipart/form-data": components["schemas"]["Container"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"];
-                };
-            };
-        };
+  };
+  inventory_chemicals_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this chemical. */
+        id: number;
+      };
+      cookie?: never;
     };
-    inventory_dashboard_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this container. */
-                id: number;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['Chemical'];
         };
+      };
     };
-    inventory_dashboard_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this container. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Container"];
-                "application/x-www-form-urlencoded": components["schemas"]["Container"];
-                "multipart/form-data": components["schemas"]["Container"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"];
-                };
-            };
-        };
+  };
+  inventory_chemicals_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this chemical. */
+        id: number;
+      };
+      cookie?: never;
     };
-    inventory_dashboard_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this container. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Chemical'];
+        'application/x-www-form-urlencoded': components['schemas']['Chemical'];
+        'multipart/form-data': components['schemas']['Chemical'];
+      };
     };
-    inventory_dashboard_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this container. */
-                id: number;
-            };
-            cookie?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedContainer"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedContainer"];
-                "multipart/form-data": components["schemas"]["PatchedContainer"];
-            };
+        content: {
+          'application/json': components['schemas']['Chemical'];
         };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Container"];
-                };
-            };
-        };
+      };
     };
-    inventory_location_types_list: {
-        parameters: {
-            query?: {
-                /** @description Which field to use when ordering the results. */
-                ordering?: string;
-                /** @description A search term. */
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LocationType"][];
-                };
-            };
-        };
+  };
+  inventory_chemicals_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this chemical. */
+        id: number;
+      };
+      cookie?: never;
     };
-    inventory_location_types_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description No response body */
+      204: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LocationType"];
-                "application/x-www-form-urlencoded": components["schemas"]["LocationType"];
-                "multipart/form-data": components["schemas"]["LocationType"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LocationType"];
-                };
-            };
-        };
+        content?: never;
+      };
     };
-    inventory_location_types_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this location types. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LocationType"];
-                };
-            };
-        };
+  };
+  inventory_chemicals_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this chemical. */
+        id: number;
+      };
+      cookie?: never;
     };
-    inventory_location_types_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this location types. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LocationType"];
-                "application/x-www-form-urlencoded": components["schemas"]["LocationType"];
-                "multipart/form-data": components["schemas"]["LocationType"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LocationType"];
-                };
-            };
-        };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedChemical'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedChemical'];
+        'multipart/form-data': components['schemas']['PatchedChemical'];
+      };
     };
-    inventory_location_types_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this location types. */
-                id: number;
-            };
-            cookie?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
+        content: {
+          'application/json': components['schemas']['Chemical'];
         };
+      };
     };
-    inventory_location_types_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this location types. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedLocationType"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedLocationType"];
-                "multipart/form-data": components["schemas"]["PatchedLocationType"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LocationType"];
-                };
-            };
-        };
+  };
+  inventory_chemicals_check_cas_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    inventory_locations_list: {
-        parameters: {
-            query?: {
-                /** @description Which field to use when ordering the results. */
-                ordering?: string;
-                /** @description A search term. */
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Location"][];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['Chemical'];
         };
+      };
     };
-    inventory_locations_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LocationWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["LocationWrite"];
-                "multipart/form-data": components["schemas"]["LocationWrite"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LocationWrite"];
-                };
-            };
-        };
+  };
+  inventory_containers_list: {
+    parameters: {
+      query?: {
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    inventory_locations_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this location. */
-                id: number;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Location"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['Container'][];
         };
+      };
     };
-    inventory_locations_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this location. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LocationWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["LocationWrite"];
-                "multipart/form-data": components["schemas"]["LocationWrite"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LocationWrite"];
-                };
-            };
-        };
+  };
+  inventory_containers_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    inventory_locations_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this location. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ContainerWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['ContainerWrite'];
+        'multipart/form-data': components['schemas']['ContainerWrite'];
+      };
     };
-    inventory_locations_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this location. */
-                id: number;
-            };
-            cookie?: never;
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedLocationWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedLocationWrite"];
-                "multipart/form-data": components["schemas"]["PatchedLocationWrite"];
-            };
+        content: {
+          'application/json': components['schemas']['ContainerWrite'];
         };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LocationWrite"];
-                };
-            };
-        };
+      };
     };
-    inventory_locations_add_child_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this location. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LocationWrite"];
-                "application/x-www-form-urlencoded": components["schemas"]["LocationWrite"];
-                "multipart/form-data": components["schemas"]["LocationWrite"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LocationWrite"];
-                };
-            };
-        };
+  };
+  inventory_containers_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
     };
-    inventory_locations_containers_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this location. */
-                id: number;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Location"];
-                };
-            };
+        content: {
+          'application/json': components['schemas']['Container'];
         };
+      };
     };
-    inventory_locations_menu_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LocationMenu"];
-                };
-            };
-        };
+  };
+  inventory_containers_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
     };
-    inventory_weight_readings_list: {
-        parameters: {
-            query?: {
-                /** @description Which field to use when ordering the results. */
-                ordering?: string;
-                /** @description A search term. */
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WeightReading"][];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ContainerWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['ContainerWrite'];
+        'multipart/form-data': components['schemas']['ContainerWrite'];
+      };
     };
-    inventory_weight_readings_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WeightReading"];
-                "application/x-www-form-urlencoded": components["schemas"]["WeightReading"];
-                "multipart/form-data": components["schemas"]["WeightReading"];
-            };
+        content: {
+          'application/json': components['schemas']['ContainerWrite'];
         };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WeightReading"];
-                };
-            };
-        };
+      };
     };
-    inventory_weight_readings_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this weight reading. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WeightReading"];
-                };
-            };
-        };
+  };
+  inventory_containers_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
     };
-    inventory_weight_readings_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this weight reading. */
-                id: number;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description No response body */
+      204: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WeightReading"];
-                "application/x-www-form-urlencoded": components["schemas"]["WeightReading"];
-                "multipart/form-data": components["schemas"]["WeightReading"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WeightReading"];
-                };
-            };
-        };
+        content?: never;
+      };
     };
-    inventory_weight_readings_destroy: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this weight reading. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No response body */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  inventory_containers_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
     };
-    inventory_weight_readings_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description A unique integer value identifying this weight reading. */
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedWeightReading"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedWeightReading"];
-                "multipart/form-data": components["schemas"]["PatchedWeightReading"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WeightReading"];
-                };
-            };
-        };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedContainerWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedContainerWrite'];
+        'multipart/form-data': components['schemas']['PatchedContainerWrite'];
+      };
     };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ContainerWrite'];
+        };
+      };
+    };
+  };
+  inventory_containers_is_discarded_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+    };
+  };
+  inventory_containers_is_valid_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+    };
+  };
+  inventory_containers_weigh_in_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+    };
+  };
+  inventory_containers_weigh_in_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Container'];
+        'application/x-www-form-urlencoded': components['schemas']['Container'];
+        'multipart/form-data': components['schemas']['Container'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+    };
+  };
+  inventory_containers_check_in_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CheckoutEvent'];
+        'application/x-www-form-urlencoded': components['schemas']['CheckoutEvent'];
+        'multipart/form-data': components['schemas']['CheckoutEvent'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CheckoutEvent'];
+        };
+      };
+    };
+  };
+  inventory_containers_check_out_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CheckoutEvent'];
+        'application/x-www-form-urlencoded': components['schemas']['CheckoutEvent'];
+        'multipart/form-data': components['schemas']['CheckoutEvent'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CheckoutEvent'];
+        };
+      };
+    };
+  };
+  inventory_containers_transfer_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedContainer'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedContainer'];
+        'multipart/form-data': components['schemas']['PatchedContainer'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+    };
+  };
+  inventory_dashboard_list: {
+    parameters: {
+      query?: {
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+        /** @description A search term. */
+        search?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'][];
+        };
+      };
+    };
+  };
+  inventory_dashboard_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Container'];
+        'application/x-www-form-urlencoded': components['schemas']['Container'];
+        'multipart/form-data': components['schemas']['Container'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+    };
+  };
+  inventory_dashboard_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this container. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+    };
+  };
+  inventory_dashboard_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this container. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Container'];
+        'application/x-www-form-urlencoded': components['schemas']['Container'];
+        'multipart/form-data': components['schemas']['Container'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+    };
+  };
+  inventory_dashboard_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this container. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No response body */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  inventory_dashboard_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this container. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedContainer'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedContainer'];
+        'multipart/form-data': components['schemas']['PatchedContainer'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+    };
+  };
+  inventory_location_types_list: {
+    parameters: {
+      query?: {
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+        /** @description A search term. */
+        search?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationType'][];
+        };
+      };
+    };
+  };
+  inventory_location_types_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LocationType'];
+        'application/x-www-form-urlencoded': components['schemas']['LocationType'];
+        'multipart/form-data': components['schemas']['LocationType'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationType'];
+        };
+      };
+    };
+  };
+  inventory_location_types_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this location types. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationType'];
+        };
+      };
+    };
+  };
+  inventory_location_types_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this location types. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LocationType'];
+        'application/x-www-form-urlencoded': components['schemas']['LocationType'];
+        'multipart/form-data': components['schemas']['LocationType'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationType'];
+        };
+      };
+    };
+  };
+  inventory_location_types_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this location types. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No response body */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  inventory_location_types_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this location types. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedLocationType'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedLocationType'];
+        'multipart/form-data': components['schemas']['PatchedLocationType'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationType'];
+        };
+      };
+    };
+  };
+  inventory_locations_list: {
+    parameters: {
+      query?: {
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+        /** @description A search term. */
+        search?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Location'][];
+        };
+      };
+    };
+  };
+  inventory_locations_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LocationWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['LocationWrite'];
+        'multipart/form-data': components['schemas']['LocationWrite'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationWrite'];
+        };
+      };
+    };
+  };
+  inventory_locations_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this location. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Location'];
+        };
+      };
+    };
+  };
+  inventory_locations_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this location. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LocationWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['LocationWrite'];
+        'multipart/form-data': components['schemas']['LocationWrite'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationWrite'];
+        };
+      };
+    };
+  };
+  inventory_locations_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this location. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No response body */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  inventory_locations_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this location. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedLocationWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedLocationWrite'];
+        'multipart/form-data': components['schemas']['PatchedLocationWrite'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationWrite'];
+        };
+      };
+    };
+  };
+  inventory_locations_add_child_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this location. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LocationWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['LocationWrite'];
+        'multipart/form-data': components['schemas']['LocationWrite'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationWrite'];
+        };
+      };
+    };
+  };
+  inventory_locations_containers_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this location. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Location'];
+        };
+      };
+    };
+  };
+  inventory_locations_menu_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LocationMenu'];
+        };
+      };
+    };
+  };
+  inventory_weight_readings_list: {
+    parameters: {
+      query?: {
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+        /** @description A search term. */
+        search?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WeightReading'][];
+        };
+      };
+    };
+  };
+  inventory_weight_readings_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['WeightReading'];
+        'application/x-www-form-urlencoded': components['schemas']['WeightReading'];
+        'multipart/form-data': components['schemas']['WeightReading'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WeightReading'];
+        };
+      };
+    };
+  };
+  inventory_weight_readings_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this weight reading. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WeightReading'];
+        };
+      };
+    };
+  };
+  inventory_weight_readings_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this weight reading. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['WeightReading'];
+        'application/x-www-form-urlencoded': components['schemas']['WeightReading'];
+        'multipart/form-data': components['schemas']['WeightReading'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WeightReading'];
+        };
+      };
+    };
+  };
+  inventory_weight_readings_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this weight reading. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No response body */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  inventory_weight_readings_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this weight reading. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedWeightReading'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedWeightReading'];
+        'multipart/form-data': components['schemas']['PatchedWeightReading'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WeightReading'];
+        };
+      };
+    };
+  };
 }
