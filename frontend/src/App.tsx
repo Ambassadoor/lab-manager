@@ -19,6 +19,7 @@ import { ContainerActions } from './components/inventory/ContainerActions';
 import { Locations } from './components/inventory/locations/Locations';
 import { Chemicals } from './components/inventory/chemicals/Chemicals';
 import { ChemicalDetail } from './components/inventory/chemicals/ChemicalDetail';
+import { Dashboard } from './components/inventory/Dashboard';
 
 // Component to show when an error is thrown
 //TODO: Create an Error component to show when error is not 404
@@ -66,7 +67,7 @@ export default function App() {
         {
           errorElement: <ErrorBoundary />,
           children: [
-            { index: true, element: user ? <>Dashboard</> : <Login /> },
+            { index: true, element: user ? <Dashboard /> : <Login /> },
             { path: 'login', element: <Login /> },
             { path: 'register', element: <Register /> },
             // Auth protected routes

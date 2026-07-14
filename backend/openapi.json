@@ -733,6 +733,185 @@ paths:
               schema:
                 $ref: '#/components/schemas/CheckoutEvent'
           description: ''
+  /inventory/containers/transfer/:
+    patch:
+      operationId: inventory_containers_transfer_partial_update
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedContainer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedContainer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedContainer'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Container'
+          description: ''
+  /inventory/dashboard/:
+    get:
+      operationId: inventory_dashboard_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Container'
+          description: ''
+    post:
+      operationId: inventory_dashboard_create
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Container'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Container'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Container'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Container'
+          description: ''
+  /inventory/dashboard/{id}/:
+    get:
+      operationId: inventory_dashboard_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this container.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Container'
+          description: ''
+    put:
+      operationId: inventory_dashboard_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this container.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Container'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Container'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Container'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Container'
+          description: ''
+    patch:
+      operationId: inventory_dashboard_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this container.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedContainer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedContainer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedContainer'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Container'
+          description: ''
+    delete:
+      operationId: inventory_dashboard_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this container.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
   /inventory/location_types/:
     get:
       operationId: inventory_location_types_list
@@ -1704,6 +1883,74 @@ components:
           maxLength: 50
         help_text:
           type: string
+    PatchedContainer:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        label:
+          type: string
+          readOnly: true
+          title: ID
+        slug:
+          type: string
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        name:
+          type: string
+          maxLength: 200
+        density:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,2})?$
+          nullable: true
+          title: Density/specific gravity
+        location:
+          $ref: '#/components/schemas/Location'
+        manufacturer:
+          type: string
+          nullable: true
+          maxLength: 50
+        quantity:
+          type: string
+          readOnly: true
+        initial_quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+          title: Quantity
+        quantity_unit:
+          nullable: true
+          title: Unit
+          oneOf:
+          - $ref: '#/components/schemas/QuantityUnitEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        product_num:
+          type: string
+          nullable: true
+          title: 'Product #'
+          maxLength: 25
+        date_received:
+          type: string
+          format: date
+          nullable: true
+          title: Received on
+        is_opened:
+          type: boolean
+          readOnly: true
+          title: Opened?
+        latest_reading:
+          type: string
+          readOnly: true
+        percent_remaining:
+          type: string
+          readOnly: true
+        checkout_status:
+          type: string
+          readOnly: true
     PatchedContainerWrite:
       type: object
       properties:

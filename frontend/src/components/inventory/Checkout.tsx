@@ -65,6 +65,9 @@ export const Checkout = ({ event }: CheckoutProps) => {
       qc.invalidateQueries({
         queryKey: containerKeys.list(),
       });
+      qc.invalidateQueries({
+        queryKey: ['dashboardData'],
+      });
       reset();
       setOpen(true);
     }

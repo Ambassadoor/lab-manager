@@ -37,6 +37,8 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     } else if (res.status === 400) {
       const message = await res.json();
       throw new Error(message.detail);
+    } else if (res.status === 403) {
+      throw new Error('You do not have the necessary permissions to perform this action');
     }
     throw new Error(`API error ${res.status}: ${res.statusText}`);
   }

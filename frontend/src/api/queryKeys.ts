@@ -24,3 +24,7 @@ export const locationKeys = {
   types: () => [...locationKeys.all, 'types'] as const,
   menu: () => [...locationKeys.all, 'menu'] as const,
 };
+
+export const dashboardKeys = {
+  all: ['dashboard'] as const,
+};
