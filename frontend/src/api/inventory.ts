@@ -9,6 +9,7 @@ import type {
   ContainerFormDefaults,
   CheckoutEvent,
   ContainerDetailDefaults,
+  ContainerPatch,
   WeighInDefaults,
   WeightReading,
   LocationType,
@@ -73,6 +74,16 @@ export const updateContainer = (
   });
 };
 
+// For single-field edits (e.g. inline table editing) — same endpoint as
+// updateContainer, but typed for DRF's partial=True PATCH (every field
+// optional), so callers aren't forced to supply the whole container.
+export const patchContainer = (slug: string, data: ContainerPatch): Promise<Container> => {
+  return apiFetch(`/inventory/containers/${slug}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+};
+
 type TTT = {
   is_discarded?: boolean;
   is_valid?: boolean;
@@ -128,7 +139,7 @@ export const getLocationMenu = (): Promise<Location[]> => {
 };
 
 export const getChemicals = (): Promise<Chemical[]> => {
-  return apiFetch(`/inventory/chemicals`);
+  return apiFetch(`/inventory/chemicals/`);
 };
 
 export const addChemical = (data: ChemicalDefaults): Promise<Chemical> => {

@@ -1,22 +1,23 @@
-import { Alert, Box, Container, Drawer, Paper, useTheme } from '@mui/material';
-import { AgGridReact } from 'ag-grid-react';
+import { Alert, Box, Container, Drawer, Snackbar } from '@mui/material';
 import { useCallback, useMemo, useState } from 'react';
-import { getContainers } from '../../api/inventory';
+import { getContainers, patchContainer } from '../../api/inventory';
 import { containerKeys } from '../../api/queryKeys';
 import {
+  type CellValueChangedEvent,
   type ColDef,
-  themeMaterial,
   type GetRowIdParams,
   type RowSelectionOptions,
 } from 'ag-grid-community';
 import { ContainerDetail } from './ContainerDetail';
-import { useQuery } from '@tanstack/react-query';
-import { useColorScheme } from '@mui/material/styles';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { DataTable } from '../shared/DataTable';
+import type { Container as ContainerType, ContainerPatch, EditableKeys } from '../../types';
 
 //TODO: Remove container data logic outside and let parent components pass in values
 export const Containers = () => {
   const {
     isPending,
+    isError,
     error,
     data: containers,
   } = useQuery({
@@ -25,14 +26,19 @@ export const Containers = () => {
   });
 
   const [open, setOpen] = useState(false);
-  const [selectedRow, setSelectedRow] = useState();
-  const [colDefs] = useState<ColDef[]>([
+  const [selectedRow, setSelectedRow] = useState<ContainerType | undefined>(undefined);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [colDefs] = useState<ColDef<ContainerType>[]>([
     { field: 'label', headerName: 'ID', filter: true },
     { field: 'name', filter: true },
     { field: 'location.full_path', headerName: 'Location', filter: true },
-    { field: 'manufacturer' },
+    { field: 'manufacturer' satisfies EditableKeys<ContainerType>, editable: true },
     { field: 'quantity' },
-    { field: 'product_num', headerName: 'Product #' },
+    {
+      field: 'product_num' satisfies EditableKeys<ContainerType>,
+      headerName: 'Product #',
+      editable: true,
+    },
     { field: 'is_opened', headerName: 'Opened?' },
   ]);
 
@@ -42,61 +48,60 @@ export const Containers = () => {
     };
   }, []);
 
-  const getRowId = useCallback((params: GetRowIdParams) => params.data.label, []);
+  const getRowId = useCallback((params: GetRowIdParams<ContainerType>) => params.data.label, []);
 
-  const pagination = true;
-  const paginationPageSize = 50;
-  const paginationPageSizeSelector = [10, 25, 50];
-
-  const { mode } = useColorScheme();
-
-  const theme = useTheme();
-  const myTheme = themeMaterial.withParams({
-    accentColor: theme.palette.info.main,
-    foregroundColor: theme.palette.text.primary,
-    headerTextColor: theme.palette.text.primary,
-    browserColorScheme: theme.palette.mode,
-    wrapperBorderRadius: theme.shape.borderRadius,
-    textColor: theme.palette.text.primary,
-    borderColor: theme.palette.divider,
-    fontFamily: theme.typography.fontFamily,
-    fontSize: theme.typography.body2.fontSize,
-    checkboxCheckedShapeColor: theme.palette.text.primary,
-    checkboxCheckedBackgroundColor: theme.palette.info.main,
-    checkboxIndeterminateBackgroundColor: 'transparent',
-    checkboxIndeterminateShapeColor: theme.palette.text.primary,
-    checkboxIndeterminateBorderColor: theme.palette.info.main,
-    backgroundColor: 'transparent',
-    menuBackgroundColor: mode === 'dark' ? 'rgb(39, 39, 39)' : 'rgb(255, 255, 255)',
-    pickerListBackgroundColor: mode === 'dark' ? 'rgb(39, 39, 39)' : 'rgb(255, 255, 255)',
+  const qc = useQueryClient();
+  const patchMutation = useMutation({
+    mutationFn: ({ slug, data }: { slug: string; data: ContainerPatch }) =>
+      patchContainer(slug, data),
+    onError: (err) => {
+      setEditError(err instanceof Error ? err.message : 'Failed to save edit.');
+    },
+    // Re-syncs the grid to server truth either way — confirms a successful
+    // edit, or reverts an optimistic one the grid already applied on failure.
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: containerKeys.list() });
+    },
   });
+
+  const onCellValueChanged = (event: CellValueChangedEvent<ContainerType>) => {
+    const field = event.colDef.field as EditableKeys<ContainerType> & string;
+    if (!field || event.newValue === event.oldValue) return;
+    patchMutation.mutate({
+      slug: event.data.slug,
+      data: { [field]: event.newValue } as ContainerPatch,
+    });
+  };
 
   return (
     <Box>
       <Container>
-        {error && <Alert severity="error">There was an error loading the table.</Alert>}
-        <Paper elevation={4} sx={{ height: '80dvh' }}>
-          <AgGridReact
-            theme={myTheme}
-            rowData={containers}
-            columnDefs={colDefs}
-            rowSelection={rowSelection}
-            pagination={pagination}
-            paginationPageSize={paginationPageSize}
-            paginationPageSizeSelector={paginationPageSizeSelector}
-            autoSizeStrategy={{ type: 'fitCellContents' }}
-            getRowId={getRowId}
-            loading={isPending}
-            onRowClicked={(e) => {
-              setSelectedRow(e.data);
-              setOpen(true);
-            }}
-          />
-        </Paper>
+        <DataTable<ContainerType>
+          rowData={containers}
+          columnDefs={colDefs}
+          rowSelection={rowSelection}
+          pageSize={50}
+          getRowId={getRowId}
+          isLoading={isPending}
+          isError={isError}
+          errorMessage={error instanceof Error ? error.message : undefined}
+          singleClickEdit
+          onCellDoubleClicked={(e) => {
+            if (!e.data) return;
+            setSelectedRow(e.data);
+            setOpen(true);
+          }}
+          onCellValueChanged={onCellValueChanged}
+        />
       </Container>{' '}
       <Drawer open={open} onClose={() => setOpen((prev) => !prev)} anchor="right">
         <ContainerDetail data={selectedRow} />
       </Drawer>
+      <Snackbar open={!!editError} autoHideDuration={6000} onClose={() => setEditError(null)}>
+        <Alert severity="error" onClose={() => setEditError(null)}>
+          {editError}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

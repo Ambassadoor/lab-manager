@@ -28,6 +28,23 @@ type ApiContainer = components['schemas']['Container'];
 type ApiLocation = components['schemas']['Location'];
 
 export type ContainerWrite = components['schemas']['ContainerWrite'];
+// Matches DRF's partial=True PATCH semantics — same fields as ContainerWrite, all optional.
+export type ContainerPatch = components['schemas']['PatchedContainerWrite'];
+
+// Detects which keys of a generated schema type are `readonly` (i.e. DRF
+// read_only=True fields). `readonly` only exists at compile time, so this
+// can't drive runtime behavior — it's a guardrail that makes it a type
+// error to mark a read-only field as an editable table column.
+type IfEquals<X, Y, A = X, B = never> =
+  (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? A : B;
+
+export type ReadonlyKeys<T> = {
+  // Pick<T, P> is homomorphic (preserves T's actual readonly modifier for
+  // P); the second arg force-strips it. Only genuinely readonly keys differ.
+  [P in keyof T]-?: IfEquals<Pick<T, P>, { -readonly [Q in P]: T[P] }, never, P>;
+}[keyof T];
+
+export type EditableKeys<T> = Exclude<keyof T, ReadonlyKeys<T>>;
 export type Chemical = components['schemas']['Chemical'];
 export type StorageCategory = components['schemas']['ChemicalStorageCategories'];
 export type UnitEnums = components['schemas']['QuantityUnitEnum'];
