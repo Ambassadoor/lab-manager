@@ -128,7 +128,7 @@ export const getLocationMenu = (): Promise<Location[]> => {
 };
 
 export const getChemicals = (): Promise<Chemical[]> => {
-  return apiFetch(`/inventory/chemicals`);
+  return apiFetch(`/inventory/chemicals/`);
 };
 
 export const addChemical = (data: ChemicalDefaults): Promise<Chemical> => {

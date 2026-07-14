@@ -1,20 +1,26 @@
-import { Box, Container, IconButton, Paper, Stack, Typography, useTheme } from '@mui/material';
+import { Box, IconButton, Container, Stack, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { AgGridReact, type CustomCellRendererProps } from 'ag-grid-react';
+import { type CustomCellRendererProps } from 'ag-grid-react';
 import { getChemicals } from '../../../api/inventory';
 import { chemicalKeys } from '../../../api/queryKeys';
 import { useState } from 'react';
 import Decimal from 'decimal.js';
-import { themeMaterial, type ColDef } from 'ag-grid-community';
+import { type ColDef } from 'ag-grid-community';
 import { AddBox } from '@mui/icons-material';
 import { AddChemical } from './AddChemical';
 import { useNavigate } from 'react-router-dom';
-import { useColorScheme } from '@mui/material/styles';
+import { DataTable } from '../../shared/DataTable';
+import type { Chemical } from '../../../types';
 
 //Table for viewing chemicals
 export const Chemicals = () => {
   const [open, setOpen] = useState(false);
-  const { data: chemicals, isPending } = useQuery({
+  const {
+    data: chemicals,
+    isPending,
+    isError,
+    error,
+  } = useQuery({
     queryKey: chemicalKeys.list(),
     queryFn: getChemicals,
   });
@@ -48,7 +54,7 @@ export const Chemicals = () => {
     );
   };
 
-  const [colDefs] = useState<ColDef[]>([
+  const [colDefs] = useState<ColDef<Chemical>[]>([
     { field: 'name', headerName: 'Chemical', filter: true },
     {
       field: 'molecular_weight',
@@ -70,26 +76,6 @@ export const Chemicals = () => {
     { field: 'storage_category.shorthand', headerName: 'Storage Category' },
   ]);
 
-  const theme = useTheme();
-
-  const { mode } = useColorScheme();
-
-  const myTheme = themeMaterial.withParams({
-    accentColor: theme.palette.info.main,
-    foregroundColor: theme.palette.text.primary,
-    headerTextColor: theme.palette.text.primary,
-    browserColorScheme: theme.palette.mode,
-    wrapperBorderRadius: theme.shape.borderRadius,
-    textColor: theme.palette.text.primary,
-    borderColor: theme.palette.divider,
-    fontFamily: theme.typography.fontFamily,
-    fontSize: theme.typography.body2.fontSize,
-    checkboxCheckedShapeColor: theme.palette.text.primary,
-    backgroundColor: 'transparent',
-    menuBackgroundColor: mode === 'dark' ? 'rgb(39, 39, 39)' : 'rgb(255, 255, 255)',
-    pickerListBackgroundColor: mode === 'dark' ? 'rgb(39, 39, 39)' : 'rgb(255, 255, 255)',
-  });
-
   return (
     <Container>
       <Stack direction={'row'}>
@@ -104,21 +90,16 @@ export const Chemicals = () => {
       </Stack>
       <AddChemical open={open} setOpen={setOpen} />
       <Box>
-        <Paper sx={{ height: '80dvh' }}>
-          <AgGridReact
-            theme={myTheme}
-            loading={isPending}
-            pagination
-            paginationPageSize={25}
-            paginationPageSizeSelector={[10, 25, 50]}
-            rowData={chemicals}
-            columnDefs={colDefs}
-            autoSizeStrategy={{ type: 'fitCellContents' }}
-            onRowClicked={(e) => {
-              navigate(`${e.data.id}`, { state: e.data });
-            }}
-          />
-        </Paper>
+        <DataTable<Chemical>
+          rowData={chemicals}
+          columnDefs={colDefs}
+          isLoading={isPending}
+          isError={isError}
+          errorMessage={error instanceof Error ? error.message : undefined}
+          onRowClicked={(e) => {
+            navigate(`${e.data?.id}`, { state: e.data });
+          }}
+        />
       </Box>
     </Container>
   );
