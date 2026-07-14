@@ -5,11 +5,14 @@ description = "Local hardware bridge: USB balance + Brother label printer"
 authors = [
     {name = "Caleb Pittman",email = "ambassadoor.dev@gmail.com"}
 ]
-requires-python = "^3.14.5"
+requires-python = ">=3.14.5"
 dependencies = [
     "fastapi (>=0.136.1,<0.137.0)",
     "uvicorn[standard] (>=0.47.0,<0.48.0)",
-    "pyserial (>=3.5,<4.0)"
+    "pyserial (>=3.5,<4.0)",
+    "python-dotenv (>=1.2.2,<2.0.0)",
+    "pywin32 (>=312,<313) ; sys_platform == 'win32'",
+    "pysnmp (>=7.1.27,<8.0.0)"
 ]
 
 

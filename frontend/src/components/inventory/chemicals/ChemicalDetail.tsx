@@ -16,6 +16,7 @@ import {
   getStorageCategories,
   updateChemical,
 } from '../../../api/inventory';
+import { chemicalKeys } from '../../../api/queryKeys';
 import { Controller, useForm } from 'react-hook-form';
 import { ToggleField } from '../../shared/ToggleField';
 import { useState } from 'react';
@@ -30,23 +31,18 @@ export const ChemicalDetail = () => {
   const location = useLocation();
   const { chemId } = useParams();
 
-  //Gets chemical from server if not send with useNavigate
-  const getChemical = () => {
-    if (location.state) {
-      return location.state;
-    } else if (chemId) {
-      return getChemicalById(chemId);
-    }
-  };
+  const seed = location.state ?? undefined;
 
   const { data: chemical, isPending } = useQuery({
-    queryKey: ['chemicalDetail'],
-    queryFn: getChemical,
+    queryKey: chemicalKeys.detail(chemId ?? ''),
+    queryFn: () => getChemicalById(chemId!),
+    enabled: !!chemId,
+    initialData: seed,
     throwOnError: true,
   });
 
   const { data: storageCategories } = useQuery({
-    queryKey: ['storageCategories'],
+    queryKey: chemicalKeys.storageCategories(),
     queryFn: getStorageCategories,
     throwOnError: true,
   });
@@ -56,8 +52,9 @@ export const ChemicalDetail = () => {
   const mutation = useMutation({
     mutationFn: ({ data, id }: { data: ChemicalDefaults; id: string }) => updateChemical(data, id),
     onSuccess: () => {
+      // .all — an edit here can also change what shows in the Chemicals list
       qc.invalidateQueries({
-        queryKey: ['chemicalDetail'],
+        queryKey: chemicalKeys.all,
       });
       setEditing(false);
     },

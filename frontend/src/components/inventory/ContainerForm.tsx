@@ -1,8 +1,9 @@
-import { Add, ArrowDropDown, Remove } from '@mui/icons-material';
+import { Add, ArrowDropDown, MonitorWeight, Remove } from '@mui/icons-material';
 import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
+  Alert,
   Box,
   Button,
   Card,
@@ -17,12 +18,13 @@ import {
   ListSubheader,
   MenuItem,
   Select,
+  Snackbar,
   Stack,
   TextField,
   Typography,
   useTheme,
 } from '@mui/material';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Controller,
   FormProvider,
@@ -39,33 +41,26 @@ import {
   getStorageCategories,
   submitNewContainerForm,
 } from '../../api/inventory';
+import { getBalanceWeight, printLabel } from '../../api/bridge';
+import { containerKeys, chemicalKeys, locationKeys } from '../../api/queryKeys';
 import { DateField } from '@mui/x-date-pickers';
-import {
-  type ContainerFormDefaults,
-  type CasCheck,
-  type Location,
-  type StorageCategory,
-  type ContainerOptions,
-} from '../../types';
+import { type ContainerFormDefaults, type CasCheck, type Location } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { Decimal } from 'decimal.js';
 import dayjs from 'dayjs';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { cas_is_valid } from '../shared/checkCas';
 
 //TODO: Create wrapper component for Controller/TextFields and use DRF OPTIONS to dynamically format
 export const ContainerForm = () => {
-  const [chemicalStorageCategories, setChemicalStorageCategories] = useState<
-    StorageCategory[] | []
-  >([]);
-  const [locations, setLocations] = useState<GroupedLocations>({});
-  const [metaData, setMetaData] = useState<ContainerOptions | undefined>();
   const [cas, setCas] = useState<CasCheck | undefined>();
+  const [bridgeError, setBridgeError] = useState<string | null>(null);
 
   const theme = useTheme();
   const navigate = useNavigate();
 
   const defaultValues = {
+    print: true,
     name: '',
     multiple_cas: false,
     mixture_name: '',
@@ -155,12 +150,24 @@ export const ContainerForm = () => {
   }, []);
 
   //Get form select options
-  //TODO: Need to move to tanstack query for these
-  useEffect(() => {
-    getStorageCategories().then(setChemicalStorageCategories);
-    getLocationMenu().then(formatLocations).then(setLocations);
-    getContainerMetaData().then(setMetaData);
-  }, [formatLocations]);
+  const { data: chemicalStorageCategories = [] } = useQuery({
+    queryKey: chemicalKeys.storageCategories(),
+    queryFn: getStorageCategories,
+  });
+
+  const { data: locationMenu } = useQuery({
+    queryKey: locationKeys.menu(),
+    queryFn: getLocationMenu,
+  });
+  const locations = useMemo(
+    () => formatLocations(locationMenu ?? []),
+    [locationMenu, formatLocations]
+  );
+
+  const { data: metaData } = useQuery({
+    queryKey: containerKeys.metaData(),
+    queryFn: getContainerMetaData,
+  });
 
   const casRef = useRef(cas);
 
@@ -278,6 +285,17 @@ export const ContainerForm = () => {
 
   const queryClient = useQueryClient();
 
+  const scaleMutation = useMutation({
+    mutationFn: getBalanceWeight,
+    onSuccess: (reading) => {
+      setValue('initial_weight', String(reading.weight));
+      clearErrors('initial_weight');
+    },
+    onError: (error: Error) => {
+      setBridgeError(error.message);
+    },
+  });
+
   //Format date fields, clear session storage, invalidate stale container data and navigate to detail page
   const onSubmit: SubmitHandler<ContainerFormDefaults> = async (data) => {
     if (data.date_received && data.date_received instanceof dayjs) {
@@ -289,7 +307,14 @@ export const ContainerForm = () => {
 
     const response = await submitNewContainerForm(data);
     sessionStorage.removeItem('container_form_cache');
-    queryClient.invalidateQueries({ queryKey: ['containerData'] });
+    queryClient.invalidateQueries({ queryKey: containerKeys.list() });
+    if (data.print) {
+      printLabel({
+        template: 1,
+        fields: { Barcode1: JSON.stringify({ id: response.label }), Text1: response.label },
+        copies: 1,
+      }).catch((e) => setBridgeError(e.message));
+    }
     navigate(`/inventory/containers/${response.slug}`);
   };
 
@@ -300,6 +325,21 @@ export const ContainerForm = () => {
         padding: 4,
       }}
     >
+      <Snackbar
+        open={!!bridgeError}
+        onClose={() => setBridgeError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        autoHideDuration={6000}
+      >
+        <Alert
+          onClose={() => setBridgeError(null)}
+          severity="error"
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {bridgeError}
+        </Alert>
+      </Snackbar>
       <FormProvider
         {...methods}
         clearErrors={clearErrors}
@@ -328,9 +368,28 @@ export const ContainerForm = () => {
         >
           <Box component={'form'} onSubmit={handleSubmit(onSubmit)}>
             <Stack spacing={2}>
-              <Typography component={'h1'} variant={'h4'}>
-                Add New Container
-              </Typography>
+              <Stack direction={'row'} sx={{ justifyContent: 'space-between' }}>
+                <Typography component={'h1'} variant={'h4'}>
+                  Add New Container
+                </Typography>
+                <Controller
+                  control={control}
+                  name="print"
+                  render={({ field: { name, onChange, ...field } }) => (
+                    <Stack direction={'row'}>
+                      <Typography sx={{ alignSelf: 'center' }}>Print Label?</Typography>
+                      <Checkbox
+                        {...field}
+                        onChange={(e) => {
+                          onChange(e);
+                          clearErrors(name);
+                        }}
+                        checked={!!field.value}
+                      />
+                    </Stack>
+                  )}
+                />
+              </Stack>
               <Controller
                 control={control}
                 name="name"
@@ -955,7 +1014,19 @@ export const ContainerForm = () => {
                       }}
                       slotProps={{
                         input: {
-                          endAdornment: <InputAdornment position="end">g</InputAdornment>,
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                type="button"
+                                aria-label="Read from scale"
+                                disabled={scaleMutation.isPending}
+                                onClick={() => scaleMutation.mutate()}
+                              >
+                                <MonitorWeight />
+                              </IconButton>
+                              g
+                            </InputAdornment>
+                          ),
                         },
                       }}
                     />

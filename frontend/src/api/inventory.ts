@@ -1,5 +1,4 @@
 // Various data fetchers
-//TODO: Look into moving to axios
 import { apiFetch } from './client';
 import type {
   Container,
@@ -158,4 +157,14 @@ export const deleteLocation = (id: string) => {
 
 export const getDashboard = (): Promise<Dashboard> => {
   return apiFetch('/inventory/dashboard');
+};
+
+export const transferContainers = (data: {
+  containers: { slug: string }[];
+  location: string;
+}): Promise<Container[]> => {
+  return apiFetch(`/inventory/containers/transfer/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
 };

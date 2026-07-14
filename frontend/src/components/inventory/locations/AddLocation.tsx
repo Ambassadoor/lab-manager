@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { addLocation, getLocationTypes } from '../../../api/inventory';
+import { locationKeys } from '../../../api/queryKeys';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AcUnit,
@@ -58,7 +59,7 @@ const iconMap = new Map([
 //Modal for in page addition of locations
 export const AddLocation = ({ id, open, setOpen }: AddLocationProps) => {
   const { data: locationTypes } = useQuery({
-    queryKey: ['locationTypes'],
+    queryKey: locationKeys.types(),
     queryFn: getLocationTypes,
   });
 
@@ -87,24 +88,18 @@ export const AddLocation = ({ id, open, setOpen }: AddLocationProps) => {
     mutationFn: (variables: { data: NewLocationDefaults; id: string }) =>
       addLocation(variables.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['locationData'] });
+      // .all — a submission here can also create a new location type
+      queryClient.invalidateQueries({ queryKey: locationKeys.all });
       setOpen(false);
       reset();
     },
   });
 
-  const qc = useQueryClient();
   const onSubmit = (data: NewLocationDefaults) => {
     if (!data.new_type?.check) {
       data.new_type = null;
     }
     mutation.mutate({ data: { ...data, parent: id }, id: id || '' });
-    qc.invalidateQueries({
-      queryKey: ['locationTypes'],
-    });
-    qc.invalidateQueries({
-      queryKey: ['locationData'],
-    });
   };
 
   return (

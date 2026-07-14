@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Checkout } from './Checkout';
 import { WeighIn } from './WeighIn';
 import { useSearchParams } from 'react-router-dom';
+import { Transfer } from './locations/Transfer';
 
 // A quick access component for various container actions
 export const ContainerActions = () => {
@@ -24,6 +25,7 @@ export const ContainerActions = () => {
               <Tab label="Check Out" value={0} />
               <Tab label="Check In" value={1} />
               <Tab label="Update Weight" value={2} />
+              <Tab label="Transfer Location" value={3} />
             </TabList>
           </Paper>
           <Box>
@@ -35,6 +37,9 @@ export const ContainerActions = () => {
             </TabPanel>
             <TabPanel value={2}>
               <WeighIn />
+            </TabPanel>
+            <TabPanel value={3}>
+              <Transfer />
             </TabPanel>
           </Box>
         </TabContext>

@@ -1,9 +1,11 @@
 import {
-  Route,
   Outlet,
   createBrowserRouter,
   RouterProvider,
-  createRoutesFromElements,
+  type RouteObject,
+  useRouteError,
+  isRouteErrorResponse,
+  Navigate,
 } from 'react-router-dom';
 import { Box, Typography } from '@mui/material';
 import { Navbar } from './components/nav/Navbar';
@@ -22,6 +24,18 @@ import { Dashboard } from './components/inventory/Dashboard';
 // Component to show when an error is thrown
 //TODO: Create an Error component to show when error is not 404
 function ErrorBoundary() {
+  const error = useRouteError();
+
+  if (isRouteErrorResponse(error)) {
+    return (
+      <Box>
+        <Typography variant="h1">
+          {error.status} {error.statusText}
+        </Typography>
+        <Typography>{error.data?.message || 'Something went wrong.'}</Typography>
+      </Box>
+    );
+  }
   return <NotFound />;
 }
 
@@ -35,41 +49,68 @@ function NotFound() {
   );
 }
 
-//TODO: Switch over to using the updated react router syntax
+export function RequireAuth() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/" replace />;
+  return <Outlet />;
+}
+
 export default function App() {
   const { user, loading } = useAuth();
 
-  const router = createBrowserRouter(
-    createRoutesFromElements(
-      <Route path="/" element={<Navbar />}>
-        <Route errorElement={<ErrorBoundary />}>
-          <Route index element={user ? <Dashboard /> : <Login />} />
-          <Route path="login" element={<Login />} />
-          <Route path="register" element={<Register />} />
-          {/*Auth protected routes */}
-          {user && (
-            <Route path="inventory" element={<Outlet />}>
-              <Route path="containers" element={<Outlet />}>
-                <Route path="" element={<Containers />} />
-                <Route path="new" element={<ContainerForm />} />
-                <Route path=":id" element={<ContainerDetail />} />
-                <Route path="actions" element={<ContainerActions />} />
-              </Route>
-              <Route path="locations" element={<Outlet />}>
-                <Route path="" element={<Locations />} />
-              </Route>
-              <Route path="chemicals" element={<Outlet />}>
-                <Route path="" element={<Chemicals />} />
-                <Route path=":chemId" element={<ChemicalDetail />} />
-              </Route>
-            </Route>
-          )}
-          {/*Catches unsupported routes */}
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Route>
-    )
-  );
+  const routes: RouteObject[] = [
+    {
+      path: '/',
+      element: <Navbar />,
+      children: [
+        {
+          errorElement: <ErrorBoundary />,
+          children: [
+            { index: true, element: user ? <Dashboard /> : <Login /> },
+            { path: 'login', element: <Login /> },
+            { path: 'register', element: <Register /> },
+            // Auth protected routes
+            ...[
+              {
+                path: 'inventory',
+                element: <RequireAuth />,
+                children: [
+                  {
+                    path: 'containers',
+                    element: <Outlet />,
+                    children: [
+                      { index: true, element: <Containers /> },
+                      { path: 'new', element: <ContainerForm /> },
+                      { path: ':id', element: <ContainerDetail /> },
+                      { path: 'actions', element: <ContainerActions /> },
+                    ],
+                  },
+                  {
+                    path: 'locations',
+                    element: <Outlet />,
+                    children: [{ index: true, element: <Locations /> }],
+                  },
+                  {
+                    path: 'chemicals',
+                    element: <Outlet />,
+                    children: [
+                      { index: true, element: <Chemicals /> },
+                      { path: ':chemId', element: <ChemicalDetail /> },
+                    ],
+                  },
+                ],
+              },
+            ],
+            // Catches unsupported routes
+            { path: '*', element: <NotFound /> },
+          ],
+        },
+      ],
+    },
+  ];
+
+  const router = createBrowserRouter(routes);
 
   // Only load page after auth has resolved
   if (loading) return null;
