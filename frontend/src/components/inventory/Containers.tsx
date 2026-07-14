@@ -1,12 +1,17 @@
-import { Box, Container, Drawer } from '@mui/material';
+import { Alert, Box, Container, Drawer, Snackbar } from '@mui/material';
 import { useCallback, useMemo, useState } from 'react';
-import { getContainers } from '../../api/inventory';
+import { getContainers, patchContainer } from '../../api/inventory';
 import { containerKeys } from '../../api/queryKeys';
-import { type ColDef, type GetRowIdParams, type RowSelectionOptions } from 'ag-grid-community';
+import {
+  type CellValueChangedEvent,
+  type ColDef,
+  type GetRowIdParams,
+  type RowSelectionOptions,
+} from 'ag-grid-community';
 import { ContainerDetail } from './ContainerDetail';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DataTable } from '../shared/DataTable';
-import type { Container as ContainerType } from '../../types';
+import type { Container as ContainerType, ContainerPatch, EditableKeys } from '../../types';
 
 //TODO: Remove container data logic outside and let parent components pass in values
 export const Containers = () => {
@@ -22,13 +27,18 @@ export const Containers = () => {
 
   const [open, setOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<ContainerType | undefined>(undefined);
+  const [editError, setEditError] = useState<string | null>(null);
   const [colDefs] = useState<ColDef<ContainerType>[]>([
     { field: 'label', headerName: 'ID', filter: true },
     { field: 'name', filter: true },
     { field: 'location.full_path', headerName: 'Location', filter: true },
-    { field: 'manufacturer' },
+    { field: 'manufacturer' satisfies EditableKeys<ContainerType>, editable: true },
     { field: 'quantity' },
-    { field: 'product_num', headerName: 'Product #' },
+    {
+      field: 'product_num' satisfies EditableKeys<ContainerType>,
+      headerName: 'Product #',
+      editable: true,
+    },
     { field: 'is_opened', headerName: 'Opened?' },
   ]);
 
@@ -39,6 +49,29 @@ export const Containers = () => {
   }, []);
 
   const getRowId = useCallback((params: GetRowIdParams<ContainerType>) => params.data.label, []);
+
+  const qc = useQueryClient();
+  const patchMutation = useMutation({
+    mutationFn: ({ slug, data }: { slug: string; data: ContainerPatch }) =>
+      patchContainer(slug, data),
+    onError: (err) => {
+      setEditError(err instanceof Error ? err.message : 'Failed to save edit.');
+    },
+    // Re-syncs the grid to server truth either way — confirms a successful
+    // edit, or reverts an optimistic one the grid already applied on failure.
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: containerKeys.list() });
+    },
+  });
+
+  const onCellValueChanged = (event: CellValueChangedEvent<ContainerType>) => {
+    const field = event.colDef.field as EditableKeys<ContainerType> & string;
+    if (!field || event.newValue === event.oldValue) return;
+    patchMutation.mutate({
+      slug: event.data.slug,
+      data: { [field]: event.newValue } as ContainerPatch,
+    });
+  };
 
   return (
     <Box>
@@ -52,15 +85,23 @@ export const Containers = () => {
           isLoading={isPending}
           isError={isError}
           errorMessage={error instanceof Error ? error.message : undefined}
-          onRowClicked={(e) => {
+          singleClickEdit
+          onCellDoubleClicked={(e) => {
+            if (!e.data) return;
             setSelectedRow(e.data);
             setOpen(true);
           }}
+          onCellValueChanged={onCellValueChanged}
         />
       </Container>{' '}
       <Drawer open={open} onClose={() => setOpen((prev) => !prev)} anchor="right">
         <ContainerDetail data={selectedRow} />
       </Drawer>
+      <Snackbar open={!!editError} autoHideDuration={6000} onClose={() => setEditError(null)}>
+        <Alert severity="error" onClose={() => setEditError(null)}>
+          {editError}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

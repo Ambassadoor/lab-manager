@@ -9,6 +9,7 @@ import type {
   ContainerFormDefaults,
   CheckoutEvent,
   ContainerDetailDefaults,
+  ContainerPatch,
   WeighInDefaults,
   WeightReading,
   LocationType,
@@ -67,6 +68,16 @@ export const updateContainer = (
   slug: string,
   data: ContainerDetailDefaults
 ): Promise<Container> => {
+  return apiFetch(`/inventory/containers/${slug}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+};
+
+// For single-field edits (e.g. inline table editing) — same endpoint as
+// updateContainer, but typed for DRF's partial=True PATCH (every field
+// optional), so callers aren't forced to supply the whole container.
+export const patchContainer = (slug: string, data: ContainerPatch): Promise<Container> => {
   return apiFetch(`/inventory/containers/${slug}/`, {
     method: 'PATCH',
     body: JSON.stringify(data),

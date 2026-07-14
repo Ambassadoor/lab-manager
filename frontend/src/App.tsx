@@ -7,6 +7,7 @@ import {
   isRouteErrorResponse,
   Navigate,
 } from 'react-router-dom';
+import './App.css';
 import { Box, Typography } from '@mui/material';
 import { Navbar } from './components/nav/Navbar';
 import { useAuth } from './context/AuthContext';
