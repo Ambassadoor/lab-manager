@@ -111,21 +111,29 @@ const Location = ({ location, parent, setSelectedLocation, editing, onDelete }: 
             {location.type.icon && iconMap.get(location.type.icon)}
             {location.children.length > 0 && <Typography>({location.children.length})</Typography>}
           </Stack>
-          {editing && (
-            <ButtonGroup variant="contained">
-              <Button onClick={() => setOpen(true)} size="small">
-                <AddBox />
+          <ButtonGroup
+            variant="contained"
+            sx={{
+              visibility: editing ? 'visible' : 'hidden',
+              pointerEvents: editing ? 'auto' : 'none',
+            }}
+          >
+            <Button onClick={() => setOpen(true)} size="small">
+              <AddBox />
+            </Button>
+            <Button size="small" color="info" onClick={() => setOpenEdit(true)}>
+              <Edit />
+            </Button>
+            {(user?.role === 'lab_manager' || user?.role === 'coordinator') && (
+              <Button
+                size="small"
+                color="error"
+                onClick={() => onDelete.mutate(String(location.id))}
+              >
+                <Delete />
               </Button>
-              <Button size="small" onClick={() => setOpenEdit(true)}>
-                <Edit />
-              </Button>
-              {(user?.role === 'lab_manager' || user?.role === 'coordinator') && (
-                <Button size="small" onClick={() => onDelete.mutate(String(location.id))}>
-                  <Delete />
-                </Button>
-              )}
-            </ButtonGroup>
-          )}
+            )}
+          </ButtonGroup>
         </Stack>
       </Stack>
       <Collapse in={expanded}>
@@ -238,7 +246,7 @@ export const Locations = () => {
         </Box>
       </Stack>
       <Stack direction={'row'} spacing={2}>
-        <Box>
+        <Box sx={{ flexShrink: 0, maxWidth: 500 }}>
           {isLocationsPending ? (
             <CircularProgress size={24} />
           ) : (

@@ -5,7 +5,12 @@
       "Bash(pkill -f \"vite\")",
       "Bash(jobs -l)",
       "Bash(pnpm lint *)",
-      "Bash(pnpm format *)"
+      "Bash(pnpm format *)",
+      "Bash(/home/ambassadoor/.vscode-server/extensions/anthropic.claude-code-2.1.210-linux-x64/resources/native-binary/claude mcp *)",
+      "Bash(npx -y @playwright/mcp@latest --help)",
+      "Bash(timeout 8 npx -y @playwright/mcp@latest --browser=chromium --help)",
+      "Bash(echo \"EXIT:$?\")",
+      "mcp__playwright__browser_navigate"
     ]
   }
 }
