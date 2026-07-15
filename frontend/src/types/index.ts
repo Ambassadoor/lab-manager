@@ -67,8 +67,10 @@ export interface Location extends Omit<ApiLocation, 'children'> {
 }
 
 export type WeighInDefaults = {
-  slug: string;
-  weight: string;
+  checkin: {
+    slug: string;
+    weight: string;
+  }[];
 };
 
 export interface CasCheck {

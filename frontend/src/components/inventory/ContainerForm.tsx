@@ -1,4 +1,4 @@
-import { Add, ArrowDropDown, MonitorWeight, Remove } from '@mui/icons-material';
+import { Add, ArrowDropDown, Remove } from '@mui/icons-material';
 import {
   Accordion,
   AccordionDetails,
@@ -50,6 +50,7 @@ import { Decimal } from 'decimal.js';
 import dayjs from 'dayjs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { cas_is_valid } from '../shared/checkCas';
+import { WeightField } from '../shared/WeightField';
 
 //TODO: Create wrapper component for Controller/TextFields and use DRF OPTIONS to dynamically format
 export const ContainerForm = () => {
@@ -285,16 +286,7 @@ export const ContainerForm = () => {
 
   const queryClient = useQueryClient();
 
-  const scaleMutation = useMutation({
-    mutationFn: getBalanceWeight,
-    onSuccess: (reading) => {
-      setValue('initial_weight', String(reading.weight));
-      clearErrors('initial_weight');
-    },
-    onError: (error: Error) => {
-      setBridgeError(error.message);
-    },
-  });
+  const scaleMutation = useMutation({ mutationFn: getBalanceWeight });
 
   //Format date fields, clear session storage, invalidate stale container data and navigate to detail page
   const onSubmit: SubmitHandler<ContainerFormDefaults> = async (data) => {
@@ -988,49 +980,14 @@ export const ContainerForm = () => {
                 )}
               />
               <Stack direction={'row'} spacing={2}>
-                <Controller
+                <WeightField
                   control={control}
                   name="initial_weight"
-                  rules={{
-                    required: {
-                      value: true,
-                      message: 'Required',
-                    },
-                    pattern: {
-                      value: /^\d+(\.\d+)?$/,
-                      message: 'Please input a integer or decimal',
-                    },
-                  }}
-                  render={({ field, fieldState: { error } }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Initial Weight"
-                      error={!!error}
-                      helperText={error && error.message}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        clearErrors(field.name);
-                      }}
-                      slotProps={{
-                        input: {
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <IconButton
-                                type="button"
-                                aria-label="Read from scale"
-                                disabled={scaleMutation.isPending}
-                                onClick={() => scaleMutation.mutate()}
-                              >
-                                <MonitorWeight />
-                              </IconButton>
-                              g
-                            </InputAdornment>
-                          ),
-                        },
-                      }}
-                    />
-                  )}
+                  label="Initial Weight"
+                  setValue={setValue}
+                  clearErrors={clearErrors}
+                  onError={setBridgeError}
+                  scaleMutation={scaleMutation}
                 />
                 <Controller
                   control={control}

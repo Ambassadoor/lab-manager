@@ -41,6 +41,7 @@ from django.db.models import (
     ExpressionWrapper,
     FloatField,
 )
+from django.db.models.functions import Lower
 from django.db import transaction
 
 from .permissions import IsManager, IsCoordinator
@@ -280,8 +281,7 @@ class ContainerView(ModelViewSet):
 
         elif request.method == "GET":
             events = container.readings
-            serializer = WeightReadingReadSerializer(data=events, many=True)
-            serializer.is_valid()
+            serializer = WeightReadingReadSerializer(events, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["PATCH"])
@@ -289,10 +289,15 @@ class ContainerView(ModelViewSet):
     def transfer(self, request):
         processed = []
         data = request.data
-        slugs = [c["slug"] for c in data["containers"]]
+        # Case-insensitive: barcodes encode Container.label (uppercase,
+        # e.g. "CHEM-1161"), but slug is stored lowercase — a raw slug__in
+        # match against scanned input would false-negative on every scan.
+        slugs = [c["slug"].strip().lower() for c in data["containers"]]
         location = data["location"]
-        containers = Container.objects.filter(slug__in=slugs)
-        missing = set(slugs) - {c.slug for c in containers}
+        containers = Container.objects.annotate(slug_lower=Lower("slug")).filter(
+            slug_lower__in=slugs
+        )
+        missing = set(slugs) - {c.slug_lower for c in containers}
         if missing:
             return Response(
                 {"detail": f"Container(s) not found: {', '.join(sorted(missing))}"},
@@ -306,6 +311,67 @@ class ContainerView(ModelViewSet):
             updated = serializer.save()
             processed.append(updated)
         return Response(ContainerSerializer(processed, many=True).data, status=status.HTTP_200_OK)
+
+    # Records a weight reading and checks in a batch of containers in one
+    # atomic request — consolidates what used to be two separate actions
+    # (weigh_in per container, check_in as a bulk slug list) into the single
+    # form flow the frontend's WeighIn page presents.
+    @action(detail=False, methods=["POST"], url_path="weigh_in_bulk")
+    @transaction.atomic
+    def weigh_in_bulk(self, request):
+        data = request.data
+        checkin = data["checkin"]
+        # Case-insensitive: barcodes encode Container.label (uppercase,
+        # e.g. "CHEM-1161"), but slug is stored lowercase — a raw slug__in
+        # match against scanned input would false-negative on every scan.
+        slugs = [c["slug"].strip().lower() for c in checkin]
+        weights_by_slug = {c["slug"].strip().lower(): c["weight"] for c in checkin}
+        containers = Container.objects.annotate(slug_lower=Lower("slug")).filter(
+            slug_lower__in=slugs
+        )
+        missing = set(slugs) - {c.slug_lower for c in containers}
+        if missing:
+            return Response(
+                {"detail": f"Container(s) not found: {', '.join(sorted(missing))}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        readings_data = []
+        events_data = []
+        for container in containers:
+            readings_data.append(
+                {"container": container.id, "weight": weights_by_slug[container.slug_lower]}
+            )
+            try:
+                last_check_out = container.events.filter(
+                    related_event__exact=None, action__exact="out"
+                ).order_by("-timestamp")[:1][0]
+            except IndexError:
+                last_check_out = None
+            events_data.append(
+                {
+                    "container": container.id,
+                    "action": "in",
+                    "related_event": last_check_out.id if last_check_out is not None else None,
+                }
+            )
+
+        reading_serializer = WeightReadingSerializer(
+            data=readings_data, many=True, context={"request": request}
+        )
+        reading_serializer.is_valid(raise_exception=True)
+        reading_serializer.save()
+
+        event_serializer = CheckoutEventWriteSerializer(
+            data=events_data, many=True, context={"request": request}
+        )
+        event_serializer.is_valid(raise_exception=True)
+        event_serializer.save()
+
+        return Response(
+            {"readings": reading_serializer.data, "events": event_serializer.data},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class LocationView(ModelViewSet):
