@@ -758,6 +758,32 @@ paths:
               schema:
                 $ref: '#/components/schemas/Container'
           description: ''
+  /inventory/containers/weigh_in_bulk/:
+    post:
+      operationId: inventory_containers_weigh_in_bulk_create
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Container'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Container'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Container'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Container'
+          description: ''
   /inventory/dashboard/:
     get:
       operationId: inventory_dashboard_list

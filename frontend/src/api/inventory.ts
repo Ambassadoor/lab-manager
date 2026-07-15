@@ -110,8 +110,12 @@ export const checkValidId = (slug: string): Promise<{ is_valid: boolean }> => {
   return apiFetch(`/inventory/containers/${slug}/is_valid/`);
 };
 
-export const createWeighIn = (data: WeighInDefaults): Promise<WeightReading> => {
-  return apiFetch(`/inventory/containers/${data.slug}/weigh_in/`, {
+// Batch endpoint — records a weight reading and checks in every container
+// in `data.checkin` as one atomic request (either all rows save or none do).
+export const createWeighIn = (
+  data: WeighInDefaults
+): Promise<{ readings: WeightReading[]; events: CheckoutEvent[] }> => {
+  return apiFetch(`/inventory/containers/weigh_in_bulk/`, {
     method: 'POST',
     body: JSON.stringify(data),
   });

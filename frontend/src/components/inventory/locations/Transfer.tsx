@@ -1,4 +1,3 @@
-import { Add, Remove } from '@mui/icons-material';
 import {
   Button,
   ButtonGroup,
@@ -7,18 +6,16 @@ import {
   CardContent,
   CardHeader,
   Container,
-  IconButton,
-  InputAdornment,
   MenuItem,
   Stack,
   TextField,
 } from '@mui/material';
-import { useRef } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
-import { parseBarcode } from '../../shared/parseBarcode';
+import { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { locationKeys } from '../../../api/queryKeys';
 import { getLocationMenu, transferContainers } from '../../../api/inventory';
+import { ScannableFieldRow } from '../../shared/ScannableFieldRow';
 
 export const Transfer = () => {
   const { control, clearErrors, reset, resetField, handleSubmit, setFocus, getValues, setValue } =
@@ -45,8 +42,10 @@ export const Transfer = () => {
     queryFn: getLocationMenu,
   });
 
-  // Tracks whether the last onChange was a completed barcode scan, so we only
-  // swallow the scanner's own trailing Enter keystroke, not a manual submit.
+  // Shared across every row (not created per-row) — a completed scan on one
+  // row can append a new row whose autoFocus shifts focus there before the
+  // scanner's trailing Enter arrives, so whichever row has focus needs to
+  // see the same ref to know it should swallow that Enter.
   const justScannedRef = useRef(false);
 
   const onSubmit = async (data: { containers: { slug: string }[]; location: string }) => {
@@ -64,74 +63,35 @@ export const Transfer = () => {
         <CardContent>
           <Stack spacing={2}>
             {fields.map((field, index) => (
-              <Controller
+              <ScannableFieldRow
                 key={field.id}
                 control={control}
                 name={`containers.${index}.slug`}
-                render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
-                  <TextField
-                    {...field}
-                    value={field.value.includes('{') ? '' : field.value}
-                    label={`Container #${index + 1}`}
-                    error={!!error}
-                    helperText={error?.message}
-                    onChange={(e) => {
-                      const scannedId = parseBarcode(e.target.value);
-                      justScannedRef.current = !!scannedId;
-                      if (scannedId) {
-                        const isDuplicate = getValues('containers').some(
-                          (c) => c.slug.toLocaleLowerCase() === scannedId.toLocaleLowerCase()
-                        );
-                        if (isDuplicate) {
-                          resetField(name);
-                          return;
-                        } else if (scannedId.toLocaleLowerCase().includes('loc')) {
-                          setValue('location', scannedId.split('-')[1]);
-                          handleSubmit(onSubmit)();
-                          resetField(name);
-                          return;
-                        }
-                        onChange(scannedId);
-                        append({ slug: '' });
-                      } else {
-                        onChange(e);
-                      }
-                      clearErrors(name);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && justScannedRef.current) {
-                        e.preventDefault();
-                        justScannedRef.current = false;
-                      }
-                    }}
-                    autoFocus
-                    slotProps={{
-                      input: {
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            {index > 0 && (
-                              <IconButton
-                                onClick={() => {
-                                  remove(index);
-                                }}
-                              >
-                                <Remove />
-                              </IconButton>
-                            )}
-                            <IconButton
-                              onClick={() => {
-                                append({ slug: '' });
-                                setFocus(`containers.${fields.length}.slug`);
-                              }}
-                            >
-                              <Add />
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      },
-                    }}
-                  />
-                )}
+                label={`Container #${index + 1}`}
+                clearErrors={clearErrors}
+                onScan={(scannedId, setFieldValue) => {
+                  const isDuplicate = getValues('containers').some(
+                    (c) => c.slug.toLocaleLowerCase() === scannedId.toLocaleLowerCase()
+                  );
+                  if (isDuplicate) {
+                    resetField(`containers.${index}.slug`);
+                    return;
+                  } else if (scannedId.toLocaleLowerCase().includes('loc')) {
+                    setValue('location', scannedId.split('-')[1]);
+                    handleSubmit(onSubmit)();
+                    resetField(`containers.${index}.slug`);
+                    return;
+                  }
+                  setFieldValue(scannedId);
+                  append({ slug: '' });
+                }}
+                showRemove={index > 0}
+                onRemove={() => remove(index)}
+                onAdd={() => {
+                  append({ slug: '' });
+                  setFocus(`containers.${fields.length}.slug`);
+                }}
+                justScannedRef={justScannedRef}
               />
             ))}
           </Stack>

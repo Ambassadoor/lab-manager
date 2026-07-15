@@ -24,21 +24,17 @@ export const ContainerActions = () => {
             <TabList onChange={handleChange}>
               <Tab label="Check Out" value={0} />
               <Tab label="Check In" value={1} />
-              <Tab label="Update Weight" value={2} />
-              <Tab label="Transfer Location" value={3} />
+              <Tab label="Transfer Location" value={2} />
             </TabList>
           </Paper>
           <Box>
             <TabPanel value={0}>
-              <Checkout event={'out'} />
+              <Checkout />
             </TabPanel>
             <TabPanel value={1}>
-              <Checkout event={'in'} />
-            </TabPanel>
-            <TabPanel value={2}>
               <WeighIn />
             </TabPanel>
-            <TabPanel value={3}>
+            <TabPanel value={2}>
               <Transfer />
             </TabPanel>
           </Box>

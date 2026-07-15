@@ -1,4 +1,4 @@
-import { Add, Close, Remove } from '@mui/icons-material';
+import { Close } from '@mui/icons-material';
 import {
   Alert,
   Box,
@@ -8,24 +8,18 @@ import {
   CardContent,
   CardHeader,
   IconButton,
-  InputAdornment,
   Snackbar,
   Stack,
-  TextField,
 } from '@mui/material';
-import { Controller, useFieldArray, useForm, type SubmitHandler } from 'react-hook-form';
-import { checkIfDiscarded, checkInContainers, checkOutContainers } from '../../api/inventory';
+import { useFieldArray, useForm, type SubmitHandler } from 'react-hook-form';
+import { checkIfDiscarded, checkOutContainers } from '../../api/inventory';
 import { containerKeys } from '../../api/queryKeys';
 import { useRef, useState, type SyntheticEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { parseBarcode } from '../shared/parseBarcode';
-
-type CheckoutProps = {
-  event: string;
-};
+import { ScannableFieldRow } from '../shared/ScannableFieldRow';
 
 //Component for marking a container as checked out
-export const Checkout = ({ event }: CheckoutProps) => {
+export const Checkout = () => {
   const [open, setOpen] = useState(false);
   const { control, clearErrors, handleSubmit, resetField, reset, setFocus, getValues } = useForm({
     mode: 'onBlur',
@@ -49,8 +43,10 @@ export const Checkout = ({ event }: CheckoutProps) => {
     checkout: { value: string }[];
   };
 
-  // Tracks whether the last onChange was a completed barcode scan, so we only
-  // swallow the scanner's own trailing Enter keystroke, not a manual submit.
+  // Shared across every row (not created per-row) — a completed scan on one
+  // row can append a new row whose autoFocus shifts focus there before the
+  // scanner's trailing Enter arrives, so whichever row has focus needs to
+  // see the same ref to know it should swallow that Enter.
   const justScannedRef = useRef(false);
 
   const qc = useQueryClient();
@@ -59,8 +55,7 @@ export const Checkout = ({ event }: CheckoutProps) => {
       .map((d) => d.value.trim().toLocaleLowerCase())
       .filter((slug) => slug.length > 0);
     if (slugs.length === 0) return;
-    const response =
-      event === 'out' ? await checkOutContainers(slugs) : await checkInContainers(slugs);
+    const response = await checkOutContainers(slugs);
     if (response.events[0].id) {
       qc.invalidateQueries({
         queryKey: containerKeys.list(),
@@ -109,16 +104,18 @@ export const Checkout = ({ event }: CheckoutProps) => {
       </Snackbar>
       <Card sx={{ width: '50dvw', alignSelf: 'center' }} elevation={6}>
         <CardHeader
-          title={event === 'out' ? 'Checkout' : 'Check In'}
-          subheader={`Add ID's of containers you are checking ${event === 'out' ? 'out' : 'in'}. i.e. Chem-43`}
+          title={'Checkout'}
+          subheader={`Add ID's of containers you are checking out. i.e. Chem-43`}
         ></CardHeader>
         <CardContent>
           <Stack spacing={2}>
             {fields.map((field, index) => (
-              <Controller
+              <ScannableFieldRow
                 key={field.id}
                 control={control}
                 name={`checkout.${index}.value`}
+                label={`Item #${index + 1}`}
+                clearErrors={clearErrors}
                 rules={{
                   pattern: {
                     value: /^chem-\d+$/i,
@@ -132,77 +129,36 @@ export const Checkout = ({ event }: CheckoutProps) => {
                       const joined = split[0] + '-' + String(stripped);
                       const response = await checkIfDiscarded(joined);
                       if (response.is_discarded === true) {
-                        return `This container has been discarded. Cannot check ${event === 'out' ? 'out' : 'in'}.`;
+                        return `This container has been discarded. Cannot check out.`;
                       } else if (response.is_valid === false) return 'Invalid ID';
                     },
                   },
                 }}
-                render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
-                  <TextField
-                    {...field}
-                    value={field.value.includes('{') ? '' : field.value}
-                    error={!!error}
-                    label={`Item #${index + 1}`}
-                    helperText={error?.message}
-                    onChange={(e) => {
-                      const scannedId = parseBarcode(e.target.value);
-                      justScannedRef.current = !!scannedId;
-                      if (scannedId) {
-                        const isDuplicate = getValues('checkout').some(
-                          (c) => c.value.toLocaleLowerCase() === scannedId.toLocaleLowerCase()
-                        );
-                        if (isDuplicate) {
-                          resetField(name);
-                          return;
-                        }
-                        onChange(scannedId);
-                        append({ value: '' });
-                      } else {
-                        onChange(e);
-                      }
-                      clearErrors(name);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && justScannedRef.current) {
-                        e.preventDefault();
-                        justScannedRef.current = false;
-                      }
-                    }}
-                    autoFocus
-                    slotProps={{
-                      input: {
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            {index > 0 && (
-                              <IconButton
-                                onClick={() => {
-                                  remove(index);
-                                }}
-                              >
-                                <Remove />
-                              </IconButton>
-                            )}
-                            <IconButton
-                              onClick={() => {
-                                append({ value: '' });
-                                setFocus(`checkout.${fields.length}.value`);
-                              }}
-                            >
-                              <Add />
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      },
-                    }}
-                  />
-                )}
+                onScan={(scannedId, setFieldValue) => {
+                  const isDuplicate = getValues('checkout').some(
+                    (c) => c.value.toLocaleLowerCase() === scannedId.toLocaleLowerCase()
+                  );
+                  if (isDuplicate) {
+                    resetField(`checkout.${index}.value`);
+                    return;
+                  }
+                  setFieldValue(scannedId);
+                  append({ value: '' });
+                }}
+                showRemove={index > 0}
+                onRemove={() => remove(index)}
+                onAdd={() => {
+                  append({ value: '' });
+                  setFocus(`checkout.${fields.length}.value`);
+                }}
+                justScannedRef={justScannedRef}
               />
             ))}
           </Stack>
         </CardContent>
         <CardActions>
           <Button type="submit" variant="contained">
-            {event === 'out' ? 'Checkout' : 'Check In'}
+            {'Checkout'}
           </Button>
           <Button variant="outlined" onClick={() => resetField('checkout')}>
             Cancel
