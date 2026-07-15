@@ -1,6 +1,5 @@
 import {
   Button,
-  ButtonGroup,
   Card,
   CardActions,
   CardContent,
@@ -128,12 +127,12 @@ export const Transfer = () => {
           />
         </CardContent>
         <CardActions>
-          <ButtonGroup sx={{ ml: 'auto' }}>
-            <Button variant={'contained'} onClick={handleSubmit(onSubmit)} type="submit">
-              Transfer
-            </Button>
-            <Button onClick={() => reset()}>Cancel</Button>
-          </ButtonGroup>
+          <Button variant={'contained'} onClick={handleSubmit(onSubmit)} type="submit">
+            Transfer
+          </Button>
+          <Button variant={'outlined'} onClick={() => reset()}>
+            Cancel
+          </Button>
         </CardActions>
       </Card>
     </Container>
