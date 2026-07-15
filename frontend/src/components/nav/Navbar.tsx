@@ -3,12 +3,16 @@ import {
   Avatar,
   Box,
   Button,
+  ClickAwayListener,
+  Grow,
   IconButton,
   LinearProgress,
   ListItemIcon,
   Menu,
   MenuItem,
+  MenuList,
   Paper,
+  Popper,
   Stack,
   Toolbar,
   Tooltip,
@@ -125,46 +129,46 @@ export const Navbar = (): JSX.Element | null => {
                     >
                       Actions
                     </Button>
-                    <Menu
+                    <Popper
                       id="actions-menu"
                       anchorEl={actionsMenuEl}
                       open={actionsMenuOpen}
-                      onClose={handleActionsMenuClose}
-                      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                      disableAutoFocus
-                      disableEnforceFocus
-                      disableRestoreFocus
-                      sx={{ pointerEvents: 'none' }}
-                      slotProps={{
-                        paper: {
-                          onMouseLeave: handleActionsMenuClose,
-                          sx: { pointerEvents: 'auto' },
-                        },
-                        list: { onMouseLeave: handleActionsMenuClose },
-                      }}
+                      placement="bottom-start"
+                      transition
+                      sx={{ zIndex: (theme) => theme.zIndex.appBar + 1 }}
                     >
-                      <MenuItem
-                        component={Link}
-                        to="/inventory/containers/actions/?tab=0"
-                        onClick={handleActionsMenuClose}
-                      >
-                        Check Out
-                      </MenuItem>
-                      <MenuItem
-                        component={Link}
-                        to="/inventory/containers/actions/?tab=1"
-                        onClick={handleActionsMenuClose}
-                      >
-                        Check In
-                      </MenuItem>
-                      <MenuItem
-                        component={Link}
-                        to="/inventory/containers/actions/?tab=2"
-                        onClick={handleActionsMenuClose}
-                      >
-                        Transfer Location
-                      </MenuItem>
-                    </Menu>
+                      {({ TransitionProps }) => (
+                        <Grow {...TransitionProps}>
+                          <Paper onMouseLeave={handleActionsMenuClose}>
+                            <ClickAwayListener onClickAway={handleActionsMenuClose}>
+                              <MenuList autoFocusItem={false}>
+                                <MenuItem
+                                  component={Link}
+                                  to="/inventory/containers/actions/?tab=0"
+                                  onClick={handleActionsMenuClose}
+                                >
+                                  Check Out
+                                </MenuItem>
+                                <MenuItem
+                                  component={Link}
+                                  to="/inventory/containers/actions/?tab=1"
+                                  onClick={handleActionsMenuClose}
+                                >
+                                  Check In
+                                </MenuItem>
+                                <MenuItem
+                                  component={Link}
+                                  to="/inventory/containers/actions/?tab=2"
+                                  onClick={handleActionsMenuClose}
+                                >
+                                  Transfer Location
+                                </MenuItem>
+                              </MenuList>
+                            </ClickAwayListener>
+                          </Paper>
+                        </Grow>
+                      )}
+                    </Popper>
                   </Box>
                   <Button
                     component={NavLink}

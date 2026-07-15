@@ -12,6 +12,13 @@
       "Bash(echo \"EXIT:$?\")",
       "Bash(xxd)",
       "mcp__playwright__*",
+      "Bash(lsof -i :5173 -sTCP:LISTEN -t)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_hover",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_console_messages"
     ]
   }
 }
