@@ -1,4 +1,14 @@
-import { Alert, Box, Container, Drawer, Snackbar } from '@mui/material';
+import {
+  Alert,
+  Box,
+  Container,
+  Drawer,
+  IconButton,
+  Snackbar,
+  Stack,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import { useCallback, useMemo, useState } from 'react';
 import { getContainers, patchContainer } from '../../api/inventory';
 import { containerKeys } from '../../api/queryKeys';
@@ -12,6 +22,8 @@ import { ContainerDetail } from './ContainerDetail';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DataTable } from '../shared/DataTable';
 import type { Container as ContainerType, ContainerPatch, EditableKeys } from '../../types';
+import { AddBox } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 
 //TODO: Remove container data logic outside and let parent components pass in values
 export const Containers = () => {
@@ -73,9 +85,29 @@ export const Containers = () => {
     });
   };
 
+  const navigate = useNavigate();
+
   return (
-    <Box>
-      <Container>
+    <Container>
+      <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3 }}>
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="h4">Containers</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Browse and edit containers in inventory.
+          </Typography>
+        </Box>
+        <Tooltip title="Add container">
+          <IconButton
+            onClick={() => {
+              navigate('new');
+              setOpen(true);
+            }}
+          >
+            <AddBox />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+      <Box>
         <DataTable<ContainerType>
           rowData={containers}
           columnDefs={colDefs}
@@ -93,7 +125,7 @@ export const Containers = () => {
           }}
           onCellValueChanged={onCellValueChanged}
         />
-      </Container>{' '}
+      </Box>
       <Drawer open={open} onClose={() => setOpen((prev) => !prev)} anchor="right">
         <ContainerDetail data={selectedRow} />
       </Drawer>
@@ -102,6 +134,6 @@ export const Containers = () => {
           {editError}
         </Alert>
       </Snackbar>
-    </Box>
+    </Container>
   );
 };

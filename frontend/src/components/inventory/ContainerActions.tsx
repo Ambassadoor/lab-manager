@@ -1,5 +1,5 @@
 import { TabContext, TabList, TabPanel } from '@mui/lab';
-import { Box, Container, Paper, Tab } from '@mui/material';
+import { Box, Container, Paper, Tab, Typography } from '@mui/material';
 import { useState } from 'react';
 import { Checkout } from './Checkout';
 import { WeighIn } from './WeighIn';
@@ -18,15 +18,21 @@ export const ContainerActions = () => {
   };
   return (
     <Container>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4">Container Actions</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Check containers out, check them back in with a weigh-in, or transfer their location.
+        </Typography>
+      </Box>
       <Paper elevation={4} sx={{ height: '80dvh', overflow: 'auto' }}>
         <TabContext value={value}>
-          <Paper elevation={6} variant="outlined">
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <TabList onChange={handleChange}>
               <Tab label="Check Out" value={0} />
               <Tab label="Check In" value={1} />
               <Tab label="Transfer Location" value={2} />
             </TabList>
-          </Paper>
+          </Box>
           <Box>
             <TabPanel value={0}>
               <Checkout />

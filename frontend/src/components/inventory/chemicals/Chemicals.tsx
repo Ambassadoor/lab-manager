@@ -1,4 +1,4 @@
-import { Box, IconButton, Container, Stack, Typography } from '@mui/material';
+import { Box, IconButton, Container, Stack, Tooltip, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { type CustomCellRendererProps } from 'ag-grid-react';
 import { getChemicals } from '../../../api/inventory';
@@ -78,15 +78,22 @@ export const Chemicals = () => {
 
   return (
     <Container>
-      <Stack direction={'row'}>
-        <Typography variant="h4">Chemicals</Typography>
-        <IconButton
-          onClick={() => {
-            setOpen(true);
-          }}
-        >
-          <AddBox />
-        </IconButton>
+      <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3 }}>
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="h4">Chemicals</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Browse the chemical catalog.
+          </Typography>
+        </Box>
+        <Tooltip title="Add chemical">
+          <IconButton
+            onClick={() => {
+              setOpen(true);
+            }}
+          >
+            <AddBox />
+          </IconButton>
+        </Tooltip>
       </Stack>
       <AddChemical open={open} setOpen={setOpen} />
       <Box>
