@@ -3,12 +3,16 @@ import {
   Avatar,
   Box,
   Button,
+  ClickAwayListener,
+  Grow,
   IconButton,
   LinearProgress,
   ListItemIcon,
   Menu,
   MenuItem,
+  MenuList,
   Paper,
+  Popper,
   Stack,
   Toolbar,
   Tooltip,
@@ -31,6 +35,15 @@ export const Navbar = (): JSX.Element | null => {
   };
   const handleCloseUserMenu = () => {
     setUserMenuEl(null);
+  };
+
+  const [actionsMenuEl, setActionsMenuEl] = useState<null | HTMLElement>(null);
+  const actionsMenuOpen = Boolean(actionsMenuEl);
+  const handleActionsMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setActionsMenuEl(event.currentTarget);
+  };
+  const handleActionsMenuClose = () => {
+    setActionsMenuEl(null);
   };
 
   const navigate = useNavigate();
@@ -92,22 +105,71 @@ export const Navbar = (): JSX.Element | null => {
                   >
                     Add Container
                   </Button>
-                  <Button
-                    component={NavLink}
-                    to="/inventory/containers/actions/"
-                    color="inherit"
-                    sx={{
-                      '&.active': {
-                        textDecorationLine: 'underline',
-                        textDecorationColor: theme.palette.secondary.main,
-                        textDecorationThickness: 2,
-                        textUnderlineOffset: 5,
-                      },
-                    }}
-                    end
+                  <Box
+                    onMouseEnter={handleActionsMenuOpen}
+                    onMouseLeave={handleActionsMenuClose}
+                    sx={{ display: 'inline-flex' }}
                   >
-                    Actions
-                  </Button>
+                    <Button
+                      component={NavLink}
+                      to="/inventory/containers/actions/"
+                      color="inherit"
+                      sx={{
+                        '&.active': {
+                          textDecorationLine: 'underline',
+                          textDecorationColor: theme.palette.secondary.main,
+                          textDecorationThickness: 2,
+                          textUnderlineOffset: 5,
+                        },
+                      }}
+                      aria-controls={actionsMenuOpen ? 'actions-menu' : undefined}
+                      aria-haspopup="true"
+                      aria-expanded={actionsMenuOpen}
+                      end
+                    >
+                      Actions
+                    </Button>
+                    <Popper
+                      id="actions-menu"
+                      anchorEl={actionsMenuEl}
+                      open={actionsMenuOpen}
+                      placement="bottom-start"
+                      transition
+                      sx={{ zIndex: (theme) => theme.zIndex.appBar + 1 }}
+                    >
+                      {({ TransitionProps }) => (
+                        <Grow {...TransitionProps}>
+                          <Paper onMouseLeave={handleActionsMenuClose}>
+                            <ClickAwayListener onClickAway={handleActionsMenuClose}>
+                              <MenuList autoFocusItem={false}>
+                                <MenuItem
+                                  component={Link}
+                                  to="/inventory/containers/actions/?tab=0"
+                                  onClick={handleActionsMenuClose}
+                                >
+                                  Check Out
+                                </MenuItem>
+                                <MenuItem
+                                  component={Link}
+                                  to="/inventory/containers/actions/?tab=1"
+                                  onClick={handleActionsMenuClose}
+                                >
+                                  Check In
+                                </MenuItem>
+                                <MenuItem
+                                  component={Link}
+                                  to="/inventory/containers/actions/?tab=2"
+                                  onClick={handleActionsMenuClose}
+                                >
+                                  Transfer Location
+                                </MenuItem>
+                              </MenuList>
+                            </ClickAwayListener>
+                          </Paper>
+                        </Grow>
+                      )}
+                    </Popper>
+                  </Box>
                   <Button
                     component={NavLink}
                     to="/inventory/locations/"

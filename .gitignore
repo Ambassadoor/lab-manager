@@ -26,3 +26,6 @@ media/
 Thumbs.db
 data_with_properties.json
 data.json
+
+# --- Playwright MCP ---
+.playwright-mcp/

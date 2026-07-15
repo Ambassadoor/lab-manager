@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm dev *)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(jobs -l)",
+      "Bash(pnpm lint *)",
+      "Bash(pnpm format *)",
+      "Bash(/home/ambassadoor/.vscode-server/extensions/anthropic.claude-code-2.1.210-linux-x64/resources/native-binary/claude mcp *)",
+      "Bash(npx -y @playwright/mcp@latest --help)",
+      "Bash(timeout 8 npx -y @playwright/mcp@latest --browser=chromium --help)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(xxd)",
+      "mcp__playwright__*",
+      "Bash(lsof -i :5173 -sTCP:LISTEN -t)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_hover",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_console_messages"
+    ]
+  }
+}

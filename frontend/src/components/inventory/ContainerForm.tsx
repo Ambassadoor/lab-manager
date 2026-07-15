@@ -103,6 +103,7 @@ export const ContainerForm = () => {
     trigger,
     resetField,
     handleSubmit,
+    reset,
     ...methods
   } = useForm<ContainerFormDefaults>({
     mode: 'onBlur',
@@ -338,6 +339,7 @@ export const ContainerForm = () => {
         setValue={setValue}
         control={control}
         trigger={trigger}
+        reset={reset}
         resetField={resetField}
         handleSubmit={handleSubmit}
         formState={{
@@ -1064,6 +1066,8 @@ export const ContainerForm = () => {
                 <Button
                   variant="outlined"
                   onClick={() => {
+                    sessionStorage.removeItem('container_form_cache');
+                    reset();
                     navigate('/');
                   }}
                 >

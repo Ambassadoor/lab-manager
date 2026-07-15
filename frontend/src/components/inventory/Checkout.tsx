@@ -1,22 +1,12 @@
 import { Close } from '@mui/icons-material';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardActions,
-  CardContent,
-  CardHeader,
-  IconButton,
-  Snackbar,
-  Stack,
-} from '@mui/material';
+import { Alert, Button, IconButton, Snackbar, Stack } from '@mui/material';
 import { useFieldArray, useForm, type SubmitHandler } from 'react-hook-form';
 import { checkIfDiscarded, checkOutContainers } from '../../api/inventory';
 import { containerKeys } from '../../api/queryKeys';
 import { useRef, useState, type SyntheticEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ScannableFieldRow } from '../shared/ScannableFieldRow';
+import { ActionFormCard } from '../shared/ActionFormCard';
 
 //Component for marking a container as checked out
 export const Checkout = () => {
@@ -77,11 +67,7 @@ export const Checkout = () => {
   };
 
   return (
-    <Box
-      component={'form'}
-      sx={{ display: 'flex', justifyContent: 'center' }}
-      onSubmit={handleSubmit(onSubmit)}
-    >
+    <>
       <Snackbar
         open={open}
         onClose={handleClose}
@@ -102,69 +88,69 @@ export const Checkout = () => {
           Checkout status updated
         </Alert>
       </Snackbar>
-      <Card sx={{ width: '50dvw', alignSelf: 'center' }} elevation={6}>
-        <CardHeader
-          title={'Checkout'}
-          subheader={`Add ID's of containers you are checking out. i.e. Chem-43`}
-        ></CardHeader>
-        <CardContent>
-          <Stack spacing={2}>
-            {fields.map((field, index) => (
-              <ScannableFieldRow
-                key={field.id}
-                control={control}
-                name={`checkout.${index}.value`}
-                label={`Item #${index + 1}`}
-                clearErrors={clearErrors}
-                rules={{
-                  pattern: {
-                    value: /^chem-\d+$/i,
-                    message: 'Must match format Chem-####',
+      <ActionFormCard
+        title={'Checkout'}
+        subheader={`Add ID's of containers you are checking out. i.e. Chem-43`}
+        onSubmit={handleSubmit(onSubmit)}
+        actions={
+          <>
+            <Button type="submit" variant="contained">
+              {'Checkout'}
+            </Button>
+            <Button variant="outlined" onClick={() => resetField('checkout')}>
+              Cancel
+            </Button>
+          </>
+        }
+      >
+        <Stack spacing={2}>
+          {fields.map((field, index) => (
+            <ScannableFieldRow
+              key={field.id}
+              control={control}
+              name={`checkout.${index}.value`}
+              label={`Item #${index + 1}`}
+              clearErrors={clearErrors}
+              rules={{
+                pattern: {
+                  value: /^chem-\d+$/i,
+                  message: 'Must match format Chem-####',
+                },
+                validate: {
+                  discarded: async (value) => {
+                    if (!value || value === '') return;
+                    const split = value.toLocaleLowerCase().split('-');
+                    const stripped = parseInt(split[1], 10);
+                    const joined = split[0] + '-' + String(stripped);
+                    const response = await checkIfDiscarded(joined);
+                    if (response.is_discarded === true) {
+                      return `This container has been discarded. Cannot check out.`;
+                    } else if (response.is_valid === false) return 'Invalid ID';
                   },
-                  validate: {
-                    discarded: async (value) => {
-                      if (!value || value === '') return;
-                      const split = value.toLocaleLowerCase().split('-');
-                      const stripped = parseInt(split[1], 10);
-                      const joined = split[0] + '-' + String(stripped);
-                      const response = await checkIfDiscarded(joined);
-                      if (response.is_discarded === true) {
-                        return `This container has been discarded. Cannot check out.`;
-                      } else if (response.is_valid === false) return 'Invalid ID';
-                    },
-                  },
-                }}
-                onScan={(scannedId, setFieldValue) => {
-                  const isDuplicate = getValues('checkout').some(
-                    (c) => c.value.toLocaleLowerCase() === scannedId.toLocaleLowerCase()
-                  );
-                  if (isDuplicate) {
-                    resetField(`checkout.${index}.value`);
-                    return;
-                  }
-                  setFieldValue(scannedId);
-                  append({ value: '' });
-                }}
-                showRemove={index > 0}
-                onRemove={() => remove(index)}
-                onAdd={() => {
-                  append({ value: '' });
-                  setFocus(`checkout.${fields.length}.value`);
-                }}
-                justScannedRef={justScannedRef}
-              />
-            ))}
-          </Stack>
-        </CardContent>
-        <CardActions>
-          <Button type="submit" variant="contained">
-            {'Checkout'}
-          </Button>
-          <Button variant="outlined" onClick={() => resetField('checkout')}>
-            Cancel
-          </Button>
-        </CardActions>
-      </Card>
-    </Box>
+                },
+              }}
+              onScan={(scannedId, setFieldValue) => {
+                const isDuplicate = getValues('checkout').some(
+                  (c) => c.value.toLocaleLowerCase() === scannedId.toLocaleLowerCase()
+                );
+                if (isDuplicate) {
+                  resetField(`checkout.${index}.value`);
+                  return;
+                }
+                setFieldValue(scannedId);
+                append({ value: '' });
+              }}
+              showRemove={index > 0}
+              onRemove={() => remove(index)}
+              onAdd={() => {
+                append({ value: '' });
+                setFocus(`checkout.${fields.length}.value`);
+              }}
+              justScannedRef={justScannedRef}
+            />
+          ))}
+        </Stack>
+      </ActionFormCard>
+    </>
   );
 };

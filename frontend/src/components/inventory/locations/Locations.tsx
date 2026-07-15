@@ -32,24 +32,25 @@ import {
   Box,
   Button,
   ButtonGroup,
+  CircularProgress,
   Collapse,
   Container,
   FormControlLabel,
   Icon,
   IconButton,
-  Paper,
   Stack,
   Switch,
+  Tooltip,
   Typography,
-  useTheme,
 } from '@mui/material';
-import type { Location } from '../../../types';
+import type { Container as ContainerType, Location } from '../../../types';
 import { useState } from 'react';
 import { AddLocation } from './AddLocation';
-import { AgGridReact } from 'ag-grid-react';
-import { type ColDef, themeMaterial } from 'ag-grid-community';
+import { type ColDef } from 'ag-grid-community';
 import { EditLocation } from './EditLocation';
 import { useAuth } from '../../../context/AuthContext';
+import { DataTable } from '../../shared/DataTable';
+import { useNavigate } from 'react-router-dom';
 
 type LocationProps = {
   location: Location;
@@ -110,21 +111,29 @@ const Location = ({ location, parent, setSelectedLocation, editing, onDelete }: 
             {location.type.icon && iconMap.get(location.type.icon)}
             {location.children.length > 0 && <Typography>({location.children.length})</Typography>}
           </Stack>
-          {editing && (
-            <ButtonGroup variant="contained">
-              <Button onClick={() => setOpen(true)} size="small">
-                <AddBox />
+          <ButtonGroup
+            variant="contained"
+            sx={{
+              visibility: editing ? 'visible' : 'hidden',
+              pointerEvents: editing ? 'auto' : 'none',
+            }}
+          >
+            <Button onClick={() => setOpen(true)} size="small">
+              <AddBox />
+            </Button>
+            <Button size="small" color="info" onClick={() => setOpenEdit(true)}>
+              <Edit />
+            </Button>
+            {(user?.role === 'lab_manager' || user?.role === 'coordinator') && (
+              <Button
+                size="small"
+                color="error"
+                onClick={() => onDelete.mutate(String(location.id))}
+              >
+                <Delete />
               </Button>
-              <Button size="small" onClick={() => setOpenEdit(true)}>
-                <Edit />
-              </Button>
-              {(user?.role === 'lab_manager' || user?.role === 'coordinator') && (
-                <Button size="small" onClick={() => onDelete.mutate(String(location.id))}>
-                  <Delete />
-                </Button>
-              )}
-            </ButtonGroup>
-          )}
+            )}
+          </ButtonGroup>
         </Stack>
       </Stack>
       <Collapse in={expanded}>
@@ -149,7 +158,12 @@ export const Locations = () => {
   const [open, setOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState('');
   const [editing, setEditing] = useState(false);
-  const { data: locations } = useQuery({
+  const {
+    data: locations,
+    isPending: isLocationsPending,
+    isError: isLocationsError,
+    error: locationsError,
+  } = useQuery({
     queryKey: locationKeys.list(),
     queryFn: getLocations,
   });
@@ -189,54 +203,54 @@ export const Locations = () => {
     { field: 'product_num', headerName: 'Product #' },
   ]);
 
-  const pagination = true;
-  const paginationPageSize = 50;
-  const paginationPageSizeSelector = [10, 25, 50];
-
-  const theme = useTheme();
-  const myTheme = themeMaterial.withParams({
-    accentColor: theme.palette.info.main,
-    backgroundColor: 'transparent',
-    foregroundColor: theme.palette.text.primary,
-    headerTextColor: theme.palette.text.primary,
-    browserColorScheme: theme.palette.mode,
-    wrapperBorderRadius: theme.shape.borderRadius,
-    textColor: theme.palette.text.primary,
-    borderColor: theme.palette.divider,
-    fontFamily: theme.typography.fontFamily,
-    fontSize: theme.typography.body2.fontSize,
-    checkboxCheckedShapeColor: theme.palette.text.primary,
-  });
+  const navigate = useNavigate();
 
   return (
-    <Container>
+    <Container maxWidth={false}>
       {mutation.isError && (
         <Alert
           severity="error"
           onClose={() => {
             mutation.reset();
           }}
+          sx={{ mb: 2 }}
         >
           {mutation.error.message}
         </Alert>
       )}
-      <Box sx={{ display: 'flex' }}>
-        <Typography variant="h3">Locations</Typography>
-        <AddLocation id={''} open={open} setOpen={setOpen} />
-        {editing && (
-          <IconButton sx={{ my: 'auto' }} size="large" onClick={() => setOpen(true)}>
-            <AddBox />
-          </IconButton>
-        )}
-        <FormControlLabel
-          control={<Switch checked={editing} onChange={() => setEditing((prev) => !prev)} />}
-          label="Editing"
-          sx={{ ml: 'auto' }}
-        />
-      </Box>
-      <Stack direction={'row'} spacing={2}>
+      {isLocationsError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {locationsError instanceof Error ? locationsError.message : 'Failed to load locations.'}
+        </Alert>
+      )}
+      <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3 }}>
         <Box>
-          {locations &&
+          <Stack direction={'row'} spacing={2}>
+            <Typography variant="h4">Locations</Typography>
+            <AddLocation id={''} open={open} setOpen={setOpen} />
+            <FormControlLabel
+              control={<Switch checked={editing} onChange={() => setEditing((prev) => !prev)} />}
+              label="Editing"
+            />
+            {editing && (
+              <Tooltip title="Add root location">
+                <IconButton onClick={() => setOpen(true)}>
+                  <AddBox />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Stack>
+          <Typography variant="body2" color="text.secondary">
+            Browse locations and the containers stored in them.
+          </Typography>
+        </Box>
+      </Stack>
+      <Stack direction={'row'} spacing={2}>
+        <Box sx={{ flexShrink: 0, maxWidth: 500 }}>
+          {isLocationsPending ? (
+            <CircularProgress size={24} />
+          ) : (
+            locations &&
             locations.map((l) => (
               <Location
                 location={l}
@@ -245,21 +259,19 @@ export const Locations = () => {
                 editing={editing}
                 onDelete={mutation}
               />
-            ))}
+            ))
+          )}
         </Box>
         <Box sx={{ flexGrow: 1 }}>
-          <Paper elevation={4} sx={{ height: '75dvh' }}>
-            <AgGridReact
-              loading={isPending}
-              theme={myTheme}
-              rowData={locationContainers}
-              columnDefs={colDefs}
-              pagination={pagination}
-              paginationPageSize={paginationPageSize}
-              paginationPageSizeSelector={paginationPageSizeSelector}
-              autoSizeStrategy={{ type: 'fitCellContents' }}
-            />
-          </Paper>
+          <DataTable<ContainerType>
+            isLoading={isPending}
+            rowData={locationContainers}
+            columnDefs={colDefs}
+            height="75dvh"
+            onCellDoubleClicked={(e) => {
+              navigate(`/inventory/containers/${e.data?.slug}`, { state: e.data });
+            }}
+          />
         </Box>
       </Stack>
     </Container>
