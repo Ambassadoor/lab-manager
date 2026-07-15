@@ -7,11 +7,13 @@ import {
   type CellDoubleClickedEvent,
   type CellValueChangedEvent,
   type ColDef,
+  type FirstDataRenderedEvent,
   type GetRowIdParams,
   type RowClickedEvent,
   type RowSelectionOptions,
 } from 'ag-grid-community';
 import { AgGridReact } from 'ag-grid-react';
+import { useState } from 'react';
 
 const NoRowsOverlay = () => <Typography color="text.secondary">No rows to display</Typography>;
 
@@ -80,6 +82,19 @@ export function DataTable<TData>({
 }: DataTableProps<TData>) {
   const theme = useTheme();
   const { mode } = useColorScheme();
+  const [contentWidth, setContentWidth] = useState<number>();
+
+  // fitCellContents sizes each column to its own content, but the grid's
+  // wrapper div still stretches to fill its flex/grid parent by default —
+  // this measures the columns' actual total width once they're sized, so
+  // the wrapper (and its shadow) can shrink to match instead of leaving a
+  // blank stretch of grid past the last column.
+  const onFirstDataRendered = (params: FirstDataRenderedEvent<TData>) => {
+    const totalWidth = params.api
+      .getColumnState()
+      .reduce((sum, col) => sum + (col.hide ? 0 : (col.width ?? 0)), 0);
+    setContentWidth(totalWidth);
+  };
 
   // MUI's dark-mode Paper elevation shading is `linear-gradient(c, c)` — the
   // same color at both stops, i.e. just a flat translucent white layer, not
@@ -124,6 +139,9 @@ export function DataTable<TData>({
     <Box
       sx={{
         height,
+        width: contentWidth ? `${contentWidth}px` : '100%',
+        maxWidth: '100%',
+        mx: 'auto',
         boxShadow: theme.shadows[elevation],
         // Matches wrapperBorderRadius above, so the shadow follows the same
         // rounded shape ag-grid's own wrapper already renders.
@@ -145,6 +163,7 @@ export function DataTable<TData>({
         paginationPageSize={pageSize}
         paginationPageSizeSelector={pageSizeOptions}
         autoSizeStrategy={{ type: 'fitCellContents' }}
+        onFirstDataRendered={onFirstDataRendered}
         noRowsOverlayComponent={NoRowsOverlay}
         activeOverlay={isError ? ErrorOverlay : undefined}
         activeOverlayParams={isError ? ({ errorMessage } satisfies ErrorOverlayProps) : undefined}

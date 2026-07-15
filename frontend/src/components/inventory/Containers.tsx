@@ -88,24 +88,26 @@ export const Containers = () => {
   const navigate = useNavigate();
 
   return (
-    <Container>
+    <Container maxWidth={false}>
       <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3 }}>
-        <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="h4">Containers</Typography>
+        <Box>
+          <Stack direction={'row'} spacing={2}>
+            <Typography variant="h4">Containers</Typography>
+            <Tooltip title="Add container">
+              <IconButton
+                onClick={() => {
+                  navigate('new');
+                  setOpen(true);
+                }}
+              >
+                <AddBox />
+              </IconButton>
+            </Tooltip>
+          </Stack>
           <Typography variant="body2" color="text.secondary">
             Browse and edit containers in inventory.
           </Typography>
         </Box>
-        <Tooltip title="Add container">
-          <IconButton
-            onClick={() => {
-              navigate('new');
-              setOpen(true);
-            }}
-          >
-            <AddBox />
-          </IconButton>
-        </Tooltip>
       </Stack>
       <Box>
         <DataTable<ContainerType>

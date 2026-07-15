@@ -3,7 +3,9 @@
     "allow": [
       "Bash(pnpm dev *)",
       "Bash(pkill -f \"vite\")",
-      "Bash(jobs -l)"
+      "Bash(jobs -l)",
+      "Bash(pnpm lint *)",
+      "Bash(pnpm format *)"
     ]
   }
 }

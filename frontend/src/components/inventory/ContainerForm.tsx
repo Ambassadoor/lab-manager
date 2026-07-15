@@ -1067,7 +1067,7 @@ export const ContainerForm = () => {
                   variant="outlined"
                   onClick={() => {
                     sessionStorage.removeItem('container_form_cache');
-                    reset()
+                    reset();
                     navigate('/');
                   }}
                 >

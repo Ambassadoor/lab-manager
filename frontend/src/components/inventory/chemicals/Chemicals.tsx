@@ -77,23 +77,25 @@ export const Chemicals = () => {
   ]);
 
   return (
-    <Container>
+    <Container maxWidth={false}>
       <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3 }}>
-        <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="h4">Chemicals</Typography>
+        <Box>
+          <Stack direction={'row'} spacing={2}>
+            <Typography variant="h4">Chemicals</Typography>
+            <Tooltip title="Add chemical">
+              <IconButton
+                onClick={() => {
+                  setOpen(true);
+                }}
+              >
+                <AddBox />
+              </IconButton>
+            </Tooltip>
+          </Stack>
           <Typography variant="body2" color="text.secondary">
             Browse the chemical catalog.
           </Typography>
         </Box>
-        <Tooltip title="Add chemical">
-          <IconButton
-            onClick={() => {
-              setOpen(true);
-            }}
-          >
-            <AddBox />
-          </IconButton>
-        </Tooltip>
       </Stack>
       <AddChemical open={open} setOpen={setOpen} />
       <Box>

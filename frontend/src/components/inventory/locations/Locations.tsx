@@ -198,7 +198,7 @@ export const Locations = () => {
   const navigate = useNavigate();
 
   return (
-    <Container>
+    <Container maxWidth={false}>
       {mutation.isError && (
         <Alert
           severity="error"
@@ -216,24 +216,26 @@ export const Locations = () => {
         </Alert>
       )}
       <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3 }}>
-        <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="h4">Locations</Typography>
+        <Box>
+          <Stack direction={'row'} spacing={2}>
+            <Typography variant="h4">Locations</Typography>
+            <AddLocation id={''} open={open} setOpen={setOpen} />
+            <FormControlLabel
+              control={<Switch checked={editing} onChange={() => setEditing((prev) => !prev)} />}
+              label="Editing"
+            />
+            {editing && (
+              <Tooltip title="Add root location">
+                <IconButton onClick={() => setOpen(true)}>
+                  <AddBox />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Stack>
           <Typography variant="body2" color="text.secondary">
             Browse locations and the containers stored in them.
           </Typography>
         </Box>
-        <AddLocation id={''} open={open} setOpen={setOpen} />
-        {editing && (
-          <Tooltip title="Add root location">
-            <IconButton onClick={() => setOpen(true)}>
-              <AddBox />
-            </IconButton>
-          </Tooltip>
-        )}
-        <FormControlLabel
-          control={<Switch checked={editing} onChange={() => setEditing((prev) => !prev)} />}
-          label="Editing"
-        />
       </Stack>
       <Stack direction={'row'} spacing={2}>
         <Box>
