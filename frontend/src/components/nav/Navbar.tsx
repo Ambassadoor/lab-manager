@@ -33,6 +33,15 @@ export const Navbar = (): JSX.Element | null => {
     setUserMenuEl(null);
   };
 
+  const [actionsMenuEl, setActionsMenuEl] = useState<null | HTMLElement>(null);
+  const actionsMenuOpen = Boolean(actionsMenuEl);
+  const handleActionsMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setActionsMenuEl(event.currentTarget);
+  };
+  const handleActionsMenuClose = () => {
+    setActionsMenuEl(null);
+  };
+
   const navigate = useNavigate();
   const navigation = useNavigation();
 
@@ -92,22 +101,71 @@ export const Navbar = (): JSX.Element | null => {
                   >
                     Add Container
                   </Button>
-                  <Button
-                    component={NavLink}
-                    to="/inventory/containers/actions/"
-                    color="inherit"
-                    sx={{
-                      '&.active': {
-                        textDecorationLine: 'underline',
-                        textDecorationColor: theme.palette.secondary.main,
-                        textDecorationThickness: 2,
-                        textUnderlineOffset: 5,
-                      },
-                    }}
-                    end
+                  <Box
+                    onMouseEnter={handleActionsMenuOpen}
+                    onMouseLeave={handleActionsMenuClose}
+                    sx={{ display: 'inline-flex' }}
                   >
-                    Actions
-                  </Button>
+                    <Button
+                      component={NavLink}
+                      to="/inventory/containers/actions/"
+                      color="inherit"
+                      sx={{
+                        '&.active': {
+                          textDecorationLine: 'underline',
+                          textDecorationColor: theme.palette.secondary.main,
+                          textDecorationThickness: 2,
+                          textUnderlineOffset: 5,
+                        },
+                      }}
+                      aria-controls={actionsMenuOpen ? 'actions-menu' : undefined}
+                      aria-haspopup="true"
+                      aria-expanded={actionsMenuOpen}
+                      end
+                    >
+                      Actions
+                    </Button>
+                    <Menu
+                      id="actions-menu"
+                      anchorEl={actionsMenuEl}
+                      open={actionsMenuOpen}
+                      onClose={handleActionsMenuClose}
+                      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                      disableAutoFocus
+                      disableEnforceFocus
+                      disableRestoreFocus
+                      sx={{ pointerEvents: 'none' }}
+                      slotProps={{
+                        paper: {
+                          onMouseLeave: handleActionsMenuClose,
+                          sx: { pointerEvents: 'auto' },
+                        },
+                        list: { onMouseLeave: handleActionsMenuClose },
+                      }}
+                    >
+                      <MenuItem
+                        component={Link}
+                        to="/inventory/containers/actions/?tab=0"
+                        onClick={handleActionsMenuClose}
+                      >
+                        Check Out
+                      </MenuItem>
+                      <MenuItem
+                        component={Link}
+                        to="/inventory/containers/actions/?tab=1"
+                        onClick={handleActionsMenuClose}
+                      >
+                        Check In
+                      </MenuItem>
+                      <MenuItem
+                        component={Link}
+                        to="/inventory/containers/actions/?tab=2"
+                        onClick={handleActionsMenuClose}
+                      >
+                        Transfer Location
+                      </MenuItem>
+                    </Menu>
+                  </Box>
                   <Button
                     component={NavLink}
                     to="/inventory/locations/"

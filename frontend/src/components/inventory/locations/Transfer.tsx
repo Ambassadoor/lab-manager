@@ -1,20 +1,11 @@
-import {
-  Button,
-  Card,
-  CardActions,
-  CardContent,
-  CardHeader,
-  Container,
-  MenuItem,
-  Stack,
-  TextField,
-} from '@mui/material';
+import { Button, MenuItem, Stack, TextField } from '@mui/material';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { locationKeys } from '../../../api/queryKeys';
 import { getLocationMenu, transferContainers } from '../../../api/inventory';
 import { ScannableFieldRow } from '../../shared/ScannableFieldRow';
+import { ActionFormCard } from '../../shared/ActionFormCard';
 
 export const Transfer = () => {
   const { control, clearErrors, reset, resetField, handleSubmit, setFocus, getValues, setValue } =
@@ -53,88 +44,86 @@ export const Transfer = () => {
   };
 
   return (
-    <Container>
-      <Card component={'form'}>
-        <CardHeader
-          title={'Transfer Location'}
-          subheader={`Add ID's of containers you are moving.`}
-        />
-        <CardContent>
-          <Stack spacing={2}>
-            {fields.map((field, index) => (
-              <ScannableFieldRow
-                key={field.id}
-                control={control}
-                name={`containers.${index}.slug`}
-                label={`Container #${index + 1}`}
-                clearErrors={clearErrors}
-                onScan={(scannedId, setFieldValue) => {
-                  const isDuplicate = getValues('containers').some(
-                    (c) => c.slug.toLocaleLowerCase() === scannedId.toLocaleLowerCase()
-                  );
-                  if (isDuplicate) {
-                    resetField(`containers.${index}.slug`);
-                    return;
-                  } else if (scannedId.toLocaleLowerCase().includes('loc')) {
-                    setValue('location', scannedId.split('-')[1]);
-                    handleSubmit(onSubmit)();
-                    resetField(`containers.${index}.slug`);
-                    return;
-                  }
-                  setFieldValue(scannedId);
-                  append({ slug: '' });
-                }}
-                showRemove={index > 0}
-                onRemove={() => remove(index)}
-                onAdd={() => {
-                  append({ slug: '' });
-                  setFocus(`containers.${fields.length}.slug`);
-                }}
-                justScannedRef={justScannedRef}
-              />
-            ))}
-          </Stack>
-          <Controller
-            control={control}
-            name="location"
-            render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
-              <TextField
-                {...field}
-                fullWidth
-                error={!!error}
-                helperText={error?.message}
-                label="New Location"
-                onChange={(e) => {
-                  onChange(e);
-                  clearErrors(name);
-                }}
-                select
-                sx={{
-                  mt: 2,
-                }}
-              >
-                {locationMenu ? (
-                  locationMenu.map((l) => (
-                    <MenuItem key={l.id} value={l.id}>
-                      {l.full_path}
-                    </MenuItem>
-                  ))
-                ) : (
-                  <MenuItem>Loading</MenuItem>
-                )}
-              </TextField>
-            )}
-          />
-        </CardContent>
-        <CardActions>
-          <Button variant={'contained'} onClick={handleSubmit(onSubmit)} type="submit">
+    <ActionFormCard
+      title={'Transfer Location'}
+      subheader={`Add ID's of containers you are moving.`}
+      onSubmit={handleSubmit(onSubmit)}
+      actions={
+        <>
+          <Button type="submit" variant="contained">
             Transfer
           </Button>
-          <Button variant={'outlined'} onClick={() => reset()}>
+          <Button variant="outlined" onClick={() => reset()}>
             Cancel
           </Button>
-        </CardActions>
-      </Card>
-    </Container>
+        </>
+      }
+    >
+      <Stack spacing={2}>
+        {fields.map((field, index) => (
+          <ScannableFieldRow
+            key={field.id}
+            control={control}
+            name={`containers.${index}.slug`}
+            label={`Container #${index + 1}`}
+            clearErrors={clearErrors}
+            onScan={(scannedId, setFieldValue) => {
+              const isDuplicate = getValues('containers').some(
+                (c) => c.slug.toLocaleLowerCase() === scannedId.toLocaleLowerCase()
+              );
+              if (isDuplicate) {
+                resetField(`containers.${index}.slug`);
+                return;
+              } else if (scannedId.toLocaleLowerCase().includes('loc')) {
+                setValue('location', scannedId.split('-')[1]);
+                handleSubmit(onSubmit)();
+                resetField(`containers.${index}.slug`);
+                return;
+              }
+              setFieldValue(scannedId);
+              append({ slug: '' });
+            }}
+            showRemove={index > 0}
+            onRemove={() => remove(index)}
+            onAdd={() => {
+              append({ slug: '' });
+              setFocus(`containers.${fields.length}.slug`);
+            }}
+            justScannedRef={justScannedRef}
+          />
+        ))}
+      </Stack>
+      <Controller
+        control={control}
+        name="location"
+        render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
+          <TextField
+            {...field}
+            fullWidth
+            error={!!error}
+            helperText={error?.message}
+            label="New Location"
+            onChange={(e) => {
+              onChange(e);
+              clearErrors(name);
+            }}
+            select
+            sx={{
+              mt: 2,
+            }}
+          >
+            {locationMenu ? (
+              locationMenu.map((l) => (
+                <MenuItem key={l.id} value={l.id}>
+                  {l.full_path}
+                </MenuItem>
+              ))
+            ) : (
+              <MenuItem>Loading</MenuItem>
+            )}
+          </TextField>
+        )}
+      />
+    </ActionFormCard>
   );
 };

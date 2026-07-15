@@ -1,6 +1,5 @@
 import { TabContext, TabList, TabPanel } from '@mui/lab';
 import { Box, Container, Paper, Tab, Typography } from '@mui/material';
-import { useState } from 'react';
 import { Checkout } from './Checkout';
 import { WeighIn } from './WeighIn';
 import { useSearchParams } from 'react-router-dom';
@@ -9,12 +8,11 @@ import { Transfer } from './locations/Transfer';
 // A quick access component for various container actions
 export const ContainerActions = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [value, setValue] = useState(Number(searchParams.get('tab')) || 0);
+  const value = Number(searchParams.get('tab')) || 0;
 
   //Adds the tab index to the url for better user navigation
-  const handleChange = (_: React.SyntheticEvent, value: string) => {
-    setValue(Number(value));
-    setSearchParams({ tab: value });
+  const handleChange = (_: React.SyntheticEvent, newValue: string) => {
+    setSearchParams({ tab: newValue });
   };
   return (
     <Container>
