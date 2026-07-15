@@ -152,12 +152,6 @@ export const WeighIn = () => {
                         });
                       },
                       onError: (error) => {
-                        //TODO: Remove setValue and append() just for testing since I don't have scale atm
-                        setValue(`checkin.${index}.weight`, '100');
-                        append({
-                          slug: '',
-                          weight: '',
-                        });
                         setSnackbar({ message: error.message, severity: 'error' });
                       },
                     });
