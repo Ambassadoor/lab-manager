@@ -184,7 +184,7 @@ export const WeighIn = () => {
         </CardContent>
         <CardActions>
           <Button type="submit" variant="contained">
-            Submit
+            Check In
           </Button>
           <Button variant="outlined" onClick={() => reset()}>
             Cancel
