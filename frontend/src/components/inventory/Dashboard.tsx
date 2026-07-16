@@ -108,6 +108,9 @@ export const Dashboard = () => {
   } = useQuery({
     queryKey: dashboardKeys.all,
     queryFn: getDashboard,
+    // Always refetch on view — this is an at-a-glance screen, and the global
+    // 5-minute staleTime would otherwise let it show stale counts.
+    staleTime: 0,
   });
 
   return (

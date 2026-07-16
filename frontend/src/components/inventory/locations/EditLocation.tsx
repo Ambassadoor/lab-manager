@@ -188,7 +188,9 @@ export const EditLocation = ({ location, parent, open, setOpen }: EditLocationPr
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button type="submit">Submit</Button>
+        <Button type="submit" loading={mutation.isPending}>
+          Submit
+        </Button>
         <Button
           onClick={() => {
             setOpen(false);

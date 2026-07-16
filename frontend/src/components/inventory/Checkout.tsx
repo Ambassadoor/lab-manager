@@ -2,7 +2,7 @@ import { Close } from '@mui/icons-material';
 import { Alert, Button, IconButton, Snackbar, Stack } from '@mui/material';
 import { useFieldArray, useForm, type SubmitHandler } from 'react-hook-form';
 import { checkIfDiscarded, checkOutContainers } from '../../api/inventory';
-import { containerKeys } from '../../api/queryKeys';
+import { containerKeys, dashboardKeys } from '../../api/queryKeys';
 import { useRef, useState, type SyntheticEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ScannableFieldRow } from '../shared/ScannableFieldRow';
@@ -11,7 +11,16 @@ import { ActionFormCard } from '../shared/ActionFormCard';
 //Component for marking a container as checked out
 export const Checkout = () => {
   const [open, setOpen] = useState(false);
-  const { control, clearErrors, handleSubmit, resetField, reset, setFocus, getValues } = useForm({
+  const {
+    control,
+    clearErrors,
+    handleSubmit,
+    resetField,
+    reset,
+    setFocus,
+    getValues,
+    formState: { isSubmitting, isValidating },
+  } = useForm({
     mode: 'onBlur',
     reValidateMode: 'onBlur',
     defaultValues: {
@@ -51,7 +60,7 @@ export const Checkout = () => {
         queryKey: containerKeys.list(),
       });
       qc.invalidateQueries({
-        queryKey: ['dashboardData'],
+        queryKey: dashboardKeys.all,
       });
       reset();
       setOpen(true);
@@ -94,7 +103,7 @@ export const Checkout = () => {
         onSubmit={handleSubmit(onSubmit)}
         actions={
           <>
-            <Button type="submit" variant="contained">
+            <Button type="submit" variant="contained" loading={isSubmitting || isValidating}>
               {'Checkout'}
             </Button>
             <Button variant="outlined" onClick={() => resetField('checkout')}>

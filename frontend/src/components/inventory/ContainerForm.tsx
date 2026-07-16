@@ -42,7 +42,7 @@ import {
   submitNewContainerForm,
 } from '../../api/inventory';
 import { getBalanceWeight, printLabel } from '../../api/bridge';
-import { containerKeys, chemicalKeys, locationKeys } from '../../api/queryKeys';
+import { containerKeys, chemicalKeys, dashboardKeys, locationKeys } from '../../api/queryKeys';
 import { DateField } from '@mui/x-date-pickers';
 import { type ContainerFormDefaults, type CasCheck, type Location } from '../../types';
 import { useNavigate } from 'react-router-dom';
@@ -98,7 +98,7 @@ export const ContainerForm = () => {
   const {
     control,
     clearErrors,
-    formState: { errors, dirtyFields, touchedFields, ...rest },
+    formState: { errors, dirtyFields, touchedFields, isSubmitting, isValidating, ...rest },
     setValue,
     trigger,
     resetField,
@@ -301,6 +301,7 @@ export const ContainerForm = () => {
     const response = await submitNewContainerForm(data);
     sessionStorage.removeItem('container_form_cache');
     queryClient.invalidateQueries({ queryKey: containerKeys.list() });
+    queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
     if (data.print) {
       printLabel({
         template: 1,
@@ -346,6 +347,8 @@ export const ContainerForm = () => {
           errors: errors,
           touchedFields: touchedFields,
           dirtyFields: dirtyFields,
+          isSubmitting: isSubmitting,
+          isValidating: isValidating,
           ...rest,
         }}
       >
@@ -1060,7 +1063,7 @@ export const ContainerForm = () => {
               </Stack>
               <Divider />
               <Stack direction={'row'} spacing={2} sx={{ justifyContent: 'right' }}>
-                <Button variant="contained" type="submit">
+                <Button variant="contained" type="submit" loading={isSubmitting || isValidating}>
                   Submit
                 </Button>
                 <Button

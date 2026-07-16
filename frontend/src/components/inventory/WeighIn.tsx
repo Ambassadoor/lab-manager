@@ -2,7 +2,7 @@ import { Alert, Button, IconButton, Snackbar, Stack } from '@mui/material';
 import { useFieldArray, useForm, type SubmitHandler } from 'react-hook-form';
 import { checkIfDiscarded, createWeighIn } from '../../api/inventory';
 import { getBalanceWeight } from '../../api/bridge';
-import { containerKeys } from '../../api/queryKeys';
+import { containerKeys, dashboardKeys } from '../../api/queryKeys';
 import type { WeighInDefaults } from '../../types';
 import { useRef, useState } from 'react';
 import { Close } from '@mui/icons-material';
@@ -15,19 +15,28 @@ type SnackbarState = { message: string; severity: 'success' | 'error' };
 
 export const WeighIn = () => {
   const [snackbar, setSnackbar] = useState<SnackbarState | null>(null);
-  const { control, handleSubmit, clearErrors, reset, setFocus, setValue, getValues, resetField } =
-    useForm({
-      mode: 'onBlur',
-      reValidateMode: 'onBlur',
-      defaultValues: {
-        checkin: [
-          {
-            slug: '',
-            weight: '',
-          },
-        ],
-      },
-    });
+  const {
+    control,
+    handleSubmit,
+    clearErrors,
+    reset,
+    setFocus,
+    setValue,
+    getValues,
+    resetField,
+    formState: { isSubmitting, isValidating },
+  } = useForm({
+    mode: 'onBlur',
+    reValidateMode: 'onBlur',
+    defaultValues: {
+      checkin: [
+        {
+          slug: '',
+          weight: '',
+        },
+      ],
+    },
+  });
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -53,6 +62,8 @@ export const WeighIn = () => {
       reset();
       // .all, not .list() — also refreshes this container's weigh-in history table
       queryClient.invalidateQueries({ queryKey: containerKeys.all });
+      // restock_soon on the dashboard depends on percent_remaining, which shifts with every reading
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
     }
   };
 
@@ -85,7 +96,7 @@ export const WeighIn = () => {
         onSubmit={handleSubmit(onSubmit)}
         actions={
           <>
-            <Button type="submit" variant="contained">
+            <Button type="submit" variant="contained" loading={isSubmitting || isValidating}>
               Check In
             </Button>
             <Button variant="outlined" onClick={() => reset()}>

@@ -5,10 +5,13 @@ import {
   CardActions,
   CardContent,
   CardHeader,
+  Chip,
   Collapse,
+  Divider,
   IconButton,
   InputAdornment,
   Stack,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import { useState } from 'react';
@@ -21,7 +24,7 @@ import {
 } from '../../api/inventory';
 import { containerKeys, locationKeys } from '../../api/queryKeys';
 import type { Container, ContainerDetailDefaults } from '../../types';
-import { Edit, ExpandLess, ExpandMore, UnfoldMore } from '@mui/icons-material';
+import { Close, Edit, ExpandLess, ExpandMore, UnfoldMore } from '@mui/icons-material';
 import { ToggleField } from '../shared/ToggleField';
 import { Controller, FormProvider, useForm, type SubmitHandler } from 'react-hook-form';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -29,10 +32,11 @@ import { WeighInTable } from './WeighinTable';
 
 type ContainerDetailProps = {
   data?: Container;
+  onClose?: () => void;
 };
 
 //A convertible detail/edit component for containers
-export const ContainerDetail = ({ data }: ContainerDetailProps) => {
+export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
@@ -114,7 +118,11 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
           sx={{ display: 'flex', justifyContent: 'center' }}
           component={'form'}
         >
-          <Card sx={{ width: `${data ? '25dvw' : '50dvw'}`, alignSelf: 'center' }} elevation={4}>
+          <Card
+            sx={{ width: `${data ? '25dvw' : '50dvw'}`, alignSelf: 'center' }}
+            variant={data ? 'outlined' : 'elevation'}
+            elevation={data ? 0 : 4}
+          >
             <CardHeader
               title={
                 !editing ? (
@@ -158,9 +166,17 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
                   <IconButton onClick={() => setEditing((prev) => !prev)}>
                     <Edit />
                   </IconButton>
+                  {onClose && (
+                    <Tooltip title="Close">
+                      <IconButton onClick={onClose}>
+                        <Close />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                 </Box>
               }
             />
+            <Divider />
             <CardContent>
               <Stack spacing={2}>
                 <Controller
@@ -309,12 +325,20 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
                   )}
                 />
 
-                <Typography>
-                  <strong>Status:</strong>{' '}
-                  {container.checkout_status?.action === 'out'
-                    ? `Checked out by ${container.checkout_status?.user.full_name}`
-                    : 'Available'}
-                </Typography>
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                  <Typography>
+                    <strong>Status:</strong>
+                  </Typography>
+                  <Chip
+                    size="small"
+                    color={container.checkout_status?.action === 'out' ? 'warning' : 'success'}
+                    label={
+                      container.checkout_status?.action === 'out'
+                        ? `Checked out by ${container.checkout_status?.user.full_name}`
+                        : 'Available'
+                    }
+                  />
+                </Stack>
                 {container.latest_reading && (
                   <Typography>
                     <strong>Current Weight:</strong> {parseFloat(container.latest_reading.weight)} g
@@ -329,7 +353,7 @@ export const ContainerDetail = ({ data }: ContainerDetailProps) => {
             </CardContent>
             {editing && (
               <CardActions sx={{ ml: 'auto' }}>
-                <Button type="submit" variant="contained">
+                <Button type="submit" variant="contained" loading={formState.isSubmitting}>
                   Submit
                 </Button>
                 <Button variant="outlined" onClick={() => setEditing(false)}>
