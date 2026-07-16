@@ -129,7 +129,7 @@ export const Containers = () => {
         />
       </Box>
       <Drawer open={open} onClose={() => setOpen((prev) => !prev)} anchor="right">
-        <ContainerDetail data={selectedRow} />
+        <ContainerDetail data={selectedRow} onClose={() => setOpen(false)} />
       </Drawer>
       <Snackbar open={!!editError} autoHideDuration={6000} onClose={() => setEditError(null)}>
         <Alert severity="error" onClose={() => setEditError(null)}>

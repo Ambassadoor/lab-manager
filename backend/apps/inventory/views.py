@@ -209,7 +209,6 @@ class ContainerView(ModelViewSet):
             for chem in request_chems:
                 serializer = ChemicalSerializer(data=chem)
                 try:
-                    print(chem.get("cas"))
                     c = chemicals.get(cas=chem.get("cas"))
                 except Chemical.DoesNotExist:
                     serializer.is_valid(raise_exception=True)
@@ -224,11 +223,17 @@ class ContainerView(ModelViewSet):
         else:
             # Handles creating a single chemical if only one cas# was provided
             request_chem = data.get("chemicals")[0]
+            storage_category_id = request_chem.get("storage_category")
+            if storage_category_id:
+                request_chem["storage_category"] = ChemicalStorageCategories.objects.filter(
+                    pk=storage_category_id
+                ).first()
             chemical, created = Chemical.objects.get_or_create(cas=request_chem.get("cas"))
             if created:
                 chemical.molecular_weight = request_chem.get("molecular_weight")
                 chemical.name = request_chem.get("name")
                 chemical.storage_category = request_chem.get("storage_category")
+                chemical.save()
         # Creates the new container
         new_container = {
             "name": data.get("name"),

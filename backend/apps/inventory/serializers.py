@@ -15,6 +15,7 @@ from apps.users.serializers import UserCheckoutEventSerializer
 
 from decimal import Decimal
 from decimal import DecimalException
+from decimal import ROUND_HALF_UP
 
 
 class ChemicalSerializer(serializers.ModelSerializer):
@@ -160,7 +161,8 @@ class ContainerSerializer(serializers.ModelSerializer):
             else:
                 return None
 
-            return ((current_weight - tare_weight) / mass) * 100
+            percent_remaining = ((current_weight - tare_weight) / mass) * 100
+            return percent_remaining.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
         except DecimalException:
             return None
 

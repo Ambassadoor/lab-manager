@@ -187,7 +187,11 @@ export const Locations = () => {
   //TODO: Need to add confirmation message to prevent accidental deletions
   const mutation = useMutation({
     mutationFn: (id: string) => deleteLocation(id),
-    onSuccess: () => {
+    onSuccess: (_data, deletedId) => {
+      // Clear the selection first so the invalidation below refetches
+      // containers for '' (getContainers) instead of re-requesting the
+      // now-deleted location's containers endpoint (404).
+      setSelectedLocation((prev) => (prev === deletedId ? '' : prev));
       // .all — a deleted location can also affect the menu dropdown and any open containers view
       qc.invalidateQueries({
         queryKey: locationKeys.all,

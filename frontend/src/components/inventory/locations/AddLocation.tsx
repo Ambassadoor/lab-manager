@@ -63,7 +63,13 @@ export const AddLocation = ({ id, open, setOpen }: AddLocationProps) => {
     queryFn: getLocationTypes,
   });
 
-  const { control, clearErrors, handleSubmit, reset } = useForm({
+  const {
+    control,
+    clearErrors,
+    handleSubmit,
+    reset,
+    formState: { isValidating },
+  } = useForm({
     defaultValues: {
       name: '',
       type: '',
@@ -279,7 +285,7 @@ export const AddLocation = ({ id, open, setOpen }: AddLocationProps) => {
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button type="submit" variant="contained">
+        <Button type="submit" variant="contained" loading={mutation.isPending || isValidating}>
           Submit
         </Button>
         <Button

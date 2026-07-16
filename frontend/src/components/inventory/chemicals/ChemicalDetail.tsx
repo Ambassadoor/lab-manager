@@ -64,7 +64,7 @@ export const ChemicalDetail = () => {
     control,
     clearErrors,
     handleSubmit,
-    formState: { dirtyFields },
+    formState: { dirtyFields, isValidating },
   } = useForm({
     mode: 'onBlur',
     reValidateMode: 'onBlur',
@@ -258,7 +258,11 @@ export const ChemicalDetail = () => {
           </CardContent>
           {editing && (
             <CardActions>
-              <Button type="submit" variant="contained">
+              <Button
+                type="submit"
+                variant="contained"
+                loading={mutation.isPending || isValidating}
+              >
                 Submit
               </Button>
               <Button

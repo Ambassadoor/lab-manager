@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Dialog,
   DialogActions,
@@ -13,6 +14,7 @@ import { addChemical, getChemicalByCas, getStorageCategories } from '../../../ap
 import { chemicalKeys } from '../../../api/queryKeys';
 import { cas_is_valid } from '../../shared/checkCas';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 
 type AddChemicalProps = {
   open: boolean;
@@ -34,7 +36,13 @@ export const AddChemical = ({ open, setOpen }: AddChemicalProps) => {
     queryFn: getStorageCategories,
   });
 
-  const { handleSubmit, control, reset, clearErrors } = useForm({
+  const {
+    handleSubmit,
+    control,
+    reset,
+    clearErrors,
+    formState: { isValidating },
+  } = useForm({
     mode: 'onBlur',
     reValidateMode: 'onBlur',
     defaultValues: {
@@ -47,20 +55,22 @@ export const AddChemical = ({ open, setOpen }: AddChemicalProps) => {
   });
 
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const mutation = useMutation({
     mutationFn: addChemical,
-    onSuccess: () => {
+    onSuccess: (chemical) => {
       qc.invalidateQueries({
         queryKey: chemicalKeys.list(),
       });
+      reset();
+      setOpen(false);
+      navigate(`/inventory/chemicals/${chemical.id}`);
     },
   });
 
   const onSubmit = (data: ChemicalDefaults) => {
     mutation.mutate(data);
-    reset();
-    setOpen(false);
   };
 
   return (
@@ -76,6 +86,17 @@ export const AddChemical = ({ open, setOpen }: AddChemicalProps) => {
     >
       <DialogTitle>Add Chemical</DialogTitle>
       <DialogContent>
+        {mutation.isError && (
+          <Alert
+            severity="error"
+            onClose={() => {
+              mutation.reset();
+            }}
+            sx={{ mb: 2 }}
+          >
+            {mutation.error.message}
+          </Alert>
+        )}
         <Stack
           spacing={2}
           sx={{
@@ -121,8 +142,13 @@ export const AddChemical = ({ open, setOpen }: AddChemicalProps) => {
                   if (!cas_is_valid(value)) return 'Invalid CAS number';
                 },
                 duplicate: async (value) => {
-                  const chem = await getChemicalByCas(value);
-                  if (chem.chemicals.length > 0) return 'A chemical with this CAS # already exists';
+                  try {
+                    const chem = await getChemicalByCas(value);
+                    if (chem.chemicals.length > 0)
+                      return 'A chemical with this CAS # already exists';
+                  } catch {
+                    return 'Unable to verify CAS number. Please try again.';
+                  }
                 },
               },
             }}
@@ -212,7 +238,7 @@ export const AddChemical = ({ open, setOpen }: AddChemicalProps) => {
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button type="submit" variant="contained">
+        <Button type="submit" variant="contained" loading={mutation.isPending || isValidating}>
           Submit
         </Button>
         <Button
