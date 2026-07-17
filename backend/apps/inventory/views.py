@@ -152,12 +152,17 @@ class ContainerView(ModelViewSet):
         for slug in data:
             try:
                 container = Container.objects.get(slug=slug)
-                # Adds a relation to the most recent event if it is a checkout event
-                try:
-                    last_check_out = container.events.filter(
-                        related_event__exact=None, action__exact="out"
-                    ).order_by("-timestamp")[:1][0]
-                except IndexError:
+                # Adds a relation to the most recent event only if it is a checkout
+                # event that hasn't already been checked in (a "related_event" is
+                # only ever set on "in" events, so checking it on the "out" event
+                # itself is a no-op — we need the reverse `check_in_event` relation).
+                last_check_out = (
+                    container.events.filter(action="out").order_by("-timestamp").first()
+                )
+                if (
+                    last_check_out is not None
+                    and CheckoutEvent.objects.filter(related_event=last_check_out).exists()
+                ):
                     last_check_out = None
                 events.append(
                     {
@@ -347,11 +352,14 @@ class ContainerView(ModelViewSet):
             readings_data.append(
                 {"container": container.id, "weight": weights_by_slug[container.slug_lower]}
             )
-            try:
-                last_check_out = container.events.filter(
-                    related_event__exact=None, action__exact="out"
-                ).order_by("-timestamp")[:1][0]
-            except IndexError:
+            # Only attach to the most recent checkout if it hasn't already been
+            # checked in (see check_in above for why related_event__exact=None
+            # on the "out" event itself is a no-op).
+            last_check_out = container.events.filter(action="out").order_by("-timestamp").first()
+            if (
+                last_check_out is not None
+                and CheckoutEvent.objects.filter(related_event=last_check_out).exists()
+            ):
                 last_check_out = None
             events_data.append(
                 {
