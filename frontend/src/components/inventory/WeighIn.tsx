@@ -1,5 +1,5 @@
 import { Alert, Button, IconButton, Snackbar, Stack } from '@mui/material';
-import { useFieldArray, useForm, type SubmitHandler } from 'react-hook-form';
+import { useFieldArray, useForm, useWatch, type SubmitHandler } from 'react-hook-form';
 import { checkIfDiscarded, createWeighIn } from '../../api/inventory';
 import { getBalanceWeight } from '../../api/bridge';
 import { containerKeys, dashboardKeys } from '../../api/queryKeys';
@@ -43,6 +43,8 @@ export const WeighIn = () => {
     name: 'checkin',
   });
 
+  const checkinValues = useWatch({ control, name: 'checkin' });
+
   const queryClient = useQueryClient();
 
   // Tracks whether the last onChange was a completed barcode scan, so we only
@@ -56,7 +58,9 @@ export const WeighIn = () => {
   const scaleMutation = useMutation({ mutationFn: getBalanceWeight });
 
   const onSubmit: SubmitHandler<WeighInDefaults> = async (data) => {
-    const response = await createWeighIn(data);
+    const checkin = data.checkin.filter((c) => c.slug.trim().length > 0);
+    if (checkin.length === 0) return;
+    const response = await createWeighIn({ checkin });
     if (response.readings.length > 0) {
       setSnackbar({ message: 'Weigh in recorded.', severity: 'success' });
       reset();
@@ -171,6 +175,7 @@ export const WeighIn = () => {
                 clearErrors={clearErrors}
                 onError={(message) => setSnackbar({ message, severity: 'error' })}
                 scaleMutation={scaleMutation}
+                required={!!checkinValues?.[index]?.slug}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && justScannedRef.current) {
                     e.preventDefault();
