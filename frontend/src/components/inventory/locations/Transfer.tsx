@@ -144,6 +144,12 @@ export const Transfer = () => {
         <Controller
           control={control}
           name="location"
+          rules={{
+            required: {
+              value: true,
+              message: 'Required',
+            },
+          }}
           render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
             <TextField
               {...field}
