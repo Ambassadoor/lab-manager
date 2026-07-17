@@ -28,6 +28,9 @@ type WeightFieldProps<TFieldValues extends FieldValues> = {
   // field (e.g. swallowing a barcode scanner's trailing Enter keystroke
   // that lands here after a scan on another field shifts focus).
   onKeyDown?: TextFieldProps['onKeyDown'];
+  // Lets a caller with a sibling field (e.g. WeighIn's per-row slug) make
+  // this conditionally required instead of always required.
+  required?: boolean;
 };
 
 // Weight TextField wired to the USB balance's "read from scale" button —
@@ -42,6 +45,7 @@ export function WeightField<TFieldValues extends FieldValues>({
   onError,
   scaleMutation,
   onKeyDown,
+  required = true,
 }: WeightFieldProps<TFieldValues>) {
   const readScale = () => {
     scaleMutation.mutate(undefined, {
@@ -60,7 +64,7 @@ export function WeightField<TFieldValues extends FieldValues>({
       control={control}
       name={name}
       rules={{
-        required: { value: true, message: 'Required' },
+        required: required ? { value: true, message: 'Required' } : false,
         pattern: { value: /^\d+(\.\d+)?$/, message: 'Please input integer or decimal value.' },
       }}
       render={({ field: { ref, ...field }, fieldState: { error } }) => (

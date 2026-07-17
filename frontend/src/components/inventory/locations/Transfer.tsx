@@ -53,8 +53,10 @@ export const Transfer = () => {
   const justScannedRef = useRef(false);
 
   const onSubmit = async (data: { containers: { slug: string }[]; location: string }) => {
+    const containers = data.containers.filter((c) => c.slug.trim().length > 0);
+    if (containers.length === 0) return;
     try {
-      const response = await transferContainers(data);
+      const response = await transferContainers({ ...data, containers });
       if (response.length > 0) {
         setSnackbar({ message: 'Containers transferred.', severity: 'success' });
         reset();
