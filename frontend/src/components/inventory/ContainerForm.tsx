@@ -1,8 +1,4 @@
-import { Add, ArrowDropDown, Remove } from '@mui/icons-material';
 import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   Alert,
   Box,
   Button,
@@ -12,7 +8,6 @@ import {
   Divider,
   FormControl,
   FormHelperText,
-  IconButton,
   InputAdornment,
   InputLabel,
   ListSubheader,
@@ -43,7 +38,6 @@ import {
 } from '../../api/inventory';
 import { getBalanceWeight, printLabel } from '../../api/bridge';
 import { containerKeys, chemicalKeys, dashboardKeys, locationKeys } from '../../api/queryKeys';
-import { DateField } from '@mui/x-date-pickers';
 import { type ContainerFormDefaults, type CasCheck, type Location } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { Decimal } from 'decimal.js';
@@ -51,6 +45,28 @@ import dayjs from 'dayjs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { cas_is_valid } from '../shared/checkCas';
 import { WeightField } from '../shared/WeightField';
+import { RhfTextField } from '../shared/RhfTextField';
+import { RhfDateField } from '../shared/RhfDateField';
+import { ChemicalRow } from './ChemicalRow';
+import { MixtureFields } from './MixtureFields';
+import { requiredRule, required, decimalPatternRule } from '../shared/formRules';
+
+// Converts a quantity from currentUnit to defaultUnit's unit family (mass or volume).
+const convertUnits = (defaultUnit: string, currentUnit: string, quantity: string | number) => {
+  const massUnits = ['mg', 'g', 'kg'];
+  const volumeUnits = ['mL', 'L'];
+  const q = new Decimal(parseFloat(String(quantity)));
+  if (defaultUnit.includes('g')) {
+    const power = massUnits.indexOf(currentUnit) - massUnits.indexOf(defaultUnit);
+    const result = q.times(1000 ** power).toNumber();
+    return result;
+  } else if (defaultUnit.includes('L')) {
+    const power = volumeUnits.indexOf(currentUnit) - volumeUnits.indexOf(defaultUnit);
+    const result = q.times(1000 ** power).toNumber();
+    return result;
+  }
+  return parseFloat(String(quantity));
+};
 
 //TODO: Create wrapper component for Controller/TextFields and use DRF OPTIONS to dynamically format
 export const ContainerForm = () => {
@@ -95,20 +111,19 @@ export const ContainerForm = () => {
   };
 
   //Set up rhf form
-  const {
-    control,
-    clearErrors,
-    formState: { errors, dirtyFields, touchedFields, isSubmitting, isValidating, ...rest },
-    setValue,
-    trigger,
-    resetField,
-    handleSubmit,
-    reset,
-    ...methods
-  } = useForm<ContainerFormDefaults>({
+  const formMethods = useForm<ContainerFormDefaults>({
     mode: 'onBlur',
     defaultValues: getContainerCachedValues(),
   });
+  const {
+    control,
+    clearErrors,
+    formState: { errors, isSubmitting, isValidating },
+    setValue,
+    trigger,
+    handleSubmit,
+    reset,
+  } = formMethods;
   //Allows for dynamically added cas/chemical fields
   const { fields, append, remove } = useFieldArray({
     control: control,
@@ -212,23 +227,6 @@ export const ContainerForm = () => {
         casRef.current = res;
       });
   }, [errors.chemicals, setValue, allCas]);
-
-  // Helper to convert values if unit changes
-  const convertUnits = (defaultUnit: string, currentUnit: string, quantity: string | number) => {
-    const massUnits = ['mg', 'g', 'kg'];
-    const volumeUnits = ['mL', 'L'];
-    const q = new Decimal(parseFloat(String(quantity)));
-    if (defaultUnit.includes('g')) {
-      const power = massUnits.indexOf(currentUnit) - massUnits.indexOf(defaultUnit);
-      const result = q.times(1000 ** power).toNumber();
-      return result;
-    } else if (defaultUnit.includes('L')) {
-      const power = volumeUnits.indexOf(currentUnit) - volumeUnits.indexOf(defaultUnit);
-      const result = q.times(1000 ** power).toNumber();
-      return result;
-    }
-    return parseFloat(String(quantity));
-  };
 
   //Calculate and populate the tare weight field using previously input fields
   useEffect(() => {
@@ -334,24 +332,7 @@ export const ContainerForm = () => {
           {bridgeError}
         </Alert>
       </Snackbar>
-      <FormProvider
-        {...methods}
-        clearErrors={clearErrors}
-        setValue={setValue}
-        control={control}
-        trigger={trigger}
-        reset={reset}
-        resetField={resetField}
-        handleSubmit={handleSubmit}
-        formState={{
-          errors: errors,
-          touchedFields: touchedFields,
-          dirtyFields: dirtyFields,
-          isSubmitting: isSubmitting,
-          isValidating: isValidating,
-          ...rest,
-        }}
-      >
+      <FormProvider {...formMethods}>
         <Card
           sx={{
             display: 'flex',
@@ -387,27 +368,12 @@ export const ContainerForm = () => {
                   )}
                 />
               </Stack>
-              <Controller
+              <RhfTextField
                 control={control}
                 name="name"
-                render={({ field: { name, onChange, ...field } }) => (
-                  <TextField
-                    {...field}
-                    label="Product Name"
-                    error={!!errors.name}
-                    helperText={errors.name?.message || ''}
-                    onChange={(e) => {
-                      onChange(e);
-                      clearErrors(name);
-                    }}
-                  />
-                )}
-                rules={{
-                  required: {
-                    value: true,
-                    message: 'Required',
-                  },
-                }}
+                label="Product Name"
+                rules={{ required: requiredRule }}
+                clearErrors={clearErrors}
               />
               <Controller
                 control={control}
@@ -424,332 +390,37 @@ export const ContainerForm = () => {
                 )}
               />
               {fields.map((item, index) => (
-                <Stack spacing={2} key={item.rhfId}>
-                  <Controller
-                    control={control}
-                    name={`chemicals.${index}.cas`}
-                    rules={{
-                      pattern: {
-                        value: /^[0-9]{2,7}-[0-9]{2}-[0-9]{1}$/,
-                        message: 'Invalid CAS format',
-                      },
-                      required: {
-                        value: true,
-                        message: 'Required',
-                      },
-                      validate: {
-                        check_digit: (value) => {
-                          if (!cas_is_valid(value)) return 'Invalid CAS number';
-                        },
-                        duplicate: async (value) => {
-                          if (!formValues?.chemicals) return true;
-                          const casNums = formValues.chemicals.map((c, i) => {
-                            if (i !== index) {
-                              return c.cas;
-                            }
-                          });
-                          if (casNums.includes(value)) return 'Duplicate CAS #';
-                        },
-                      },
-                    }}
-                    render={({ field, fieldState: { error } }) => (
-                      <TextField
-                        {...field}
-                        label="CAS #"
-                        error={!!error}
-                        helperText={error ? error.message : ''}
-                        fullWidth
-                        onChange={(e) => {
-                          field.onChange(e);
-                          clearErrors(`chemicals.${index}.cas`);
-                        }}
-                        slotProps={{
-                          input: {
-                            endAdornment: formValues.multiple_cas && (
-                              <InputAdornment position="end">
-                                {index > 0 && (
-                                  <IconButton
-                                    onClick={() => {
-                                      remove(index);
-                                    }}
-                                  >
-                                    <Remove />
-                                  </IconButton>
-                                )}
-                                {index + 1 === fields.length && (
-                                  <IconButton
-                                    onClick={() => {
-                                      append({
-                                        cas: '',
-                                        name: '',
-                                        molecular_weight: '',
-                                        storage_category: 0,
-                                      });
-                                    }}
-                                  >
-                                    <Add />
-                                  </IconButton>
-                                )}
-                              </InputAdornment>
-                            ),
-                          },
-                        }}
-                      />
-                    )}
-                  />
-                  {formValues?.chemicals?.[index]?.cas && (
-                    <Box>
-                      <Accordion defaultExpanded elevation={4}>
-                        <AccordionSummary expandIcon={<ArrowDropDown />}>
-                          <Typography
-                            component={'span'}
-                          >{`Chemical Info for ${formValues?.chemicals?.[index].cas}`}</Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                          <Stack spacing={2}>
-                            <Controller
-                              name={`chemicals.${index}.name`}
-                              control={control}
-                              rules={{
-                                required: {
-                                  value: true,
-                                  message: 'Required',
-                                },
-                              }}
-                              render={({ field }) => (
-                                <TextField
-                                  {...field}
-                                  error={!!errors?.chemicals?.[index]?.name}
-                                  helperText={
-                                    errors?.chemicals?.[index]?.name &&
-                                    errors?.chemicals?.[index]?.name.message
-                                  }
-                                  onChange={(e) => {
-                                    field.onChange(e);
-                                    clearErrors(field.name);
-                                  }}
-                                  label={`Name`}
-                                />
-                              )}
-                            />
-                            <Controller
-                              name={`chemicals.${index}.molecular_weight`}
-                              control={control}
-                              rules={{
-                                pattern: {
-                                  value: /^\d+(\.\d+)?$/,
-                                  message: 'Please input integer or decimal value.',
-                                },
-                              }}
-                              render={({ field, fieldState: { error } }) => (
-                                <TextField
-                                  {...field}
-                                  label={'Molecular Weight'}
-                                  error={!!error}
-                                  helperText={error && error.message}
-                                  onChange={(e) => {
-                                    field.onChange(e);
-                                    clearErrors(field.name);
-                                  }}
-                                  slotProps={{
-                                    input: {
-                                      endAdornment: (
-                                        <InputAdornment position="end">g/mol</InputAdornment>
-                                      ),
-                                    },
-                                  }}
-                                />
-                              )}
-                            />
-                            <Controller
-                              name={`chemicals.${index}.storage_category`}
-                              control={control}
-                              render={({ field }) => (
-                                <FormControl>
-                                  <InputLabel id="sc_label">Storage Category</InputLabel>
-                                  <Select
-                                    {...field}
-                                    labelId="sc_label"
-                                    label="Storage Category"
-                                    value={formValues?.chemicals?.[index].storage_category}
-                                    MenuProps={{
-                                      slotProps: {
-                                        paper: {
-                                          sx: {
-                                            maxHeight: 200,
-                                          },
-                                        },
-                                      },
-                                    }}
-                                  >
-                                    {chemicalStorageCategories.map((c) => (
-                                      <MenuItem key={c.id} value={c.id}>
-                                        {c.shorthand}
-                                      </MenuItem>
-                                    ))}
-                                  </Select>
-                                </FormControl>
-                              )}
-                            />
-                          </Stack>
-                        </AccordionDetails>
-                      </Accordion>
-                    </Box>
+                <ChemicalRow
+                  key={item.rhfId}
+                  control={control}
+                  index={index}
+                  clearErrors={clearErrors}
+                  multipleCas={!!formValues.multiple_cas}
+                  showRemove={index > 0}
+                  isLast={index + 1 === fields.length}
+                  onAdd={() =>
+                    append({ cas: '', name: '', molecular_weight: '', storage_category: '' })
+                  }
+                  onRemove={() => remove(index)}
+                  otherCasValues={(formValues.chemicals ?? []).map((c, i) =>
+                    i !== index ? c?.cas : undefined
                   )}
-                </Stack>
+                  storageCategoryOptions={chemicalStorageCategories.map((c) => ({
+                    value: c.id,
+                    label: c.shorthand,
+                  }))}
+                />
               ))}
               {formValues.multiple_cas && (
-                <>
-                  {cas?.mixtures && cas?.mixtures.length > 0 && (
-                    <Controller
-                      control={control}
-                      name={`mixture_id`}
-                      rules={{
-                        required: {
-                          value: true,
-                          message: 'Select an existing mixture, or create a new one',
-                        },
-                      }}
-                      render={({ field, fieldState: { error } }) => (
-                        <FormControl>
-                          <InputLabel id="mixture_label">Select a Mixture</InputLabel>
-                          <Select
-                            {...field}
-                            labelId="mixture_label"
-                            label="Select a Mixture"
-                            value={formValues?.mixture_id}
-                            error={!!error}
-                            onChange={(e) => {
-                              field.onChange(e);
-                              clearErrors(field.name);
-                            }}
-                            MenuProps={{
-                              slotProps: {
-                                paper: {
-                                  sx: {
-                                    maxHeight: 200,
-                                  },
-                                },
-                              },
-                            }}
-                          >
-                            <MenuItem key={-1} value={-1}>
-                              Create New Mixture
-                            </MenuItem>
-                            {cas.mixtures.map((mix) => (
-                              <MenuItem key={mix.id} value={mix.id}>
-                                {mix.name}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                          {error && <FormHelperText error>{error.message}</FormHelperText>}
-                        </FormControl>
-                      )}
-                    />
-                  )}
-                  <Box>
-                    <Stack spacing={2} sx={{ ml: 2 }}>
-                      <Controller
-                        control={control}
-                        name={`mixture_name`}
-                        render={({ field: { onChange, name, ...field } }) => (
-                          <TextField
-                            {...field}
-                            label="Mixture Name"
-                            fullWidth
-                            error={!!errors.mixture_name}
-                            helperText={
-                              errors.mixture_name?.message ? errors.mixture_name.message : ''
-                            }
-                            onChange={(e) => {
-                              onChange(e);
-                              clearErrors(name);
-                            }}
-                          />
-                        )}
-                        rules={{
-                          required: {
-                            value: true,
-                            message: 'Required',
-                          },
-                        }}
-                      />
-                      <Controller
-                        control={control}
-                        name={'mixture_storage_category'}
-                        rules={{
-                          required: {
-                            value: true,
-                            message: 'Required',
-                          },
-                        }}
-                        render={({ field, fieldState: { error } }) => (
-                          <FormControl>
-                            <InputLabel id="sc_label">Storage Category</InputLabel>
-                            <Select
-                              {...field}
-                              labelId="sc_label"
-                              label="Storage Category"
-                              value={formValues?.mixture_storage_category}
-                              error={!!error}
-                              onChange={(e) => {
-                                field.onChange(e);
-                                clearErrors(field.name);
-                              }}
-                              MenuProps={{
-                                slotProps: {
-                                  paper: {
-                                    sx: {
-                                      maxHeight: 200,
-                                    },
-                                  },
-                                },
-                              }}
-                            >
-                              {chemicalStorageCategories.map((c) => (
-                                <MenuItem key={c.id} value={c.id}>
-                                  {c.shorthand}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                            {error && <FormHelperText error>{error?.message}</FormHelperText>}
-                          </FormControl>
-                        )}
-                      />
-                      <Controller
-                        control={control}
-                        name={'mixture_molecular_weight'}
-                        rules={{
-                          pattern: {
-                            value: /^\d+(\.\d+)?$/,
-                            message: 'Please input integer or decimal value.',
-                          },
-                        }}
-                        render={({ field }) => (
-                          <TextField
-                            {...field}
-                            error={!!errors.mixture_molecular_weight}
-                            label="Molecular Weight"
-                            onChange={(e) => {
-                              field.onChange(e);
-                              clearErrors('mixture_molecular_weight');
-                            }}
-                            helperText={
-                              errors.mixture_molecular_weight &&
-                              errors.mixture_molecular_weight.message
-                            }
-                            slotProps={{
-                              input: {
-                                endAdornment: <InputAdornment position="end">g/mol</InputAdornment>,
-                              },
-                            }}
-                          />
-                        )}
-                      />
-                    </Stack>
-                  </Box>
-                  <Divider />
-                </>
+                <MixtureFields
+                  control={control}
+                  clearErrors={clearErrors}
+                  mixtures={cas?.mixtures}
+                  storageCategoryOptions={chemicalStorageCategories.map((c) => ({
+                    value: c.id,
+                    label: c.shorthand,
+                  }))}
+                />
               )}
               <Controller
                 control={control}
@@ -805,27 +476,12 @@ export const ContainerForm = () => {
                   </FormControl>
                 )}
               />
-              <Controller
+              <RhfTextField
                 control={control}
                 name="manufacturer"
-                rules={{
-                  required: {
-                    value: true,
-                    message: 'Required',
-                  },
-                }}
-                render={({ field, fieldState: { error } }) => (
-                  <TextField
-                    {...field}
-                    label="Manufacturer"
-                    error={!!error}
-                    helperText={error && error.message}
-                    onChange={(e) => {
-                      field.onChange(e);
-                      clearErrors(field.name);
-                    }}
-                  />
-                )}
+                label="Manufacturer"
+                rules={{ required: requiredRule }}
+                clearErrors={clearErrors}
               />
               <Stack spacing={2}>
                 <Controller
@@ -905,85 +561,28 @@ export const ContainerForm = () => {
                   )}
                 />
               </Stack>
-              <Controller
+              <RhfTextField
                 control={control}
                 name="product_num"
-                rules={{
-                  required: {
-                    value: true,
-                    message: 'Required',
-                  },
-                }}
-                render={({ field, fieldState: { error } }) => (
-                  <TextField
-                    {...field}
-                    label="Product #"
-                    error={!!error}
-                    helperText={error && error.message}
-                    onChange={(e) => {
-                      field.onChange(e);
-                      clearErrors(field.name);
-                    }}
-                  />
-                )}
+                label="Product #"
+                rules={{ required: requiredRule }}
+                clearErrors={clearErrors}
               />
-              <Controller
+              <RhfDateField
                 control={control}
                 name="date_received"
-                rules={{
-                  required: {
-                    value: true,
-                    message: 'Required',
-                  },
-                }}
-                render={({ field, fieldState: { error } }) => (
-                  <DateField
-                    {...field}
-                    label="Date Received"
-                    value={dayjs(field.value)}
-                    clearable
-                    disableFuture
-                    error={!!error}
-                    helperText={error && error.message}
-                  />
-                )}
+                label="Date Received"
+                disableFuture
+                rules={{ required: requiredRule }}
               />
-              <Controller
+              <RhfTextField
                 control={control}
                 name="density"
-                rules={{
-                  pattern: {
-                    value: /^\d+(\.\d+)?$/,
-                    message: 'Please input a integer or decimal',
-                  },
-                }}
-                render={({ field, fieldState: { error } }) => (
-                  <TextField
-                    {...field}
-                    label="Density/Specific Gravity"
-                    error={!!error}
-                    helperText={error && error.message}
-                    onChange={(e) => {
-                      field.onChange(e);
-                      clearErrors(field.name);
-                    }}
-                  />
-                )}
+                label="Density/Specific Gravity"
+                rules={{ pattern: decimalPatternRule('Please input a integer or decimal') }}
+                clearErrors={clearErrors}
               />
-              <Controller
-                control={control}
-                name="expiration_date"
-                render={({ field, fieldState: { error } }) => (
-                  <DateField
-                    {...field}
-                    label="Expiration Date"
-                    clearable
-                    error={!!error}
-                    helperText={error && error.message}
-                    value={dayjs(field.value)}
-                  />
-                )}
-              />
+              <RhfDateField control={control} name="expiration_date" label="Expiration Date" />
               <Stack direction={'row'} spacing={2}>
                 <WeightField
                   control={control}
@@ -994,18 +593,16 @@ export const ContainerForm = () => {
                   onError={setBridgeError}
                   scaleMutation={scaleMutation}
                 />
-                <Controller
+                <RhfTextField
                   control={control}
                   name="tare_weight"
+                  label="Tare Weight"
+                  fullWidth
+                  clearErrors={clearErrors}
+                  endAdornment="g"
                   rules={{
-                    required: {
-                      value: true,
-                      message: 'Required, estimate if needed',
-                    },
-                    pattern: {
-                      value: /^\d+(\.\d+)?$/,
-                      message: 'Please input a integer or decimal',
-                    },
+                    required: required('Required, estimate if needed'),
+                    pattern: decimalPatternRule('Please input a integer or decimal'),
                     min: {
                       value: 0,
                       message: 'Tare weight cannot be negative',
@@ -1041,24 +638,6 @@ export const ContainerForm = () => {
                       },
                     },
                   }}
-                  render={({ field, fieldState: { error } }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Tare Weight"
-                      error={!!error}
-                      helperText={error && error.message}
-                      onChange={(e) => {
-                        field.onChange(e.target.value);
-                        clearErrors(field.name);
-                      }}
-                      slotProps={{
-                        input: {
-                          endAdornment: <InputAdornment position="end">g</InputAdornment>,
-                        },
-                      }}
-                    />
-                  )}
                 />
               </Stack>
               <Divider />
