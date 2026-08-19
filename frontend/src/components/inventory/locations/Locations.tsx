@@ -26,6 +26,7 @@ import {
   AddBox,
   Edit,
   Delete,
+  Print,
 } from '@mui/icons-material';
 import {
   Alert,
@@ -123,6 +124,9 @@ const Location = ({ location, parent, setSelectedLocation, editing, onDelete }: 
             </Button>
             <Button size="small" color="info" onClick={() => setOpenEdit(true)}>
               <Edit />
+            </Button>
+            <Button size='small' color='success'>
+              <Print/>
             </Button>
             {(user?.role === 'lab_manager' || user?.role === 'coordinator') && (
               <Button
