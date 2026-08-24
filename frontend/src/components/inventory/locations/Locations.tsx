@@ -52,6 +52,7 @@ import { EditLocation } from './EditLocation';
 import { useAuth } from '../../../context/AuthContext';
 import { DataTable } from '../../shared/DataTable';
 import { useNavigate } from 'react-router-dom';
+import { printLabel } from '../../../api/bridge';
 
 type LocationProps = {
   location: Location;
@@ -79,6 +80,14 @@ const Location = ({ location, parent, setSelectedLocation, editing, onDelete }: 
   const [open, setOpen] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const { user } = useAuth();
+
+  const handlePrint = (id: number) => {
+    printLabel({
+      template: 2,
+      fields: { QRCode: JSON.stringify({ id: id }), Text: `Loc-${id}` },
+      copies: 1,
+    });
+  };
 
   return (
     <Container>
@@ -125,8 +134,8 @@ const Location = ({ location, parent, setSelectedLocation, editing, onDelete }: 
             <Button size="small" color="info" onClick={() => setOpenEdit(true)}>
               <Edit />
             </Button>
-            <Button size='small' color='success'>
-              <Print/>
+            <Button size="small" color="success" onClick={() => handlePrint(location.id)}>
+              <Print />
             </Button>
             {(user?.role === 'lab_manager' || user?.role === 'coordinator') && (
               <Button
