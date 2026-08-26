@@ -434,6 +434,8 @@ class LocationView(ModelViewSet):
         location_serializer = LocationWriteSerializer(data=location_data)
         location_serializer.is_valid(raise_exception=True)
         location = location_serializer.save()
+        location.barcode = f"LOC-{location.id}"
+        location.save()
         return Response(LocationSerializer(location).data, status=status.HTTP_201_CREATED)
 
     # Returns the locations in a format easily usable in select menus
@@ -445,6 +447,7 @@ class LocationView(ModelViewSet):
 
     # Adds a new child location
     @action(detail=True, methods=["POST"])
+    @transaction.atomic
     def add_child(self, request, pk=None):
         data = request.data
         parent = self.get_object()
@@ -453,6 +456,8 @@ class LocationView(ModelViewSet):
         serializer = LocationWriteSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         location = serializer.save()
+        location.barcode = f"LOC-{location.id}"
+        location.save()
 
         response_serializer = LocationSerializer(location)
 

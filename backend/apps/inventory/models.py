@@ -113,9 +113,7 @@ class Location(models.Model):
         parent = self.parent
         while parent:
             if self.id is not None and parent.id == self.id:
-                raise ValidationError(
-                    {"parent": "A location cannot have itself as an ancestor."}
-                )
+                raise ValidationError({"parent": "A location cannot have itself as an ancestor."})
             parent = parent.parent
 
     def save(self, *args, **kwargs):
