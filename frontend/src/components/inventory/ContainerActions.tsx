@@ -4,6 +4,7 @@ import { Checkout } from './Checkout';
 import { WeighIn } from './WeighIn';
 import { useSearchParams } from 'react-router-dom';
 import { Transfer } from './locations/Transfer';
+import { Move } from './locations/Move';
 
 // A quick access component for various container actions
 export const ContainerActions = () => {
@@ -17,9 +18,10 @@ export const ContainerActions = () => {
   return (
     <Container>
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4">Container Actions</Typography>
+        <Typography variant="h4">Quick Actions</Typography>
         <Typography variant="body2" color="text.secondary">
-          Check containers out, check them back in with a weigh-in, or transfer their location.
+          Check containers out, check them back in with a weigh-in, transfer their location, or move
+          locations to a new parent location.
         </Typography>
       </Box>
       <Paper elevation={4} sx={{ height: '80dvh', overflow: 'auto' }}>
@@ -28,7 +30,8 @@ export const ContainerActions = () => {
             <TabList onChange={handleChange}>
               <Tab label="Check Out" value={0} />
               <Tab label="Check In" value={1} />
-              <Tab label="Transfer Location" value={2} />
+              <Tab label="Move Containers" value={2} />
+              <Tab label="Move Locations" value={3} />
             </TabList>
           </Box>
           <Box>
@@ -40,6 +43,9 @@ export const ContainerActions = () => {
             </TabPanel>
             <TabPanel value={2}>
               <Transfer />
+            </TabPanel>
+            <TabPanel value={3}>
+              <Move />
             </TabPanel>
           </Box>
         </TabContext>
