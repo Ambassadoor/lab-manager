@@ -183,3 +183,13 @@ export const transferContainers = (data: {
     body: JSON.stringify(data),
   });
 };
+
+export const moveLocations = (data: {
+  childLocations: { slug: string }[];
+  parentLocation: string;
+}): Promise<Location[]> => {
+  return apiFetch(`/inventory/locations/move/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+};

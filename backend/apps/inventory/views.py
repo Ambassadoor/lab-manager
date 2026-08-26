@@ -5,6 +5,7 @@ from natsort import natsorted
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.http import Http404
+from django.core.exceptions import ValidationError as DjangoValidationError
 from .models import (
     Container,
     Chemical,
@@ -456,6 +457,78 @@ class LocationView(ModelViewSet):
         response_serializer = LocationSerializer(location)
 
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+    # Bulk re-parents a set of locations under a new parent in one request —
+    # mirrors Container.transfer, but pre-checks that the new parent isn't a
+    # descendant of any location being moved (the same cycle Location.clean()
+    # rejects) before touching the database, so a rejected move never
+    # partially commits.
+    @action(detail=False, methods=["PATCH"])
+    def move(self, request):
+        data = request.data
+        # Barcodes encode "loc-<id>" and are stored as scanned — compare
+        # case-insensitively so a scan's casing can't false-negative.
+        child_slugs = [c["slug"].strip().lower() for c in data["childLocations"]]
+        parent_slug = data["parentLocation"].strip().lower()
+
+        locations = list(
+            Location.objects.annotate(barcode_lower=Lower("barcode")).filter(
+                barcode_lower__in=child_slugs
+            )
+        )
+        missing = set(child_slugs) - {loc.barcode_lower for loc in locations}
+        if missing:
+            return Response(
+                {"detail": f"Location(s) not found: {', '.join(sorted(missing))}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            parent = Location.objects.annotate(barcode_lower=Lower("barcode")).get(
+                barcode_lower=parent_slug
+            )
+        except Location.DoesNotExist:
+            return Response(
+                {"detail": f"Parent location not found: {parent_slug}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Same ancestor walk as Location.clean(), run once up front against
+        # the single target parent (rather than per-row inside the loop
+        # below) so a cycle is caught before any row is saved.
+        parent_chain_ids = set()
+        ancestor = parent
+        while ancestor is not None:
+            parent_chain_ids.add(ancestor.id)
+            ancestor = ancestor.parent
+
+        conflicts = [loc for loc in locations if loc.id in parent_chain_ids]
+        if conflicts:
+            names = ", ".join(sorted(loc.barcode_lower for loc in conflicts))
+            return Response(
+                {
+                    "detail": (
+                        "Cannot move a location under itself or one of its own "
+                        f"descendants: {names}"
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            # Plain `with`, not the `@transaction.atomic` decorator: the
+            # ValidationError is caught outside this block so Django still
+            # rolls the block back before we respond, instead of committing
+            # whatever rows saved before the failure.
+            with transaction.atomic():
+                for location in locations:
+                    location.parent = parent
+                    location.save()
+        except DjangoValidationError as e:
+            detail = e.message_dict if hasattr(e, "message_dict") else e.messages
+            return Response({"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(LocationSerializer(locations, many=True).data, status=status.HTTP_200_OK)
 
     # Returns all containers for a given location, including nested child locations
     @action(detail=True, methods=["GET"])

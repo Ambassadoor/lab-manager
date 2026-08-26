@@ -479,6 +479,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/inventory/locations/move/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch: operations['inventory_locations_move_partial_update'];
+    trace?: never;
+  };
   '/inventory/weight_readings/': {
     parameters: {
       query?: never;
@@ -769,6 +785,13 @@ export interface components {
        * Format: decimal
        */
       tare_weight?: string | null;
+    };
+    PatchedLocation: {
+      readonly id?: number;
+      name?: string;
+      type?: components['schemas']['LocationType'];
+      children?: number[];
+      readonly full_path?: string;
     };
     PatchedLocationType: {
       readonly id?: number;
@@ -2134,6 +2157,31 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['LocationMenu'];
+        };
+      };
+    };
+  };
+  inventory_locations_move_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedLocation'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedLocation'];
+        'multipart/form-data': components['schemas']['PatchedLocation'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Location'];
         };
       };
     };

@@ -6,6 +6,7 @@ import { Close } from '@mui/icons-material';
 import { ActionFormCard } from '../../shared/ActionFormCard';
 import { ScannableFieldRow } from '../../shared/ScannableFieldRow';
 import { locationKeys } from '../../../api/queryKeys';
+import { moveLocations } from '../../../api/inventory';
 
 type SnackbarState = { message: string; severity: 'success' | 'error' };
 
@@ -45,9 +46,8 @@ export const Move = () => {
   const onSubmit = async (data: { childLocations: { slug: string }[]; parentLocation: string }) => {
     const childLocations = data.childLocations.filter((c) => c.slug.trim().length > 0);
     if (childLocations.length === 0) return;
-    //TODO: Create a bulk location move function
     try {
-      const response = '';
+      const response = await moveLocations({ ...data, childLocations });
       if (response.length > 0) {
         setSnackbar({ message: 'Locations moved.', severity: 'success' });
         reset();
