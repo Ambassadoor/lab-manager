@@ -109,6 +109,19 @@ class Location(models.Model):
         locations.reverse()
         return " ".join(locations)
 
+    def clean(self):
+        parent = self.parent
+        while parent:
+            if self.id is not None and parent.id == self.id:
+                raise ValidationError(
+                    {"parent": "A location cannot have itself as an ancestor."}
+                )
+            parent = parent.parent
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.name
 
