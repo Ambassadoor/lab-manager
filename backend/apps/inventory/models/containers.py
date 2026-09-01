@@ -71,7 +71,12 @@ class Container(models.Model):
 
     @property
     def has_estimated_usage(self):
-        return self.tare_weight is not None
+        # A container's tare weight is the weight of the empty container —
+        # physically always > 0. Treating a non-positive value the same as
+        # "missing" guards against the exact placeholder-zero bug fixed in
+        # migration 0026_null_placeholder_zero_tare_weights recurring (e.g.
+        # from a future bulk import).
+        return self.tare_weight is not None and self.tare_weight > 0
 
     @property
     def quantity(self) -> str:

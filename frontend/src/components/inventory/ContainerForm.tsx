@@ -68,7 +68,13 @@ const convertUnits = (defaultUnit: string, currentUnit: string, quantity: string
   return parseFloat(String(quantity));
 };
 
-//TODO: Create wrapper component for Controller/TextFields and use DRF OPTIONS to dynamically format
+// Every field below that can use a shared wrapper does: RhfTextField,
+// RhfDateField, and RhfSelect cover the plain-text/date/select cases, and
+// quantity_unit's Select is driven by the container OPTIONS metaData query
+// below. The two fields still hand-written here (location's grouped
+// ListSubheader options, quantity_unit living inside another field's
+// InputAdornment) are intentionally excluded — see the comment on
+// RhfSelect.tsx explaining why neither fits that wrapper's shape.
 export const ContainerForm = () => {
   const [cas, setCas] = useState<CasCheck | undefined>();
   const [bridgeError, setBridgeError] = useState<string | null>(null);
@@ -181,7 +187,7 @@ export const ContainerForm = () => {
     [locationMenu, formatLocations]
   );
 
-  const { data: metaData } = useQuery({
+  const { data: metaData, isPending: isMetaDataPending } = useQuery({
     queryKey: containerKeys.metaData(),
     queryFn: getContainerMetaData,
   });
@@ -310,7 +316,10 @@ export const ContainerForm = () => {
     navigate(`/inventory/containers/${response.slug}`);
   };
 
-  //TODO: Need to modularize this better. Create wrapper components for Controllers and create nested forms for chems/mixtures
+  // Chemical/mixture sub-forms are already split out into ChemicalRow and
+  // MixtureFields below; the remaining "wrapper components for Controllers"
+  // half of this is the same completed work noted above ContainerForm's
+  // definition.
   return (
     <Container
       sx={{
@@ -518,41 +527,34 @@ export const ContainerForm = () => {
                                   message: 'Please select a unit',
                                 },
                               }}
-                              render={({ field, fieldState: { error } }) =>
-                                metaData ? (
-                                  <InputAdornment position="end">
-                                    <Select
-                                      {...field}
-                                      error={!!error}
-                                      label="Unit"
-                                      value={formValues?.quantity_unit}
-                                      autoWidth
-                                      variant="standard"
-                                      MenuProps={{
-                                        slotProps: {
-                                          paper: {
-                                            sx: {
-                                              maxHeight: 200,
-                                            },
+                              render={({ field, fieldState: { error } }) => (
+                                <InputAdornment position="end">
+                                  <Select
+                                    {...field}
+                                    error={!!error}
+                                    label="Unit"
+                                    value={formValues?.quantity_unit}
+                                    autoWidth
+                                    variant="standard"
+                                    disabled={isMetaDataPending}
+                                    MenuProps={{
+                                      slotProps: {
+                                        paper: {
+                                          sx: {
+                                            maxHeight: 200,
                                           },
                                         },
-                                      }}
-                                    >
-                                      {/* TODO: Remove this check after implementing tanstack loading state */}
-                                      {metaData &&
-                                        metaData?.actions?.POST.quantity_unit.choices.map(
-                                          (c, i) => (
-                                            <MenuItem key={i} value={c.value}>
-                                              {c.display_name}
-                                            </MenuItem>
-                                          )
-                                        )}
-                                    </Select>
-                                  </InputAdornment>
-                                ) : (
-                                  <></>
-                                )
-                              }
+                                      },
+                                    }}
+                                  >
+                                    {metaData?.actions?.POST.quantity_unit.choices.map((c, i) => (
+                                      <MenuItem key={i} value={c.value}>
+                                        {c.display_name}
+                                      </MenuItem>
+                                    ))}
+                                  </Select>
+                                </InputAdornment>
+                              )}
                             />
                           ),
                         },

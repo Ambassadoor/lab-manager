@@ -605,6 +605,8 @@ export interface components {
       date_received?: string | null;
       /** Opened? */
       readonly is_opened: boolean;
+      /** Has Estimated Usage? */
+      readonly has_estimated_usage: string;
       readonly latest_reading: string;
       readonly percent_remaining: string;
       readonly checkout_status: string;
@@ -743,6 +745,8 @@ export interface components {
       date_received?: string | null;
       /** Opened? */
       readonly is_opened?: boolean;
+      /** Has Estimated Usage? */
+      readonly has_estimated_usage?: string;
       readonly latest_reading?: string;
       readonly percent_remaining?: string;
       readonly checkout_status?: string;

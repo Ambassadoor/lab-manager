@@ -8,7 +8,7 @@ import {
   Navigate,
 } from 'react-router-dom';
 import './App.css';
-import { Box, Typography } from '@mui/material';
+import { Error as ErrorIcon } from '@mui/icons-material';
 import { Navbar } from './components/nav/Navbar';
 import { useAuth } from './context/AuthContext';
 import { Login } from './components/accounts/Login';
@@ -21,32 +21,40 @@ import { Locations } from './components/inventory/locations/Locations';
 import { Chemicals } from './components/inventory/chemicals/Chemicals';
 import { ChemicalDetail } from './components/inventory/chemicals/ChemicalDetail';
 import { Dashboard } from './components/inventory/Dashboard';
+import { NotFound, StatusPage } from './components/shared/NotFound';
 
-// Component to show when an error is thrown
-//TODO: Create an Error component to show when error is not 404
+// Component to show when an error is thrown. In practice this only ever
+// sees plain unexpected exceptions today — this app has no React Router
+// loaders/actions, and apiFetch's errors are caught locally by each query
+// (see client.ts / ContainerDetail.tsx / ChemicalDetail.tsx for the 404
+// case specifically), so they never reach here. The isRouteErrorResponse
+// branch is kept for if a loader/action is ever added later — that's the
+// only way a real route error response reaches this boundary.
 function ErrorBoundary() {
   const error = useRouteError();
 
   if (isRouteErrorResponse(error)) {
     return (
-      <Box>
-        <Typography variant="h1">
-          {error.status} {error.statusText}
-        </Typography>
-        <Typography>{error.data?.message || 'Something went wrong.'}</Typography>
-      </Box>
+      <StatusPage
+        icon={<ErrorIcon color="error" sx={{ fontSize: 64 }} />}
+        title={`${error.status} ${error.statusText}`}
+        message={error.data?.message || 'Something went wrong.'}
+        onRetry={() => window.location.reload()}
+      />
     );
   }
-  return <NotFound />;
-}
 
-//404 page
-//TODO: Expand this with error messages, navigation, and retry messages
-function NotFound() {
+  // Not a route error response at all — an actual unexpected exception
+  // during render. This is the one case a plain reload can plausibly fix
+  // (a stale chunk after a deploy, a transient render bug); showing the 404
+  // page here would say "page doesn't exist" about a real crash.
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4">404 — Not Found</Typography>
-    </Box>
+    <StatusPage
+      icon={<ErrorIcon color="error" sx={{ fontSize: 64 }} />}
+      title="Something went wrong"
+      message={error instanceof Error ? error.message : 'An unexpected error occurred.'}
+      onRetry={() => window.location.reload()}
+    />
   );
 }
 

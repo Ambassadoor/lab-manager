@@ -12,6 +12,7 @@ class ContainerSerializer(serializers.ModelSerializer):
     label = serializers.ReadOnlyField(label="ID")
     is_opened = serializers.ReadOnlyField(label="Opened?")
     quantity = serializers.ReadOnlyField(label="Quantity")
+    has_estimated_usage = serializers.ReadOnlyField(label="Has Estimated Usage?")
     location = LocationSerializer()
     percent_remaining = serializers.SerializerMethodField()
     latest_reading = serializers.SerializerMethodField()
@@ -33,6 +34,7 @@ class ContainerSerializer(serializers.ModelSerializer):
             "product_num",
             "date_received",
             "is_opened",
+            "has_estimated_usage",
             "latest_reading",
             "percent_remaining",
             "checkout_status",
@@ -56,7 +58,10 @@ class ContainerSerializer(serializers.ModelSerializer):
                 current_weight = Decimal(str(latest_reading["weight"]))
             else:
                 return None
-            if obj.tare_weight is not None:
+            # Matches Container.has_estimated_usage: a non-positive
+            # tare_weight isn't a real measurement (see migration
+            # 0026_null_placeholder_zero_tare_weights).
+            if obj.tare_weight is not None and obj.tare_weight > 0:
                 tare_weight = Decimal(str(obj.tare_weight))
             else:
                 return None

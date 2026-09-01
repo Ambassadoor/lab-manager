@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   getMe,
   initCsrf,
@@ -23,33 +23,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = useCallback(async (username: string, password: string) => {
     setUser(await apiLogin(username, password));
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await apiLogout();
     setUser(null);
-  };
+  }, []);
 
-  //TODO: Maybe make these memoized using useCallback
-  const preValidate = async (field: string, value: string) => {
-    const response = await apiPreValidate(field, value);
-    if (response) {
-      return response;
-    }
-  };
-
-  const register = async (user: UserRegistration) => {
-    const response = await apiRegister(user);
-    if (response) {
-      return response;
-    }
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, loading, login, logout, preValidate, register }}>
-      {children}
-    </AuthContext.Provider>
+  const preValidate = useCallback(
+    (field: string, value: string) => apiPreValidate(field, value),
+    []
   );
+
+  const register = useCallback((user: UserRegistration) => apiRegister(user), []);
+
+  // Memoized so consumers only re-render when one of these actually changes,
+  // rather than on every AuthProvider render (a new object literal here would
+  // defeat the useCallback references above).
+  const value = useMemo(
+    () => ({ user, loading, login, logout, preValidate, register }),
+    [user, loading, login, logout, preValidate, register]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

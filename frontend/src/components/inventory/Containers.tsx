@@ -1,6 +1,7 @@
 import {
   Alert,
   Box,
+  Button,
   Container,
   Drawer,
   IconButton,
@@ -23,9 +24,48 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DataTable } from '../shared/DataTable';
 import type { Container as ContainerType, ContainerPatch, EditableKeys } from '../../types';
 import { AddBox } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
-//TODO: Remove container data logic outside and let parent components pass in values
+// The three dashboard-card slices "View More" can land here with, via
+// ?view=. Mirrors the same predicates DashboardView computes server-side
+// (see backend/apps/inventory/views/dashboard.py) — applied client-side
+// against the already-fetched, unbounded container list instead of a
+// dedicated endpoint, since every field they key off is already present on
+// ContainerSerializer's output.
+export type ContainersViewKey = 'recently_added' | 'restock_soon' | 'checked_out';
+
+const VIEW_LABELS: Record<ContainersViewKey, string> = {
+  recently_added: 'Recently Added',
+  restock_soon: 'Restock Soon',
+  checked_out: 'Checked Out',
+};
+
+function isContainersViewKey(value: string | null): value is ContainersViewKey {
+  return value === 'recently_added' || value === 'restock_soon' || value === 'checked_out';
+}
+
+function filterByView(containers: ContainerType[], view: ContainersViewKey | null) {
+  switch (view) {
+    case 'restock_soon':
+      return containers.filter(
+        (c) => c.percent_remaining != null && Number(c.percent_remaining) <= 10
+      );
+    case 'checked_out':
+      return containers.filter((c) => c.checkout_status?.action === 'out');
+    case 'recently_added':
+      // date_received is an ISO "YYYY-MM-DD" string — safe to sort lexically.
+      return containers
+        .filter((c) => c.date_received)
+        .sort((a, b) => (a.date_received! < b.date_received! ? 1 : -1));
+    default:
+      return containers;
+  }
+}
+
+// Fetches its own container list rather than receiving it as a prop — this
+// only pays for itself once a second consumer needs the same data (App.tsx
+// renders this at exactly one route today, so there's no duplicate fetch to
+// eliminate yet). Revisit if/when a sibling route needs the same list.
 export const Containers = () => {
   const {
     isPending,
@@ -36,6 +76,14 @@ export const Containers = () => {
     queryKey: containerKeys.list(),
     queryFn: getContainers,
   });
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewParam = searchParams.get('view');
+  const view = isContainersViewKey(viewParam) ? viewParam : null;
+  const filteredContainers = useMemo(
+    () => (containers ? filterByView(containers, view) : containers),
+    [containers, view]
+  );
 
   const [open, setOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<ContainerType | undefined>(undefined);
@@ -109,9 +157,23 @@ export const Containers = () => {
           </Typography>
         </Box>
       </Stack>
+      {view && (
+        <Alert
+          severity="info"
+          sx={{ mb: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={() => setSearchParams({})}>
+              Clear
+            </Button>
+          }
+        >
+          Showing: {VIEW_LABELS[view]}
+          {filteredContainers ? ` (${filteredContainers.length})` : ''}
+        </Alert>
+      )}
       <Box>
         <DataTable<ContainerType>
-          rowData={containers}
+          rowData={filteredContainers}
           columnDefs={colDefs}
           rowSelection={rowSelection}
           pageSize={50}

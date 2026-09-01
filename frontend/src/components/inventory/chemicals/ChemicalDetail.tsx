@@ -24,6 +24,7 @@ import Decimal from 'decimal.js';
 import { Edit } from '@mui/icons-material';
 import type { ChemicalDefaults } from './AddChemical';
 import { cas_is_valid } from '../../shared/checkCas';
+import { NotFound } from '../../shared/NotFound';
 
 //Convertible detail/edit component for chemicals
 export const ChemicalDetail = () => {
@@ -33,12 +34,20 @@ export const ChemicalDetail = () => {
 
   const seed = location.state ?? undefined;
 
-  const { data: chemical, isPending } = useQuery({
+  // Checked locally rather than via throwOnError — a missing chemical id is
+  // an expected 404, not an unexpected crash, and should show the friendly
+  // NotFound page rather than App.tsx's generic error page (see
+  // ContainerDetail.tsx, same pattern; and client.ts, why 404 isn't special
+  // any more).
+  const {
+    data: chemical,
+    isPending,
+    isError,
+  } = useQuery({
     queryKey: chemicalKeys.detail(chemId ?? ''),
     queryFn: () => getChemicalById(chemId!),
     enabled: !!chemId,
     initialData: seed,
-    throwOnError: true,
   });
 
   const { data: storageCategories } = useQuery({
@@ -81,6 +90,9 @@ export const ChemicalDetail = () => {
   const onSubmit = (data: ChemicalDefaults) => {
     mutation.mutate({ data: data, id: chemical.id });
   };
+
+  if (isError) return <NotFound />;
+
   return (
     !isPending && (
       <Container>

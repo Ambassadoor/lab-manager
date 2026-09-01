@@ -45,13 +45,21 @@ class ContainerView(ModelViewSet):
         else:
             return ContainerSerializer
 
-    # Validates if a container has been discarded
+    # Validates if a container has been discarded. Also reports
+    # has_estimated_usage — checked at exactly the same point a barcode scan
+    # already validates the container in WeighIn.tsx, so the frontend can
+    # decide whether to show its tare-weight backfill field without a
+    # second round trip.
     @action(detail=True, methods=["get"])
     def is_discarded(self, request, slug=None):
         try:
             q = self.get_object()
             return Response(
-                {"is_discarded": q.date_discarded is not None}, status=status.HTTP_200_OK
+                {
+                    "is_discarded": q.date_discarded is not None,
+                    "has_estimated_usage": q.has_estimated_usage,
+                },
+                status=status.HTTP_200_OK,
             )
         except Http404:
             return Response({"is_valid": False}, status=status.HTTP_200_OK)
@@ -200,7 +208,16 @@ class ContainerView(ModelViewSet):
         wr_serializer.is_valid(raise_exception=True)
         wr_serializer.save()
 
-        # TODO: Reset IDs on failed creates
+        # Not resetting IDs on failure: this whole method runs inside
+        # @transaction.atomic, so a failed create already rolls back every
+        # row it touched. The only thing that survives a rollback is
+        # Postgres's auto-increment sequence counter — sequence increments
+        # are deliberately non-transactional, to avoid every insert
+        # contending on the same lock — so a run of failed creates can leave
+        # gaps in the numeric part of Container.label. Resetting the
+        # sequence to close that gap would mean mutating shared state
+        # outside the transaction, which races against any concurrent
+        # insert; the gap is cosmetic and not worth that risk.
         return Response(ContainerSerializer(container).data, status=status.HTTP_201_CREATED)
 
     # Creates new weigh in event
@@ -268,6 +285,16 @@ class ContainerView(ModelViewSet):
         # match against scanned input would false-negative on every scan.
         slugs = [c["slug"].strip().lower() for c in checkin]
         weights_by_slug = {c["slug"].strip().lower(): c["weight"] for c in checkin}
+        # Optional per-item backfill for containers that don't have a real
+        # tare weight yet (see Container.has_estimated_usage) — the
+        # frontend only ever sends this for a container it already knows
+        # needs one, but it's re-checked against has_estimated_usage below
+        # regardless, rather than trusted blindly.
+        tare_weights_by_slug = {
+            c["slug"].strip().lower(): c["tare_weight"]
+            for c in checkin
+            if c.get("tare_weight") not in (None, "")
+        }
         containers = Container.objects.annotate(slug_lower=Lower("slug")).filter(
             slug_lower__in=slugs
         )
@@ -300,6 +327,14 @@ class ContainerView(ModelViewSet):
                     "related_event": last_check_out.id if last_check_out is not None else None,
                 }
             )
+
+            tare_weight = tare_weights_by_slug.get(container.slug_lower)
+            if tare_weight is not None and not container.has_estimated_usage:
+                tare_serializer = ContainerWriteSerializer(
+                    instance=container, data={"tare_weight": tare_weight}, partial=True
+                )
+                tare_serializer.is_valid(raise_exception=True)
+                tare_serializer.save()
 
         reading_serializer = WeightReadingSerializer(
             data=readings_data, many=True, context={"request": request}

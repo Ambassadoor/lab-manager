@@ -84,11 +84,15 @@ export const patchContainer = (slug: string, data: ContainerPatch): Promise<Cont
   });
 };
 
-type TTT = {
+type ContainerValidation = {
   is_discarded?: boolean;
   is_valid?: boolean;
+  // Whether the container has a real tare weight to estimate usage from —
+  // reported here (rather than a separate call) since WeighIn.tsx already
+  // hits this endpoint right after every barcode scan.
+  has_estimated_usage?: boolean;
 };
-export const checkIfDiscarded = (slug: string): Promise<TTT> => {
+export const checkIfDiscarded = (slug: string): Promise<ContainerValidation> => {
   return apiFetch(`/inventory/containers/${slug}/is_discarded/`);
 };
 
