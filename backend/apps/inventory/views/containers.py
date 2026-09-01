@@ -200,7 +200,16 @@ class ContainerView(ModelViewSet):
         wr_serializer.is_valid(raise_exception=True)
         wr_serializer.save()
 
-        # TODO: Reset IDs on failed creates
+        # Not resetting IDs on failure: this whole method runs inside
+        # @transaction.atomic, so a failed create already rolls back every
+        # row it touched. The only thing that survives a rollback is
+        # Postgres's auto-increment sequence counter — sequence increments
+        # are deliberately non-transactional, to avoid every insert
+        # contending on the same lock — so a run of failed creates can leave
+        # gaps in the numeric part of Container.label. Resetting the
+        # sequence to close that gap would mean mutating shared state
+        # outside the transaction, which races against any concurrent
+        # insert; the gap is cosmetic and not worth that risk.
         return Response(ContainerSerializer(container).data, status=status.HTTP_201_CREATED)
 
     # Creates new weigh in event
