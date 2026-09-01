@@ -3,7 +3,6 @@
 // Uses SESSION authentication: the browser sends the session cookie
 // automatically (credentials: 'include'), and we attach Django's CSRF
 // token on unsafe requests. No tokens are stored in JavaScript.
-import { data } from 'react-router-dom';
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
 function getCookie(name: string): string | null {
@@ -31,7 +30,7 @@ function flattenFieldErrors(body: Record<string, unknown>): FieldErrors {
   return fieldErrors;
 }
 
-// One shape every non-2xx response throws, except 404 (see apiFetch below).
+// One shape every non-2xx response throws.
 //
 // - `message` (inherited from Error) is always a human-readable string,
 //   suitable to show directly.
@@ -99,12 +98,15 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   });
 
   if (!res.ok) {
-    // 404s are surfaced through the router's own error boundary
-    // (App.tsx's <ErrorBoundary>/isRouteErrorResponse), not a component's
-    // own catch block, so they keep this distinct thrown shape.
-    if (res.status === 404) {
-      throw data('Not Found', { status: 404 });
-    }
+    // Including 404 — react-router's data() looked like the right way to
+    // signal that to the router's error boundary, but isRouteErrorResponse()
+    // only recognizes errors that actually came out of a loader/action (a
+    // real ErrorResponseImpl with status/statusText/internal/data at the
+    // top level); a bare thrown data() from application code doesn't match
+    // that shape and is never recognized, loader or not. This app has no
+    // loaders, so 404s get the same ApiError treatment as everything else —
+    // callers check `error.status === 404` locally, same as any other
+    // status (see ContainerDetail.tsx / ChemicalDetail.tsx).
     let body: unknown;
     try {
       body = await res.json();

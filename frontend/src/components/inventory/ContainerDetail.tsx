@@ -29,6 +29,7 @@ import { ToggleField } from '../shared/ToggleField';
 import { Controller, FormProvider, useForm, type SubmitHandler } from 'react-hook-form';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { WeighInTable } from './WeighinTable';
+import { NotFound } from '../shared/NotFound';
 
 type ContainerDetailProps = {
   data?: Container;
@@ -46,7 +47,11 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
   const seed: Container | undefined = data ?? location.state ?? undefined;
 
   // enabled only for the routed (:id) view — the drawer/expand views already have full data via `seed`
-  const { data: container, isPending } = useQuery({
+  const {
+    data: container,
+    isPending,
+    isError,
+  } = useQuery({
     queryKey: containerKeys.detail(params.id ?? seed?.slug ?? ''),
     queryFn: () => getContainerDetails(params.id!),
     enabled: !!params.id,
@@ -93,6 +98,11 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
 
   const queryClient = useQueryClient();
 
+  // A 404 (bad :id in the URL) lands in this query's own error state —
+  // TanStack Query doesn't propagate query errors to the router's
+  // ErrorBoundary on its own (no throwOnError configured) — so it has to be
+  // checked here rather than relying on App.tsx's error page.
+  if (isError) return <NotFound />;
   if (isPending || !container) return null;
 
   const onSubmit: SubmitHandler<ContainerDetailDefaults> = async (formData) => {
