@@ -32,19 +32,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  const preValidate = useCallback(async (field: string, value: string) => {
-    const response = await apiPreValidate(field, value);
-    if (response) {
-      return response;
-    }
-  }, []);
+  const preValidate = useCallback(
+    (field: string, value: string) => apiPreValidate(field, value),
+    []
+  );
 
-  const register = useCallback(async (user: UserRegistration) => {
-    const response = await apiRegister(user);
-    if (response) {
-      return response;
-    }
-  }, []);
+  const register = useCallback((user: UserRegistration) => apiRegister(user), []);
 
   // Memoized so consumers only re-render when one of these actually changes,
   // rather than on every AuthProvider render (a new object literal here would

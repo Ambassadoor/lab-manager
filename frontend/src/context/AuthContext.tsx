@@ -7,7 +7,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   preValidate: (field: string, value: string) => Promise<PreValidation | undefined>;
-  register: (user: UserRegistration) => Promise<User | undefined>;
+  register: (user: UserRegistration) => Promise<User>;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
