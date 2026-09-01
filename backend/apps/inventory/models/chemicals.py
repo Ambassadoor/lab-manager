@@ -18,21 +18,25 @@ def validate_cas(cas: str):
     cas_regex = r"^[0-9]{2,7}-[0-9]{2}-[0-9]{1}$"
     match = re.match(cas_regex, cas)
 
+    # Must check the format before parsing digits out of it — parts[-1] and
+    # formatted below assume a well-formed "####-##-#" string, which a
+    # regex mismatch doesn't guarantee (e.g. non-numeric or missing segments
+    # would otherwise raise ValueError/IndexError instead of ValidationError).
+    if not match:
+        raise ValidationError(
+            "Valid CAS numbers must follow the format '####-##-#'. The first part may have 2-7 digits, the second 2 digits, and the final 1 digit."
+        )
+
     parts = cas.split("-")
     check_digit = int(parts[-1])
     formatted = "".join(parts[0:2])[::-1]
 
-    if match:
-        cas_sum = 0
-        for index, digit in enumerate(formatted):
-            cas_sum += (index + 1) * int(digit)
+    cas_sum = 0
+    for index, digit in enumerate(formatted):
+        cas_sum += (index + 1) * int(digit)
 
-        if cas_sum % 10 != check_digit:
-            raise ValidationError(f"{cas} is not a valid CAS number")
-    else:
-        raise ValidationError(
-            "Valid CAS numbers must follow the format '####-##-#'. The first part may have 2-7 digits, the second 2 digits, and the final 1 digit."
-        )
+    if cas_sum % 10 != check_digit:
+        raise ValidationError(f"{cas} is not a valid CAS number")
 
 
 class ChemicalStorageCategories(models.Model):
