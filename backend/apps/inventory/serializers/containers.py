@@ -1,111 +1,11 @@
+from decimal import Decimal, DecimalException, ROUND_HALF_UP
+
 from rest_framework import serializers
-from .models import (
-    ChemicalStorageCategories,
-    Chemical,
-    SDS,
-    Location,
-    LocationTypes,
-    Container,
-    WeightReading,
-    CheckoutEvent,
-    Ingredient,
-)
 
 from apps.users.serializers import UserCheckoutEventSerializer
 
-from decimal import Decimal
-from decimal import DecimalException
-from decimal import ROUND_HALF_UP
-
-
-class ChemicalSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Chemical
-        exclude = ["pubchem_cid", "synonyms"]
-        depth = 1
-
-    # Handles the self-reference
-    def to_representation(self, instance):
-        self.fields["ingredients"] = IngredientSerializer(many=True, read_only=True)
-        return super().to_representation(instance)
-
-
-class ChemicalWriteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Chemical
-        fields = ["name", "cas", "formula", "molecular_weight", "storage_category"]
-
-
-class ChemicalStorageCategoriesSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ChemicalStorageCategories
-        fields = "__all__"
-
-
-class SDSSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SDS
-        fields = ["file_name", "revision_date", "revision_number"]
-
-
-class LocationTypeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = LocationTypes
-        fields = "__all__"
-
-
-class LocationSerializer(serializers.ModelSerializer):
-    type = LocationTypeSerializer()
-
-    class Meta:
-        model = Location
-        fields = ["id", "name", "type", "children", "full_path"]
-
-    # Handles the self reference
-    def to_representation(self, instance):
-        self.fields["children"] = LocationSerializer(many=True, read_only=True)
-        return super().to_representation(instance)
-
-
-class LocationWriteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Location
-        fields = ["name", "type", "parent"]
-
-    # Handles the self reference
-    def to_representation(self, instance):
-        self.fields["parent"] = LocationSerializer(many=False)
-        return super().to_representation(instance)
-
-
-class LocationMenuSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Location
-        fields = ["id", "name", "full_path"]
-
-
-class LocationContainersSerializer(serializers.ModelSerializer):
-    containers = serializers.SerializerMethodField()
-    type = LocationTypeSerializer(many=False)
-
-    class Meta:
-        model = Location
-        fields = ["id", "name", "type", "full_path", "containers"]
-
-    # Get's all containers for selected location and any of it's children locations
-    def get_containers(self, obj):
-        def accumulate_ids(obj, ids=None):
-            if ids is None:
-                ids = []
-            ids.append(obj.id)
-            for child in obj.children.all():
-                ids = accumulate_ids(child, ids)
-            return ids
-
-        location_ids = accumulate_ids(obj)
-        containers = Container.objects.filter(location__id__in=location_ids)
-        serializer = ContainerSerializer(containers, many=True)
-        return serializer.data
+from ..models import Chemical, CheckoutEvent, Container, Location, WeightReading
+from .locations import LocationSerializer, LocationTypeSerializer
 
 
 class ContainerSerializer(serializers.ModelSerializer):
@@ -227,7 +127,29 @@ class CheckoutEventWriteSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class IngredientSerializer(serializers.ModelSerializer):
+# Lives here rather than serializers/locations.py: it needs ContainerSerializer
+# (defined above), and ContainerSerializer needs LocationSerializer — keeping
+# both directions of that dependency in one file avoids a locations <-> containers
+# circular import between the two modules.
+class LocationContainersSerializer(serializers.ModelSerializer):
+    containers = serializers.SerializerMethodField()
+    type = LocationTypeSerializer(many=False)
+
     class Meta:
-        model = Ingredient
-        fields = ["mixture", "ingredient"]
+        model = Location
+        fields = ["id", "name", "type", "full_path", "containers"]
+
+    # Get's all containers for selected location and any of it's children locations
+    def get_containers(self, obj):
+        def accumulate_ids(obj, ids=None):
+            if ids is None:
+                ids = []
+            ids.append(obj.id)
+            for child in obj.children.all():
+                ids = accumulate_ids(child, ids)
+            return ids
+
+        location_ids = accumulate_ids(obj)
+        containers = Container.objects.filter(location__id__in=location_ids)
+        serializer = ContainerSerializer(containers, many=True)
+        return serializer.data
