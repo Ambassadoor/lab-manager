@@ -70,6 +70,10 @@ export type WeighInDefaults = {
   checkin: {
     slug: string;
     weight: string;
+    // Backfill for containers that don't have a real tare weight yet —
+    // only sent when the row's container actually needs one (see
+    // WeighIn.tsx); omitted/blank rows leave the container as-is.
+    tare_weight?: string;
   }[];
 };
 

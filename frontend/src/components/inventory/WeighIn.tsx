@@ -10,11 +10,17 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { WeightField } from '../shared/WeightField';
 import { ScannableFieldRow } from '../shared/ScannableFieldRow';
 import { ActionFormCard } from '../shared/ActionFormCard';
+import { RhfTextField } from '../shared/RhfTextField';
+import { decimalPatternRule } from '../shared/formRules';
 
 type SnackbarState = { message: string; severity: 'success' | 'error' };
 
 export const WeighIn = () => {
   const [snackbar, setSnackbar] = useState<SnackbarState | null>(null);
+  // Keyed by each row's stable RHF field.id (not array index, which shifts
+  // under add/remove) — true once a scanned row's container is confirmed to
+  // have no real tare weight yet, per Container.has_estimated_usage.
+  const [needsTare, setNeedsTare] = useState<Record<string, boolean>>({});
   const {
     control,
     handleSubmit,
@@ -33,6 +39,7 @@ export const WeighIn = () => {
         {
           slug: '',
           weight: '',
+          tare_weight: '',
         },
       ],
     },
@@ -71,14 +78,6 @@ export const WeighIn = () => {
     }
   };
 
-  // No dynamic tare field here: turned out no container actually needed
-  // one. What looked like "680 containers missing a tare value" was really
-  // 680 containers with a placeholder tare_weight of 0 (imported from a
-  // Notion formula that defaulted missing inputs to 0 instead of blank —
-  // see migration 0026_null_placeholder_zero_tare_weights), corrupting
-  // percent_remaining for several of them. Fixed at the data layer instead;
-  // those containers now correctly show no percent_remaining rather than a
-  // wrong one, which was judged an acceptable end state.
   return (
     <>
       <Snackbar
@@ -132,14 +131,25 @@ export const WeighIn = () => {
                   },
                   validate: {
                     discarded: async (value) => {
-                      if (!value || value === '') return;
+                      if (!value || value === '') {
+                        setNeedsTare((prev) => ({ ...prev, [field.id]: false }));
+                        return;
+                      }
                       const split = value.toLocaleLowerCase().split('-');
                       const stripped = parseInt(split[1], 10);
                       const joined = split[0] + '-' + String(stripped);
                       const response = await checkIfDiscarded(joined);
                       if (response.is_discarded === true) {
+                        setNeedsTare((prev) => ({ ...prev, [field.id]: false }));
                         return `This container has been discarded. Cannot check in'}.`;
-                      } else if (response.is_valid === false) return 'Invalid ID';
+                      } else if (response.is_valid === false) {
+                        setNeedsTare((prev) => ({ ...prev, [field.id]: false }));
+                        return 'Invalid ID';
+                      }
+                      setNeedsTare((prev) => ({
+                        ...prev,
+                        [field.id]: !response.has_estimated_usage,
+                      }));
                     },
                   },
                 }}
@@ -160,6 +170,7 @@ export const WeighIn = () => {
                       append({
                         slug: '',
                         weight: '',
+                        tare_weight: '',
                       });
                     },
                     onError: (error) => {
@@ -170,7 +181,7 @@ export const WeighIn = () => {
                 showRemove={index > 0}
                 onRemove={() => remove(index)}
                 onAdd={() => {
-                  append({ slug: '', weight: '' });
+                  append({ slug: '', weight: '', tare_weight: '' });
                   setFocus(`checkin.${fields.length}.slug`);
                 }}
                 justScannedRef={justScannedRef}
@@ -190,6 +201,15 @@ export const WeighIn = () => {
                   }
                 }}
               />
+              {needsTare[field.id] && (
+                <RhfTextField
+                  control={control}
+                  name={`checkin.${index}.tare_weight`}
+                  label="Tare Weight (g)"
+                  rules={{ pattern: decimalPatternRule() }}
+                  clearErrors={clearErrors}
+                />
+              )}
             </Stack>
           ))}
         </Stack>

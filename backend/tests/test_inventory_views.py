@@ -195,3 +195,30 @@ class TestWeighInBulk:
         )
 
         assert response.status_code == 400
+
+    def test_backfills_tare_weight_when_container_has_none(self, client, make_container):
+        container = make_container("c1")
+        assert container.has_estimated_usage is False
+
+        response = client.post(
+            "/inventory/containers/weigh_in_bulk/",
+            {"checkin": [{"slug": container.slug, "weight": "10.0000", "tare_weight": "3.5000"}]},
+            format="json",
+        )
+
+        assert response.status_code == 201
+        container.refresh_from_db()
+        assert container.tare_weight == Decimal("3.5000")
+
+    def test_does_not_overwrite_an_existing_tare_weight(self, client, make_container):
+        container = make_container("c1", tare_weight=Decimal("12.0000"))
+
+        response = client.post(
+            "/inventory/containers/weigh_in_bulk/",
+            {"checkin": [{"slug": container.slug, "weight": "10.0000", "tare_weight": "99.0000"}]},
+            format="json",
+        )
+
+        assert response.status_code == 201
+        container.refresh_from_db()
+        assert container.tare_weight == Decimal("12.0000")

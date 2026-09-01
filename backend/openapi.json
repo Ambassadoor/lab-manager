@@ -1669,6 +1669,10 @@ components:
           type: boolean
           readOnly: true
           title: Opened?
+        has_estimated_usage:
+          type: string
+          readOnly: true
+          title: Has Estimated Usage?
         latest_reading:
           type: string
           readOnly: true
@@ -1680,6 +1684,7 @@ components:
           readOnly: true
       required:
       - checkout_status
+      - has_estimated_usage
       - id
       - is_opened
       - label
@@ -1993,6 +1998,10 @@ components:
           type: boolean
           readOnly: true
           title: Opened?
+        has_estimated_usage:
+          type: string
+          readOnly: true
+          title: Has Estimated Usage?
         latest_reading:
           type: string
           readOnly: true
