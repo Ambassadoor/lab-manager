@@ -1,4 +1,17 @@
+"""Batch-enriches a CAS -> CID mapping with PubChem properties.
+
+Standalone script, not wired into any Django app or management command —
+doesn't touch the database. Reads INPUT_FILE (CAS number -> one or more
+PubChem CIDs) and writes OUTPUT_FILE with title/molecular weight/formula/
+IUPAC name pulled from PubChem for each CID, batched to stay under
+PubChem's request-size limits.
+
+Run from `backend/` with INPUT_FILE present:
+    poetry run python scripts/pubchem_enrich.py
+"""
+
 import json
+
 import pubchempy as pcp
 
 BATCH_SIZE = 50
@@ -7,7 +20,6 @@ OUTPUT_FILE = "data_with_properties.json"
 PROPERTY_FIELDS = ["title", "molecularweight", "molecularformula", "iupacname"]
 
 
-# Script for importing chemical data from pubchem
 def normalize_cids(raw_cids):
     """Return a clean list of integer CIDs from mixed input shapes."""
     if raw_cids is None:
