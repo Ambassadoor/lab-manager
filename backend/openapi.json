@@ -1314,6 +1314,31 @@ paths:
               schema:
                 $ref: '#/components/schemas/LocationMenu'
           description: ''
+  /inventory/locations/move/:
+    patch:
+      operationId: inventory_locations_move_partial_update
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLocation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLocation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLocation'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+          description: ''
   /inventory/weight_readings/:
     get:
       operationId: inventory_weight_readings_list
@@ -2033,6 +2058,24 @@ components:
           pattern: ^-?\d{0,4}(?:\.\d{0,4})?$
           nullable: true
           title: Container weight
+    PatchedLocation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 20
+        type:
+          $ref: '#/components/schemas/LocationType'
+        children:
+          type: array
+          items:
+            type: integer
+        full_path:
+          type: string
+          readOnly: true
     PatchedLocationType:
       type: object
       properties:

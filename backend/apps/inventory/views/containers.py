@@ -1,92 +1,24 @@
-from rest_framework.viewsets import ModelViewSet
+from django.db import transaction
+from django.db.models.functions import Lower
+from django.http import Http404
 from rest_framework import filters, status
 from rest_framework.decorators import action
-from natsort import natsorted
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.http import Http404
-from .models import (
-    Container,
-    Chemical,
-    CheckoutEvent,
-    Location,
-    LocationTypes,
-    ChemicalStorageCategories,
-    WeightReading,
-)
-from .serializers import (
-    ContainerSerializer,
-    ContainerWriteSerializer,
+from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet
+
+from ..models import Chemical, ChemicalStorageCategories, CheckoutEvent, Container, WeightReading
+from ..permissions import IsManager
+from ..serializers import (
     ChemicalSerializer,
     CheckoutEventSerializer,
-    ChemicalWriteSerializer,
     CheckoutEventWriteSerializer,
+    ContainerSerializer,
+    ContainerWriteSerializer,
     IngredientSerializer,
-    LocationSerializer,
-    LocationContainersSerializer,
-    LocationMenuSerializer,
-    LocationWriteSerializer,
-    LocationTypeSerializer,
-    ChemicalStorageCategoriesSerializer,
-    WeightReadingSerializer,
     WeightReadingReadSerializer,
+    WeightReadingSerializer,
 )
-from django.db.models import (
-    Count,
-    Q,
-    F,
-    ProtectedError,
-    OuterRef,
-    Subquery,
-    ExpressionWrapper,
-    FloatField,
-)
-from django.db.models.functions import Lower
-from django.db import transaction
-
-from .permissions import IsManager, IsCoordinator
-
-
-class ChemicalView(ModelViewSet):
-    serializer_class = ChemicalSerializer
-    queryset = Chemical.objects.all()
-
-    permission_classes = [IsAuthenticated]
-
-    # Only managers allowed to delete
-    def get_permissions(self):
-        if self.action in ["destroy"]:
-            return [permission() for permission in [IsManager]]
-        return super().get_permissions()
-
-    def get_serializer_class(self):
-        if self.action == "create":
-            return ChemicalWriteSerializer
-        return super().get_serializer_class()
-
-    # Returns any mixtures or chemicals associated with the provided cas nums
-    @action(detail=False, methods=["get"])
-    def check_cas(self, request):
-        q = Chemical.objects.all()
-        cas_param = request.query_params.get("cas")
-        if cas_param:
-            cas = cas_param.split(",")
-            mixtures = q.annotate(
-                total_ingredients=Count("ingredients", distinct=True),
-                matching_ingredients=Count(
-                    "ingredients",
-                    filter=Q(ingredients__ingredient__cas__in=cas),
-                    distinct=True,
-                ),
-            ).filter(
-                total_ingredients=len(cas),
-                matching_ingredients=F("total_ingredients"),
-            )
-            chemicals = q
-            chemicals = chemicals.filter(cas__in=cas)
-            mixtures = ChemicalSerializer(mixtures, many=True).data
-            chemicals = ChemicalSerializer(chemicals, many=True).data
-            return Response({"mixtures": mixtures, "chemicals": chemicals})
 
 
 class ContainerView(ModelViewSet):
@@ -387,129 +319,6 @@ class ContainerView(ModelViewSet):
         )
 
 
-class LocationView(ModelViewSet):
-    queryset = Location.objects.all()
-
-    permission_classes = [IsAuthenticated]
-
-    def get_permissions(self):
-        if self.action in ["destroy"]:
-            return [permission() for permission in [IsManager | IsCoordinator]]
-        return super().get_permissions()
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        if self.kwargs.get("pk"):
-            return queryset
-        if self.action == "menu":
-            return queryset
-        else:
-            return queryset.filter(parent__exact=None).order_by("name")
-
-    def get_serializer_class(self):
-        if self.action in ["create", "update", "partial_update", "add_child"]:
-            return LocationWriteSerializer
-        if self.action in ["menu"]:
-            return LocationMenuSerializer
-        else:
-            return LocationSerializer
-
-    # Handles creating new locations/location types
-    @transaction.atomic
-    def create(self, request):
-        data = request.data
-        if "new_type" in data and data.get("new_type") is not None:
-            new_type = data.get("new_type")
-            new_type["slug"] = new_type.get("name").strip().lower().replace(" ", "_")
-            serializer = LocationTypeSerializer(data=new_type)
-            serializer.is_valid(raise_exception=True)
-            type = serializer.save()
-            data["type"] = type.id
-        location_data = {
-            "name": data.get("name"),
-            "parent": data.get("parent"),
-            "type": data.get("type"),
-        }
-        location_serializer = LocationWriteSerializer(data=location_data)
-        location_serializer.is_valid(raise_exception=True)
-        location = location_serializer.save()
-        return Response(LocationSerializer(location).data, status=status.HTTP_201_CREATED)
-
-    # Returns the locations in a format easily usable in select menus
-    @action(detail=False, methods=["GET"])
-    def menu(self, request):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    # Adds a new child location
-    @action(detail=True, methods=["POST"])
-    def add_child(self, request, pk=None):
-        data = request.data
-        parent = self.get_object()
-
-        data["parent"] = parent.id
-        serializer = LocationWriteSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        location = serializer.save()
-
-        response_serializer = LocationSerializer(location)
-
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
-
-    # Returns all containers for a given location, including nested child locations
-    @action(detail=True, methods=["GET"])
-    def containers(self, request, pk=None):
-        location = self.get_object()
-
-        serializer = LocationContainersSerializer(location)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    # Deletes a location or returns an error message if the selected location has any child locations or containers
-    def destroy(self, request, pk=None):
-        try:
-            location = self.get_object()
-            location.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except ProtectedError:
-            return Response(
-                {
-                    "detail": "Cannot delete this location, there are children locations and/or containers that need to be moved first."
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-
-class LocationTypeView(ModelViewSet):
-    queryset = LocationTypes.objects.all()
-    serializer_class = LocationTypeSerializer
-
-    permission_classes = [IsAuthenticated]
-
-    def get_permissions(self):
-        if self.action in ["destroy"]:
-            return [permission() for permission in [IsManager]]
-        return super().get_permissions()
-
-
-class ChemicalStorageCategoryView(ModelViewSet):
-    queryset = ChemicalStorageCategories.objects.all()
-    serializer_class = ChemicalStorageCategoriesSerializer
-
-    permission_classes = [IsAuthenticated]
-
-    def get_permissions(self):
-        if self.action in ["destroy"]:
-            return [permission() for permission in [IsManager]]
-        return super().get_permissions()
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        sorted = natsorted(queryset, key=lambda obj: obj.shorthand)
-
-        return sorted
-
-
 class WeightReadingView(ModelViewSet):
     queryset = WeightReading.objects.all()
     serializer_class = WeightReadingSerializer
@@ -520,66 +329,3 @@ class WeightReadingView(ModelViewSet):
         if self.action in ["destroy"]:
             return [permission() for permission in [IsManager]]
         return super().get_permissions()
-
-
-class DashboardView(ModelViewSet):
-    queryset = Container.objects.all()
-    serializer_class = ContainerSerializer
-
-    permission_classes = [IsAuthenticated]
-
-    most_recent_reading_time = (
-        WeightReading.objects.filter(container_id=OuterRef("pk"))
-        .order_by("-recorded_at")
-        .values("recorded_at")[:1]
-    )
-
-    most_recent_reading_weight = (
-        WeightReading.objects.filter(container_id=OuterRef("pk"))
-        .order_by("-recorded_at")
-        .values("weight")[:1]
-    )
-
-    most_recent_event = (
-        CheckoutEvent.objects.filter(container_id=OuterRef("pk"))
-        .order_by("-timestamp")
-        .values("timestamp")[:1]
-    )
-
-    most_recent_event_action = (
-        CheckoutEvent.objects.filter(container_id=OuterRef("pk"))
-        .order_by("-timestamp")
-        .values("action")[:1]
-    )
-
-    def list(self, request):
-        queryset = self.get_queryset()
-        recently_added = queryset.filter(date_received__isnull=False).order_by("-date_received")[:5]
-        checked_out = (
-            Container.objects.annotate(most_recent_event=Subquery(self.most_recent_event))
-            .annotate(most_recent_event_action=Subquery(self.most_recent_event_action))
-            .order_by("-most_recent_event")
-            .filter(most_recent_event_action="out")[:5]
-        )
-
-        restock_soon = (
-            Container.objects.annotate(
-                most_recent_reading_time=Subquery(self.most_recent_reading_time)
-            )
-            .annotate(most_recent_reading_weight=Subquery(self.most_recent_reading_weight))
-            .order_by("most_recent_reading_time")
-            .annotate(
-                percent_remaining=ExpressionWrapper(
-                    F("most_recent_reading_weight") / F("initial_weight"), output_field=FloatField()
-                )
-            )
-            .filter(percent_remaining__lte=0.1)[:5]
-        )
-
-        return_dict = {
-            "recently_added": ContainerSerializer(recently_added, many=True).data,
-            "checked_out": ContainerSerializer(checked_out, many=True).data,
-            "restock_soon": ContainerSerializer(restock_soon, many=True).data,
-        }
-
-        return Response(return_dict, status=status.HTTP_200_OK)

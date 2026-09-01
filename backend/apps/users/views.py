@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
+from .models import User
 from .serializers import UserSerializer, NewUserSerializer
 
 
@@ -96,7 +97,10 @@ class RegisterView(APIView):
         serializer = NewUserSerializer(data=req_body)
         serializer.is_valid(raise_exception=True)
         # TODO: Implement actual role determination logic
-        new_user = serializer.save(role="Lab Manager", user_type="Full User")
+        # role/user_type must be the TextChoices *value* ("lab_manager"), not
+        # the display label ("Lab Manager") — the two differ, and permission
+        # checks like IsManager compare against the value.
+        new_user = serializer.save(role=User.Role.LAB_MANAGER, user_type=User.UserType.FULL)
 
         return Response(UserSerializer(new_user).data, status=status.HTTP_201_CREATED)
 

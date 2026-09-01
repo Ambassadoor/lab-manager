@@ -123,6 +123,7 @@ export const Transfer = () => {
                   resetField(`containers.${index}.slug`);
                   return;
                 } else if (scannedId.toLocaleLowerCase().includes('loc')) {
+                  remove(index);
                   setValue('location', scannedId.split('-')[1]);
                   handleSubmit(onSubmit)();
                   resetField(`containers.${index}.slug`);
