@@ -181,7 +181,7 @@ export const ContainerForm = () => {
     [locationMenu, formatLocations]
   );
 
-  const { data: metaData } = useQuery({
+  const { data: metaData, isPending: isMetaDataPending } = useQuery({
     queryKey: containerKeys.metaData(),
     queryFn: getContainerMetaData,
   });
@@ -518,41 +518,34 @@ export const ContainerForm = () => {
                                   message: 'Please select a unit',
                                 },
                               }}
-                              render={({ field, fieldState: { error } }) =>
-                                metaData ? (
-                                  <InputAdornment position="end">
-                                    <Select
-                                      {...field}
-                                      error={!!error}
-                                      label="Unit"
-                                      value={formValues?.quantity_unit}
-                                      autoWidth
-                                      variant="standard"
-                                      MenuProps={{
-                                        slotProps: {
-                                          paper: {
-                                            sx: {
-                                              maxHeight: 200,
-                                            },
+                              render={({ field, fieldState: { error } }) => (
+                                <InputAdornment position="end">
+                                  <Select
+                                    {...field}
+                                    error={!!error}
+                                    label="Unit"
+                                    value={formValues?.quantity_unit}
+                                    autoWidth
+                                    variant="standard"
+                                    disabled={isMetaDataPending}
+                                    MenuProps={{
+                                      slotProps: {
+                                        paper: {
+                                          sx: {
+                                            maxHeight: 200,
                                           },
                                         },
-                                      }}
-                                    >
-                                      {/* TODO: Remove this check after implementing tanstack loading state */}
-                                      {metaData &&
-                                        metaData?.actions?.POST.quantity_unit.choices.map(
-                                          (c, i) => (
-                                            <MenuItem key={i} value={c.value}>
-                                              {c.display_name}
-                                            </MenuItem>
-                                          )
-                                        )}
-                                    </Select>
-                                  </InputAdornment>
-                                ) : (
-                                  <></>
-                                )
-                              }
+                                      },
+                                    }}
+                                  >
+                                    {metaData?.actions?.POST.quantity_unit.choices.map((c, i) => (
+                                      <MenuItem key={i} value={c.value}>
+                                        {c.display_name}
+                                      </MenuItem>
+                                    ))}
+                                  </Select>
+                                </InputAdornment>
+                              )}
                             />
                           ),
                         },
