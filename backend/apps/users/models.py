@@ -29,7 +29,7 @@ class User(AbstractUser):
     lipscomb_id = models.CharField(max_length=11, unique=True, null=True, blank=True)
 
     def __str__(self) -> str:
-        return self.username or self.scanned_id or f"Guest {self.pk}"
+        return self.username or self.lipscomb_id or f"Guest {self.pk}"
 
     @property
     def is_guest(self):
