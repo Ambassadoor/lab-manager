@@ -62,7 +62,10 @@ function filterByView(containers: ContainerType[], view: ContainersViewKey | nul
   }
 }
 
-//TODO: Remove container data logic outside and let parent components pass in values
+// Fetches its own container list rather than receiving it as a prop — this
+// only pays for itself once a second consumer needs the same data (App.tsx
+// renders this at exactly one route today, so there's no duplicate fetch to
+// eliminate yet). Revisit if/when a sibling route needs the same list.
 export const Containers = () => {
   const {
     isPending,
