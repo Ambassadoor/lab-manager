@@ -71,7 +71,14 @@ export const WeighIn = () => {
     }
   };
 
-  //TODO: Add a dynamic tare field for ids with no tare value
+  // No dynamic tare field here: turned out no container actually needed
+  // one. What looked like "680 containers missing a tare value" was really
+  // 680 containers with a placeholder tare_weight of 0 (imported from a
+  // Notion formula that defaulted missing inputs to 0 instead of blank —
+  // see migration 0026_null_placeholder_zero_tare_weights), corrupting
+  // percent_remaining for several of them. Fixed at the data layer instead;
+  // those containers now correctly show no percent_remaining rather than a
+  // wrong one, which was judged an acceptable end state.
   return (
     <>
       <Snackbar
