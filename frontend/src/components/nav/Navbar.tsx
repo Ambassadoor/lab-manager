@@ -161,7 +161,14 @@ export const Navbar = (): JSX.Element | null => {
                                   to="/inventory/containers/actions/?tab=2"
                                   onClick={handleActionsMenuClose}
                                 >
-                                  Transfer Location
+                                  Move Containers
+                                </MenuItem>
+                                <MenuItem
+                                  component={Link}
+                                  to="/inventory/containers/actions/?tab=3"
+                                  onClick={handleActionsMenuClose}
+                                >
+                                  Move Locations
                                 </MenuItem>
                               </MenuList>
                             </ClickAwayListener>
