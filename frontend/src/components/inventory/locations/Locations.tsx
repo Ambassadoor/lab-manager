@@ -51,13 +51,13 @@ import { type ColDef } from 'ag-grid-community';
 import { EditLocation } from './EditLocation';
 import { useAuth } from '../../../context/AuthContext';
 import { DataTable } from '../../shared/DataTable';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { printLabel } from '../../../api/bridge';
 
 type LocationProps = {
   location: Location;
   parent?: Location;
-  setSelectedLocation: React.Dispatch<React.SetStateAction<string>>;
+  setSelectedLocation: (id: string) => void;
   editing?: boolean;
   onDelete: UseMutationResult<unknown, Error, string, unknown>;
 };
@@ -165,11 +165,17 @@ const Location = ({ location, parent, setSelectedLocation, editing, onDelete }: 
   );
 };
 
-//TODO: Add selected location id to url query for navigation
 // Component for viewing/editing locations and their assigned containers
 export const Locations = () => {
   const [open, setOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState('');
+  // Selection lives in the URL (?location=<id>) rather than local state, so
+  // a link to a specific location's container list can be bookmarked/shared
+  // and survives back/forward navigation.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedLocation = searchParams.get('location') ?? '';
+  const setSelectedLocation = (id: string) => {
+    setSearchParams(id ? { location: id } : {});
+  };
   const [editing, setEditing] = useState(false);
   const {
     data: locations,
@@ -203,8 +209,16 @@ export const Locations = () => {
     onSuccess: (_data, deletedId) => {
       // Clear the selection first so the invalidation below refetches
       // containers for '' (getContainers) instead of re-requesting the
-      // now-deleted location's containers endpoint (404).
-      setSelectedLocation((prev) => (prev === deletedId ? '' : prev));
+      // now-deleted location's containers endpoint (404). Reads the
+      // latest search params at apply time (not the value captured when
+      // the mutation started) so this can't clear a different location
+      // selected while the delete was in flight.
+      setSearchParams((prev) => {
+        if (prev.get('location') !== deletedId) return prev;
+        const next = new URLSearchParams(prev);
+        next.delete('location');
+        return next;
+      });
       // .all — a deleted location can also affect the menu dropdown and any open containers view
       qc.invalidateQueries({
         queryKey: locationKeys.all,
