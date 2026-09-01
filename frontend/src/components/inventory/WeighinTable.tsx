@@ -2,10 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { getContainerWeighIns } from '../../api/inventory';
 import { containerKeys } from '../../api/queryKeys';
 import { useCallback, useState } from 'react';
-import { themeMaterial, type ColDef, type GetRowIdParams } from 'ag-grid-community';
-import { Container, Paper, useTheme } from '@mui/material';
-import { AgGridReact } from 'ag-grid-react';
+import type { ColDef, GetRowIdParams } from 'ag-grid-community';
 import Decimal from 'decimal.js';
+import { DataTable } from '../shared/DataTable';
 
 type WeighInTableProps = {
   slug: string;
@@ -40,40 +39,16 @@ export const WeighInTable = ({ slug }: WeighInTableProps) => {
 
   const getRowId = useCallback((params: GetRowIdParams) => String(params.data.id), []);
 
-  const pagination = true;
-  const paginationPageSize = 5;
-  const paginationPageSizeSelector = [5, 10, 15];
-
-  //TODO: Need to update theme to fix transparency issues
-  const theme = useTheme();
-  const myTheme = themeMaterial.withParams({
-    accentColor: theme.palette.info.main,
-    backgroundColor: 'transparent',
-    foregroundColor: theme.palette.text.primary,
-    headerTextColor: theme.palette.text.primary,
-    browserColorScheme: theme.palette.mode,
-    wrapperBorderRadius: theme.shape.borderRadius,
-    textColor: theme.palette.text.primary,
-    borderColor: theme.palette.divider,
-    fontFamily: theme.typography.fontFamily,
-    fontSize: theme.typography.body2.fontSize,
-  });
   return (
-    <Container sx={{ height: '200px' }}>
-      <Paper elevation={8} sx={{ height: '200px' }}>
-        <AgGridReact
-          theme={myTheme}
-          rowData={weighInEvents}
-          autoSizeStrategy={{ type: 'fitCellContents' }}
-          columnDefs={colDefs}
-          pagination={pagination}
-          paginationPageSize={paginationPageSize}
-          paginationPageSizeSelector={paginationPageSizeSelector}
-          paginationAutoPageSize={false}
-          getRowId={getRowId}
-          loading={isPending}
-        />
-      </Paper>
-    </Container>
+    <DataTable
+      rowData={weighInEvents}
+      columnDefs={colDefs}
+      getRowId={getRowId}
+      isLoading={isPending}
+      height="200px"
+      pageSize={5}
+      pageSizeOptions={[5, 10, 15]}
+      elevation={8}
+    />
   );
 };
