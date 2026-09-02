@@ -144,17 +144,26 @@ class LocationContainersSerializer(serializers.ModelSerializer):
         model = Location
         fields = ["id", "name", "type", "full_path", "containers"]
 
-    # Get's all containers for selected location and any of it's children locations
+    # Get's all containers for selected location and any of it's children locations.
+    #
+    # Two queries total regardless of the tree's depth/shape: one to load
+    # every location's (id, parent_id) pair and build a parent -> children
+    # map in Python, then a plain BFS over that map to collect descendant
+    # ids — versus the previous obj.children.all() recursion, which fired
+    # one query per node visited.
     def get_containers(self, obj):
-        def accumulate_ids(obj, ids=None):
-            if ids is None:
-                ids = []
-            ids.append(obj.id)
-            for child in obj.children.all():
-                ids = accumulate_ids(child, ids)
-            return ids
+        children_by_parent: dict[int | None, list[int]] = {}
+        for child_id, parent_id in Location.objects.values_list("id", "parent_id"):
+            children_by_parent.setdefault(parent_id, []).append(child_id)
 
-        location_ids = accumulate_ids(obj)
+        location_ids = [obj.id]
+        queue = [obj.id]
+        while queue:
+            current = queue.pop()
+            children = children_by_parent.get(current, [])
+            location_ids.extend(children)
+            queue.extend(children)
+
         containers = Container.objects.filter(location__id__in=location_ids)
         serializer = ContainerSerializer(containers, many=True)
         return serializer.data

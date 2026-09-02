@@ -2,6 +2,8 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 
 from apps.inventory.models import (
@@ -431,3 +433,151 @@ class TestLocationFilters:
         assert response.status_code == 200
         names = [loc["name"] for loc in response.data]
         assert names.index("zzz-last") < names.index("aaa-first")
+
+
+@pytest.mark.django_db
+class TestLocationContainers:
+    def test_includes_containers_from_all_descendant_locations(
+        self, client, make_location, make_container
+    ):
+        root = make_location("root")
+        child = make_location("child", parent=root)
+        grandchild = make_location("grandchild", parent=child)
+        sibling = make_location("sibling")
+
+        in_root = make_container("in-root", location=root)
+        in_child = make_container("in-child", location=child)
+        in_grandchild = make_container("in-grandchild", location=grandchild)
+        in_sibling = make_container("in-sibling", location=sibling)
+
+        response = client.get(f"/inventory/locations/{root.id}/containers/")
+
+        assert response.status_code == 200
+        slugs = {c["slug"] for c in response.data["containers"]}
+        assert slugs == {in_root.slug, in_child.slug, in_grandchild.slug}
+        assert in_sibling.slug not in slugs
+
+    def test_query_count_does_not_grow_with_tree_depth(self, client, make_location, make_container):
+        # Regression guard for get_containers()'s old behavior: a recursive
+        # obj.children.all() walk that fired one query per node visited, so
+        # searching a subtree with many (even container-less) descendant
+        # locations cost proportionally more queries than searching one
+        # with none. The (id, parent_id) map + BFS version issues the same
+        # fixed number of queries no matter how large that subtree is.
+        #
+        # The one container in each tree sits at a fixed-shape leaf — one
+        # level below its own root, with no children of its own — kept
+        # identical between the two trees on purpose: ContainerSerializer's
+        # nested LocationSerializer separately walks each *result's own*
+        # ancestor chain (full_path) and recursively serializes each
+        # result's own descendant tree (children), both of which are
+        # pre-existing costs unrelated to get_containers and would
+        # otherwise contaminate this comparison. The extra 10-level chain
+        # lives under deep_root but away from the container, so it's part
+        # of the subtree get_containers must search, without changing the
+        # shape of what actually gets serialized.
+        shallow_root = make_location("shallow-root")
+        shallow_leaf = make_location("shallow-leaf", parent=shallow_root)
+        make_container("shallow-container", location=shallow_leaf)
+
+        deep_root = make_location("deep-root")
+        deep_leaf = make_location("deep-leaf", parent=deep_root)
+        make_container("deep-container", location=deep_leaf)
+        current = deep_root
+        for i in range(10):
+            current = make_location(f"level-{i}", parent=current)
+
+        with CaptureQueriesContext(connection) as shallow_queries:
+            shallow_response = client.get(f"/inventory/locations/{shallow_root.id}/containers/")
+        with CaptureQueriesContext(connection) as deep_queries:
+            deep_response = client.get(f"/inventory/locations/{deep_root.id}/containers/")
+
+        assert shallow_response.status_code == 200
+        assert deep_response.status_code == 200
+        assert len(deep_queries) == len(shallow_queries)
+
+
+@pytest.mark.django_db
+class TestLocationTreeSerialization:
+    def test_nests_children_alphabetically_with_correct_full_path_and_type(
+        self, client, make_location, location_type
+    ):
+        root = make_location("alpha-root")
+        make_location("zebra-child", parent=root)
+        beta_child = make_location("beta-child", parent=root)
+        make_location("gamma-grandchild", parent=beta_child)
+
+        response = client.get("/inventory/locations/")
+
+        assert response.status_code == 200
+        root_data = next(loc for loc in response.data if loc["name"] == "alpha-root")
+
+        assert root_data["full_path"] == "alpha-root"
+        assert root_data["type"]["name"] == location_type.name
+
+        # Children.all() (the old recursive implementation) inherited
+        # Location.Meta.ordering = ["name"] for free — the new map-based walk
+        # has to reproduce that explicitly.
+        child_names = [c["name"] for c in root_data["children"]]
+        assert child_names == ["beta-child", "zebra-child"]
+
+        beta_data = next(c for c in root_data["children"] if c["name"] == "beta-child")
+        assert beta_data["full_path"] == "alpha-root beta-child"
+        assert [c["name"] for c in beta_data["children"]] == ["gamma-grandchild"]
+        assert beta_data["children"][0]["full_path"] == "alpha-root beta-child gamma-grandchild"
+
+        zebra_data = next(c for c in root_data["children"] if c["name"] == "zebra-child")
+        assert zebra_data["children"] == []
+
+    def test_query_count_does_not_grow_with_tree_size(self, client, make_location):
+        # Regression guard for the old to_representation, which re-instantiated
+        # LocationSerializer (and re-queried full_path/children/type) at every
+        # tree level — so listing cost more queries as the tree grew. Same
+        # request, same transaction, before/after growing the tree: the fixed
+        # version should cost exactly the same either way.
+        root = make_location("root")
+
+        with CaptureQueriesContext(connection) as first_queries:
+            first_response = client.get("/inventory/locations/")
+        assert first_response.status_code == 200
+
+        current = root
+        for i in range(10):
+            current = make_location(f"level-{i}", parent=current)
+
+        with CaptureQueriesContext(connection) as second_queries:
+            second_response = client.get("/inventory/locations/")
+        assert second_response.status_code == 200
+
+        assert len(second_queries) == len(first_queries)
+
+
+@pytest.mark.django_db
+class TestLocationMenu:
+    def test_returns_correct_full_path_for_nested_locations(self, client, make_location):
+        root = make_location("alpha-root")
+        make_location("beta-child", parent=root)
+
+        response = client.get("/inventory/locations/menu/")
+
+        assert response.status_code == 200
+        paths = {loc["name"]: loc["full_path"] for loc in response.data}
+        assert paths["alpha-root"] == "alpha-root"
+        assert paths["beta-child"] == "alpha-root beta-child"
+
+    def test_query_count_does_not_grow_with_location_count(self, client, make_location):
+        root = make_location("root")
+
+        with CaptureQueriesContext(connection) as first_queries:
+            first_response = client.get("/inventory/locations/menu/")
+        assert first_response.status_code == 200
+
+        current = root
+        for i in range(10):
+            current = make_location(f"level-{i}", parent=current)
+
+        with CaptureQueriesContext(connection) as second_queries:
+            second_response = client.get("/inventory/locations/menu/")
+        assert second_response.status_code == 200
+
+        assert len(second_queries) == len(first_queries)
