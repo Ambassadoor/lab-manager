@@ -40,6 +40,32 @@ class UserSerializer(serializers.ModelSerializer):
         return validate_lipscomb_email(value)
 
 
+# Used by UserView (Admin/Lab Manager editing *another* user's account) —
+# the only difference from the self-service UserSerializer is that `role`
+# is writable here. Kept as a separate serializer rather than a flag on
+# UserSerializer so "can this edit promote someone" is a property of which
+# serializer a view uses, not a runtime conditional.
+class UserAdminSerializer(serializers.ModelSerializer):
+    role_display = serializers.CharField(source="get_role_display", read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "lipscomb_id",
+            "role",
+            "role_display",
+        ]
+        read_only_fields = ["id", "role_display"]
+
+    def validate_email(self, value):
+        return validate_lipscomb_email(value)
+
+
 # Returns users full name for display in checkout events
 class UserCheckoutEventSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()

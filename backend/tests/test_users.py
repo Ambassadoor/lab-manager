@@ -1,8 +1,8 @@
 import pytest
 from rest_framework.test import APIClient
 
-from apps.inventory.permissions import role_at_least
 from apps.users.models import User
+from apps.users.permissions import role_at_least
 from apps.users.serializers import NewUserSerializer
 
 
@@ -92,6 +92,25 @@ def client(user):
     return api_client
 
 
+@pytest.fixture
+def client_as(db):
+    """An authenticated APIClient for a fresh user with the given role."""
+
+    def _make(role):
+        api_client = APIClient()
+        api_client.force_authenticate(
+            user=User.objects.create_user(
+                username=f"user-{role}",
+                email=f"{role}@lipscomb.edu",
+                password="pw12345!",
+                role=role,
+            )
+        )
+        return api_client
+
+    return _make
+
+
 @pytest.mark.django_db
 class TestMeView:
     def test_get_returns_own_profile_with_a_readable_role_label(self, client, user):
@@ -143,6 +162,78 @@ class TestMeView:
         response = client.patch("/api/auth/me/", {"first_name": "Nope"}, format="json")
 
         assert response.status_code == 403
+
+
+@pytest.mark.django_db
+class TestUserView:
+    @pytest.mark.parametrize(
+        "role",
+        [User.Role.LAB_ASSISTANT, User.Role.STOCKROOM, User.Role.COORDINATOR, User.Role.FACULTY],
+    )
+    def test_roles_below_lab_manager_cannot_list_retrieve_or_update(self, client_as, user, role):
+        client = client_as(role)
+
+        assert client.get("/api/auth/users/").status_code == 403
+        assert client.get(f"/api/auth/users/{user.id}/").status_code == 403
+        assert (
+            client.patch(
+                f"/api/auth/users/{user.id}/", {"role": "admin"}, format="json"
+            ).status_code
+            == 403
+        )
+        user.refresh_from_db()
+        assert user.role == User.Role.COORDINATOR
+
+    @pytest.mark.parametrize("role", [User.Role.LAB_MANAGER, User.Role.ADMIN])
+    def test_lab_manager_and_admin_can_list_and_view_other_users(self, client_as, user, role):
+        client = client_as(role)
+
+        list_response = client.get("/api/auth/users/")
+        assert list_response.status_code == 200
+        assert user.username in {u["username"] for u in list_response.data}
+
+        detail_response = client.get(f"/api/auth/users/{user.id}/")
+        assert detail_response.status_code == 200
+        assert detail_response.data["username"] == user.username
+
+    @pytest.mark.parametrize("role", [User.Role.LAB_MANAGER, User.Role.ADMIN])
+    def test_lab_manager_and_admin_can_change_another_users_role_and_identity(
+        self, client_as, user, role
+    ):
+        client = client_as(role)
+
+        response = client.patch(
+            f"/api/auth/users/{user.id}/",
+            {"role": "admin", "first_name": "Renamed"},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        user.refresh_from_db()
+        assert user.role == User.Role.ADMIN
+        assert user.first_name == "Renamed"
+
+    def test_rejects_a_non_lipscomb_email(self, client_as, user):
+        client = client_as(User.Role.LAB_MANAGER)
+
+        response = client.patch(
+            f"/api/auth/users/{user.id}/", {"email": "person@gmail.com"}, format="json"
+        )
+
+        assert response.status_code == 400
+        user.refresh_from_db()
+        assert user.email == "tester@lipscomb.edu"
+
+    def test_allows_saving_without_changing_the_target_users_email(self, client_as, user):
+        # Same UniqueValidator-self-exclusion regression guard as TestMeView,
+        # here for UserAdminSerializer's independent field declaration.
+        client = client_as(User.Role.LAB_MANAGER)
+
+        response = client.patch(
+            f"/api/auth/users/{user.id}/", {"first_name": "Updated"}, format="json"
+        )
+
+        assert response.status_code == 200
 
 
 @pytest.mark.django_db

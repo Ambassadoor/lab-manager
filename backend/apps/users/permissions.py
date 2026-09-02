@@ -1,6 +1,6 @@
 from rest_framework.permissions import BasePermission
 
-from apps.users.models import User
+from .models import User
 
 # Admin and Lab Manager intentionally share a rank — they're the same
 # permission tier today, kept as separate enum values for future org

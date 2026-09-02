@@ -31,6 +31,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Logout } from '@mui/icons-material';
 import { DarkModeToggle } from './DarkModeToggle';
 import { Link, NavLink, Outlet, useNavigate, useNavigation } from 'react-router-dom';
+import { hasRoleAtLeast } from '../shared/roles';
 
 // Shared by every top-level nav link, desktop and mobile — was copy-pasted
 // four times before (once per Button); the theme-callback form here means
@@ -192,6 +193,11 @@ export const Navbar = (): JSX.Element | null => {
                   >
                     Chemicals
                   </Button>
+                  {hasRoleAtLeast(user, 'lab_manager') && (
+                    <Button component={NavLink} to="/users/" color="inherit" sx={navLinkSx} end>
+                      Users
+                    </Button>
+                  )}
                 </Stack>
               )}
             </Box>
@@ -310,6 +316,17 @@ export const Navbar = (): JSX.Element | null => {
               >
                 <ListItemText primary="Chemicals" />
               </ListItemButton>
+              {hasRoleAtLeast(user, 'lab_manager') && (
+                <ListItemButton
+                  component={NavLink}
+                  to="/users/"
+                  end
+                  sx={navLinkSx}
+                  onClick={closeMobileMenu}
+                >
+                  <ListItemText primary="Users" />
+                </ListItemButton>
+              )}
             </List>
           </Box>
         </Drawer>
