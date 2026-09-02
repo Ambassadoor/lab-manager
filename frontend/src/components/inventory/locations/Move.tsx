@@ -159,7 +159,7 @@ export const Move = () => {
         }
       >
         <Stack spacing={2}>
-          {fields.map((field, index) => (
+          {fields.map((_, index) => (
             <ScannableFieldRow
               control={control}
               name={`childLocations.${index}.slug`}
