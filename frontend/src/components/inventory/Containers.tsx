@@ -27,6 +27,8 @@ import { DataTable } from '../shared/DataTable';
 import type { Container as ContainerType, ContainerPatch, EditableKeys } from '../../types';
 import { AddBox, Search } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { hasRoleAtLeast } from '../shared/roles';
 
 // The three dashboard-card slices "View More" can land here with, via
 // ?view=. `checked_out` and `recently_added` translate straight to backend
@@ -72,6 +74,9 @@ function filterByView(containers: ContainerType[], view: ContainersViewKey | nul
 // renders this at exactly one route today, so there's no duplicate fetch to
 // eliminate yet). Revisit if/when a sibling route needs the same list.
 export const Containers = () => {
+  const { user } = useAuth();
+  const canEdit = hasRoleAtLeast(user, 'stockroom');
+
   const [searchParams, setSearchParams] = useSearchParams();
   const viewParam = searchParams.get('view');
   const view = isContainersViewKey(viewParam) ? viewParam : null;
@@ -115,12 +120,12 @@ export const Containers = () => {
     { field: 'label', headerName: 'ID', filter: true },
     { field: 'name', filter: true },
     { field: 'location.full_path', headerName: 'Location', filter: true },
-    { field: 'manufacturer' satisfies EditableKeys<ContainerType>, editable: true },
+    { field: 'manufacturer' satisfies EditableKeys<ContainerType>, editable: canEdit },
     { field: 'quantity' },
     {
       field: 'product_num' satisfies EditableKeys<ContainerType>,
       headerName: 'Product #',
-      editable: true,
+      editable: canEdit,
     },
     { field: 'is_opened', headerName: 'Opened?' },
   ]);
@@ -164,16 +169,18 @@ export const Containers = () => {
         <Box>
           <Stack direction={'row'} spacing={2}>
             <Typography variant="h4">Containers</Typography>
-            <Tooltip title="Add container">
-              <IconButton
-                onClick={() => {
-                  navigate('new');
-                  setOpen(true);
-                }}
-              >
-                <AddBox />
-              </IconButton>
-            </Tooltip>
+            {canEdit && (
+              <Tooltip title="Add container">
+                <IconButton
+                  onClick={() => {
+                    navigate('new');
+                    setOpen(true);
+                  }}
+                >
+                  <AddBox />
+                </IconButton>
+              </Tooltip>
+            )}
           </Stack>
           <Typography variant="body2" color="text.secondary">
             Browse and edit containers in inventory.

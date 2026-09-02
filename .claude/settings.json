@@ -20,7 +20,8 @@
       "mcp__playwright__browser_click",
       "mcp__playwright__browser_console_messages",
       "Bash(echo \"exit:$?\")",
-      "Bash(pnpm format:check)"
+      "Bash(pnpm format:check)",
+      "Bash(pnpm build *)"
     ]
   }
 }

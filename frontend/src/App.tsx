@@ -119,9 +119,17 @@ export default function App() {
                     element: <Outlet />,
                     children: [
                       { index: true, element: <Containers /> },
-                      { path: 'new', element: <ContainerForm /> },
+                      {
+                        path: 'new',
+                        element: <RequireRole role="stockroom" />,
+                        children: [{ index: true, element: <ContainerForm /> }],
+                      },
                       { path: ':id', element: <ContainerDetail /> },
-                      { path: 'actions', element: <ContainerActions /> },
+                      {
+                        path: 'actions',
+                        element: <RequireRole role="stockroom" />,
+                        children: [{ index: true, element: <ContainerActions /> }],
+                      },
                     ],
                   },
                   {

@@ -30,6 +30,8 @@ import { Controller, FormProvider, useForm, type SubmitHandler } from 'react-hoo
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { WeighInTable } from './WeighinTable';
 import { NotFound } from '../shared/NotFound';
+import { useAuth } from '../../context/AuthContext';
+import { hasRoleAtLeast } from '../shared/roles';
 
 type ContainerDetailProps = {
   data?: Container;
@@ -38,6 +40,9 @@ type ContainerDetailProps = {
 
 //A convertible detail/edit component for containers
 export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
+  const { user } = useAuth();
+  const canEdit = hasRoleAtLeast(user, 'stockroom');
+
   const location = useLocation();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
@@ -173,9 +178,11 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
                       <UnfoldMore />
                     </IconButton>
                   )}
-                  <IconButton onClick={() => setEditing((prev) => !prev)}>
-                    <Edit />
-                  </IconButton>
+                  {canEdit && (
+                    <IconButton onClick={() => setEditing((prev) => !prev)}>
+                      <Edit />
+                    </IconButton>
+                  )}
                   {onClose && (
                     <Tooltip title="Close">
                       <IconButton onClick={onClose}>
