@@ -155,8 +155,14 @@ export const getLocationMenu = (): Promise<Location[]> => {
   return apiFetch(`/inventory/locations/menu/`);
 };
 
-export const getChemicals = (): Promise<Chemical[]> => {
-  return apiFetch(`/inventory/chemicals/`);
+// Mirrors the subset of ChemicalFilter's search_fields the frontend drives
+// today (see backend/apps/inventory/filters.py).
+export type ChemicalListParams = {
+  search?: string;
+};
+
+export const getChemicals = (params?: ChemicalListParams): Promise<Chemical[]> => {
+  return apiFetch(`/inventory/chemicals/${toQueryString(params)}`);
 };
 
 export const addChemical = (data: ChemicalDefaults): Promise<Chemical> => {

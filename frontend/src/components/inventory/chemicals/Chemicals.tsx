@@ -1,12 +1,21 @@
-import { Box, IconButton, Container, Stack, Tooltip, Typography } from '@mui/material';
+import {
+  Box,
+  IconButton,
+  InputAdornment,
+  Container,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { type CustomCellRendererProps } from 'ag-grid-react';
 import { getChemicals } from '../../../api/inventory';
 import { chemicalKeys } from '../../../api/queryKeys';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Decimal from 'decimal.js';
 import { type ColDef } from 'ag-grid-community';
-import { AddBox } from '@mui/icons-material';
+import { AddBox, Search } from '@mui/icons-material';
 import { AddChemical } from './AddChemical';
 import { useNavigate } from 'react-router-dom';
 import { DataTable } from '../../shared/DataTable';
@@ -15,14 +24,27 @@ import type { Chemical } from '../../../types';
 //Table for viewing chemicals
 export const Chemicals = () => {
   const [open, setOpen] = useState(false);
+
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchInput.trim()), 300);
+    return () => clearTimeout(id);
+  }, [searchInput]);
+
+  const listParams = useMemo(
+    () => (debouncedSearch ? { search: debouncedSearch } : {}),
+    [debouncedSearch]
+  );
+
   const {
     data: chemicals,
     isPending,
     isError,
     error,
   } = useQuery({
-    queryKey: chemicalKeys.list(),
-    queryFn: getChemicals,
+    queryKey: chemicalKeys.list(listParams),
+    queryFn: () => getChemicals(listParams),
   });
 
   const navigate = useNavigate();
@@ -96,6 +118,23 @@ export const Chemicals = () => {
             Browse the chemical catalog.
           </Typography>
         </Box>
+        <TextField
+          type="search"
+          size="small"
+          placeholder="Search chemicals…"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          sx={{ ml: 'auto', minWidth: 260 }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search fontSize="small" />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
       </Stack>
       <AddChemical open={open} setOpen={setOpen} />
       <Box>
