@@ -55,9 +55,34 @@ paths:
   /api/auth/me/:
     get:
       operationId: api_auth_me_retrieve
-      description: Returns the currently authenticated user.
+      description: Returns or updates the currently authenticated user's own profile.
       tags:
       - api
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: api_auth_me_partial_update
+      description: Returns or updates the currently authenticated user's own profile.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
       security:
       - cookieAuth: []
       responses:
@@ -97,6 +122,169 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+          description: ''
+  /api/auth/users/:
+    get:
+      operationId: api_auth_users_list
+      description: |-
+        Admin/Lab Manager viewing and editing *other* users' accounts.
+
+        List/retrieve/update only — no create (registration already covers
+        that) and no destroy (account deactivation/deletion isn't in scope
+        yet). Every action shares the same LAB_MANAGER+ gate: unlike the
+        inventory views, there's no read/write split here — viewing another
+        user's info is itself the restricted thing, not just editing it.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - in: query
+        name: role
+        schema:
+          type: string
+          enum:
+          - admin
+          - coordinator
+          - faculty
+          - lab_assistant
+          - lab_manager
+          - stockroom
+        description: |-
+          * `admin` - Admin
+          * `lab_manager` - Lab Manager
+          * `coordinator` - Coordinator
+          * `faculty` - Faculty
+          * `stockroom` - Stockroom Worker
+          * `lab_assistant` - Lab Assistant
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserAdmin'
+          description: ''
+  /api/auth/users/{id}/:
+    get:
+      operationId: api_auth_users_retrieve
+      description: |-
+        Admin/Lab Manager viewing and editing *other* users' accounts.
+
+        List/retrieve/update only — no create (registration already covers
+        that) and no destroy (account deactivation/deletion isn't in scope
+        yet). Every action shares the same LAB_MANAGER+ gate: unlike the
+        inventory views, there's no read/write split here — viewing another
+        user's info is itself the restricted thing, not just editing it.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAdmin'
+          description: ''
+    put:
+      operationId: api_auth_users_update
+      description: |-
+        Admin/Lab Manager viewing and editing *other* users' accounts.
+
+        List/retrieve/update only — no create (registration already covers
+        that) and no destroy (account deactivation/deletion isn't in scope
+        yet). Every action shares the same LAB_MANAGER+ gate: unlike the
+        inventory views, there's no read/write split here — viewing another
+        user's info is itself the restricted thing, not just editing it.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserAdmin'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserAdmin'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserAdmin'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAdmin'
+          description: ''
+    patch:
+      operationId: api_auth_users_partial_update
+      description: |-
+        Admin/Lab Manager viewing and editing *other* users' accounts.
+
+        List/retrieve/update only — no create (registration already covers
+        that) and no destroy (account deactivation/deletion isn't in scope
+        yet). Every action shares the same LAB_MANAGER+ gate: unlike the
+        inventory views, there's no read/write split here — viewing another
+        user's info is itself the restricted thing, not just editing it.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this user.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserAdmin'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserAdmin'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserAdmin'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAdmin'
           description: ''
   /api/auth/validate/:
     get:
@@ -2230,6 +2418,70 @@ components:
         parent:
           type: integer
           nullable: true
+    PatchedUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        lipscomb_id:
+          type: string
+          nullable: true
+          maxLength: 11
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+        role_display:
+          type: string
+          readOnly: true
+    PatchedUserAdmin:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        lipscomb_id:
+          type: string
+          nullable: true
+          maxLength: 11
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        role_display:
+          type: string
+          readOnly: true
     PatchedWeightReading:
       type: object
       properties:
@@ -2305,14 +2557,58 @@ components:
         last_name:
           type: string
           maxLength: 150
+        lipscomb_id:
+          type: string
+          nullable: true
+          maxLength: 11
         role:
           allOf:
           - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+        role_display:
+          type: string
           readOnly: true
       required:
       - email
       - id
       - role
+      - role_display
+      - username
+    UserAdmin:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        lipscomb_id:
+          type: string
+          nullable: true
+          maxLength: 11
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        role_display:
+          type: string
+          readOnly: true
+      required:
+      - email
+      - id
+      - role_display
       - username
     UserCheckoutEvent:
       type: object

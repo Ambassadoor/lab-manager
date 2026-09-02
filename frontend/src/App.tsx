@@ -13,6 +13,11 @@ import { Navbar } from './components/nav/Navbar';
 import { useAuth } from './context/AuthContext';
 import { Login } from './components/accounts/Login';
 import { Register } from './components/accounts/Register';
+import { Profile } from './components/accounts/Profile';
+import { Users } from './components/accounts/Users';
+import { UserDetail } from './components/accounts/UserDetail';
+import { hasRoleAtLeast } from './components/shared/roles';
+import type { Role } from './types';
 import { Containers } from './components/inventory/Containers';
 import { ContainerForm } from './components/inventory/ContainerForm';
 import { ContainerDetail } from './components/inventory/ContainerDetail';
@@ -65,6 +70,17 @@ export function RequireAuth() {
   return <Outlet />;
 }
 
+// Same shape as RequireAuth, plus a role floor — used for pages the backend
+// itself restricts by role (see role_at_least in apps/users/permissions.py),
+// so someone who can't use the page never lands on it in the first place
+// rather than seeing it 403 after the fact.
+export function RequireRole({ role }: { role: Role }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user || !hasRoleAtLeast(user, role)) return <Navigate to="/" replace />;
+  return <Outlet />;
+}
+
 export default function App() {
   const { user, loading } = useAuth();
 
@@ -81,6 +97,19 @@ export default function App() {
             { path: 'register', element: <Register /> },
             // Auth protected routes
             ...[
+              {
+                path: 'profile',
+                element: <RequireAuth />,
+                children: [{ index: true, element: <Profile /> }],
+              },
+              {
+                path: 'users',
+                element: <RequireRole role="lab_manager" />,
+                children: [
+                  { index: true, element: <Users /> },
+                  { path: ':id', element: <UserDetail /> },
+                ],
+              },
               {
                 path: 'inventory',
                 element: <RequireAuth />,

@@ -9,10 +9,10 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from apps.users.models import User
+from apps.users.permissions import role_at_least
 
 from ..filters import LocationFilter
 from ..models import Location, LocationTypes
-from ..permissions import role_at_least
 from ..serializers import (
     LocationContainersSerializer,
     LocationMenuSerializer,
@@ -32,7 +32,7 @@ class LocationView(ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     # Location delete is the one delete Coordinator and Stockroom get (see
-    # apps/inventory/permissions.py) — it already has a DB-level safeguard
+    # apps/users/permissions.py) — it already has a DB-level safeguard
     # (ProtectedError below, in destroy()) against removing a location that
     # still has children/containers, which is exactly why it's safe to
     # allow more broadly than Container/Chemical delete. create/add_child/

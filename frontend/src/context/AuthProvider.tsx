@@ -6,6 +6,8 @@ import {
   logout as apiLogout,
   preValidate as apiPreValidate,
   register as apiRegister,
+  updateMe as apiUpdateMe,
+  type ProfileUpdate,
 } from '../api/auth';
 import type { User, UserRegistration } from '../types';
 import { AuthContext } from './AuthContext';
@@ -39,12 +41,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback((user: UserRegistration) => apiRegister(user), []);
 
+  const updateProfile = useCallback(async (data: ProfileUpdate) => {
+    const updated = await apiUpdateMe(data);
+    setUser(updated);
+    return updated;
+  }, []);
+
   // Memoized so consumers only re-render when one of these actually changes,
   // rather than on every AuthProvider render (a new object literal here would
   // defeat the useCallback references above).
   const value = useMemo(
-    () => ({ user, loading, login, logout, preValidate, register }),
-    [user, loading, login, logout, preValidate, register]
+    () => ({ user, loading, login, logout, preValidate, register, updateProfile }),
+    [user, loading, login, logout, preValidate, register, updateProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

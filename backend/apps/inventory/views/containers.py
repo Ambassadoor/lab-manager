@@ -8,10 +8,10 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from apps.users.models import User
+from apps.users.permissions import role_at_least
 
 from ..filters import ContainerFilter
 from ..models import Chemical, ChemicalStorageCategories, CheckoutEvent, Container, WeightReading
-from ..permissions import role_at_least
 from ..serializers import (
     ChemicalSerializer,
     CheckoutEventSerializer,

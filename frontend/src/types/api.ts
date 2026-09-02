@@ -62,14 +62,15 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** @description Returns the currently authenticated user. */
+    /** @description Returns or updates the currently authenticated user's own profile. */
     get: operations['api_auth_me_retrieve'];
     put?: never;
     post?: never;
     delete?: never;
     options?: never;
     head?: never;
-    patch?: never;
+    /** @description Returns or updates the currently authenticated user's own profile. */
+    patch: operations['api_auth_me_partial_update'];
     trace?: never;
   };
   '/api/auth/register/': {
@@ -92,6 +93,74 @@ export interface paths {
     options?: never;
     head?: never;
     patch?: never;
+    trace?: never;
+  };
+  '/api/auth/users/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * @description Admin/Lab Manager viewing and editing *other* users' accounts.
+     *
+     *     List/retrieve/update only — no create (registration already covers
+     *     that) and no destroy (account deactivation/deletion isn't in scope
+     *     yet). Every action shares the same LAB_MANAGER+ gate: unlike the
+     *     inventory views, there's no read/write split here — viewing another
+     *     user's info is itself the restricted thing, not just editing it.
+     */
+    get: operations['api_auth_users_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/auth/users/{id}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * @description Admin/Lab Manager viewing and editing *other* users' accounts.
+     *
+     *     List/retrieve/update only — no create (registration already covers
+     *     that) and no destroy (account deactivation/deletion isn't in scope
+     *     yet). Every action shares the same LAB_MANAGER+ gate: unlike the
+     *     inventory views, there's no read/write split here — viewing another
+     *     user's info is itself the restricted thing, not just editing it.
+     */
+    get: operations['api_auth_users_retrieve'];
+    /**
+     * @description Admin/Lab Manager viewing and editing *other* users' accounts.
+     *
+     *     List/retrieve/update only — no create (registration already covers
+     *     that) and no destroy (account deactivation/deletion isn't in scope
+     *     yet). Every action shares the same LAB_MANAGER+ gate: unlike the
+     *     inventory views, there's no read/write split here — viewing another
+     *     user's info is itself the restricted thing, not just editing it.
+     */
+    put: operations['api_auth_users_update'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * @description Admin/Lab Manager viewing and editing *other* users' accounts.
+     *
+     *     List/retrieve/update only — no create (registration already covers
+     *     that) and no destroy (account deactivation/deletion isn't in scope
+     *     yet). Every action shares the same LAB_MANAGER+ gate: unlike the
+     *     inventory views, there's no read/write split here — viewing another
+     *     user's info is itself the restricted thing, not just editing it.
+     */
+    patch: operations['api_auth_users_partial_update'];
     trace?: never;
   };
   '/api/auth/validate/': {
@@ -809,6 +878,30 @@ export interface components {
       type?: number;
       parent?: number | null;
     };
+    PatchedUser: {
+      readonly id?: number;
+      /** @description Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only. */
+      username?: string;
+      /** Format: email */
+      email?: string;
+      first_name?: string;
+      last_name?: string;
+      lipscomb_id?: string | null;
+      readonly role?: components['schemas']['RoleEnum'];
+      readonly role_display?: string;
+    };
+    PatchedUserAdmin: {
+      readonly id?: number;
+      /** @description Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only. */
+      username?: string;
+      /** Format: email */
+      email?: string;
+      first_name?: string;
+      last_name?: string;
+      lipscomb_id?: string | null;
+      role?: components['schemas']['RoleEnum'];
+      readonly role_display?: string;
+    };
     PatchedWeightReading: {
       readonly id?: number;
       /** Format: decimal */
@@ -847,7 +940,21 @@ export interface components {
       email: string;
       first_name?: string;
       last_name?: string;
+      lipscomb_id?: string | null;
       readonly role: components['schemas']['RoleEnum'];
+      readonly role_display: string;
+    };
+    UserAdmin: {
+      readonly id: number;
+      /** @description Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only. */
+      username: string;
+      /** Format: email */
+      email: string;
+      first_name?: string;
+      last_name?: string;
+      lipscomb_id?: string | null;
+      role?: components['schemas']['RoleEnum'];
+      readonly role_display: string;
     };
     UserCheckoutEvent: {
       readonly full_name: string;
@@ -952,6 +1059,31 @@ export interface operations {
       };
     };
   };
+  api_auth_me_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedUser'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedUser'];
+        'multipart/form-data': components['schemas']['PatchedUser'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['User'];
+        };
+      };
+    };
+  };
   api_auth_register_create: {
     parameters: {
       query?: never;
@@ -973,6 +1105,117 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['User'];
+        };
+      };
+    };
+  };
+  api_auth_users_list: {
+    parameters: {
+      query?: {
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+        /**
+         * @description * `admin` - Admin
+         *     * `lab_manager` - Lab Manager
+         *     * `coordinator` - Coordinator
+         *     * `faculty` - Faculty
+         *     * `stockroom` - Stockroom Worker
+         *     * `lab_assistant` - Lab Assistant
+         */
+        role?: 'admin' | 'coordinator' | 'faculty' | 'lab_assistant' | 'lab_manager' | 'stockroom';
+        /** @description A search term. */
+        search?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserAdmin'][];
+        };
+      };
+    };
+  };
+  api_auth_users_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this user. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserAdmin'];
+        };
+      };
+    };
+  };
+  api_auth_users_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this user. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UserAdmin'];
+        'application/x-www-form-urlencoded': components['schemas']['UserAdmin'];
+        'multipart/form-data': components['schemas']['UserAdmin'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserAdmin'];
+        };
+      };
+    };
+  };
+  api_auth_users_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this user. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedUserAdmin'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedUserAdmin'];
+        'multipart/form-data': components['schemas']['PatchedUserAdmin'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserAdmin'];
         };
       };
     };

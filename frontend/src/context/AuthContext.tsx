@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { ProfileUpdate } from '../api/auth';
 import type { PreValidation, User, UserRegistration } from '../types';
 
 interface AuthContextType {
@@ -8,6 +9,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   preValidate: (field: string, value: string) => Promise<PreValidation | undefined>;
   register: (user: UserRegistration) => Promise<User>;
+  updateProfile: (data: ProfileUpdate) => Promise<User>;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);

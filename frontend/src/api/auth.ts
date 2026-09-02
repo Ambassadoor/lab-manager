@@ -14,6 +14,17 @@ export const logout = () => apiFetch<void>('/api/auth/logout/', { method: 'POST'
 
 export const getMe = () => apiFetch<User>('/api/auth/me/');
 
+// Self-service profile edit — `role` is read-only on the backend regardless
+// of what's included here, so it's typed out entirely rather than left to
+// be silently ignored.
+export type ProfileUpdate = Partial<Omit<User, 'id' | 'role' | 'role_display'>>;
+
+export const updateMe = (data: ProfileUpdate) =>
+  apiFetch<User>('/api/auth/me/', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+
 function isPreValidationErrors(body: unknown): body is PreValidation {
   return !!body && typeof body === 'object' && 'errors' in body;
 }

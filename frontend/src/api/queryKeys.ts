@@ -3,6 +3,7 @@
 // prefix-matches every query under that resource (list, detail, related sub-resources, etc).
 
 import type { ChemicalListParams, ContainerListParams } from './inventory';
+import type { UserListParams } from './users';
 
 export const containerKeys = {
   all: ['containers'] as const,
@@ -35,4 +36,11 @@ export const locationKeys = {
 
 export const dashboardKeys = {
   all: ['dashboard'] as const,
+};
+
+export const userKeys = {
+  all: ['users'] as const,
+  // See containerKeys.list's comment — same partial-match reasoning applies.
+  list: (params?: UserListParams) => [...userKeys.all, 'list', params ?? {}] as const,
+  detail: (id: string) => [...userKeys.all, 'detail', id] as const,
 };

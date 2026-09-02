@@ -14,8 +14,8 @@ from apps.inventory.models import (
     Location,
     LocationTypes,
 )
-from apps.inventory.permissions import role_at_least
 from apps.users.models import User
+from apps.users.permissions import role_at_least
 
 
 @pytest.fixture
