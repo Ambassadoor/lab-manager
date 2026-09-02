@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from ..filters import ChemicalFilter
 from ..models import Chemical, ChemicalStorageCategories
 from ..permissions import IsManager
 from ..serializers import (
@@ -17,6 +18,9 @@ from ..serializers import (
 class ChemicalView(ModelViewSet):
     serializer_class = ChemicalSerializer
     queryset = Chemical.objects.all()
+    filterset_class = ChemicalFilter
+    search_fields = ["name", "cas", "formula", "iupac"]
+    ordering_fields = ["name", "cas", "molecular_weight"]
 
     permission_classes = [IsAuthenticated]
 

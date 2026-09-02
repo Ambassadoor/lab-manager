@@ -1,5 +1,5 @@
 // Various data fetchers
-import { apiFetch } from './client';
+import { apiFetch, toQueryString } from './client';
 import type {
   Container,
   StorageCategory,
@@ -20,8 +20,17 @@ import type { NewLocationDefaults } from '../components/inventory/locations/AddL
 import type { EditLocationDefaults } from '../components/inventory/locations/EditLocation';
 import type { ChemicalDefaults } from '../components/inventory/chemicals/AddChemical';
 
-export const getContainers = (): Promise<Container[] | []> => {
-  return apiFetch('/inventory/containers/');
+// Server-side equivalents of what ContainerFilter exposes on the backend
+// (see backend/apps/inventory/filters.py) — only the subset Containers.tsx
+// actually drives today.
+export type ContainerListParams = {
+  search?: string;
+  checkout_status?: 'in' | 'out';
+  ordering?: string;
+};
+
+export const getContainers = (params?: ContainerListParams): Promise<Container[] | []> => {
+  return apiFetch(`/inventory/containers/${toQueryString(params)}`);
 };
 
 export const getChemicalByCas = (cas: string): Promise<CasCheck> => {
@@ -146,8 +155,14 @@ export const getLocationMenu = (): Promise<Location[]> => {
   return apiFetch(`/inventory/locations/menu/`);
 };
 
-export const getChemicals = (): Promise<Chemical[]> => {
-  return apiFetch(`/inventory/chemicals/`);
+// Mirrors the subset of ChemicalFilter's search_fields the frontend drives
+// today (see backend/apps/inventory/filters.py).
+export type ChemicalListParams = {
+  search?: string;
+};
+
+export const getChemicals = (params?: ChemicalListParams): Promise<Chemical[]> => {
+  return apiFetch(`/inventory/chemicals/${toQueryString(params)}`);
 };
 
 export const addChemical = (data: ChemicalDefaults): Promise<Chemical> => {

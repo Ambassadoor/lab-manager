@@ -1156,10 +1156,15 @@ export interface operations {
   inventory_chemicals_list: {
     parameters: {
       query?: {
+        cas?: string;
+        formula?: string;
+        is_organic?: boolean;
+        name?: string;
         /** @description Which field to use when ordering the results. */
         ordering?: string;
         /** @description A search term. */
         search?: string;
+        storage_category?: number;
       };
       header?: never;
       path?: never;
@@ -1323,8 +1328,35 @@ export interface operations {
   inventory_containers_list: {
     parameters: {
       query?: {
+        /**
+         * @description * `in` - Check In
+         *     * `out` - Check Out
+         */
+        checkout_status?: 'in' | 'out';
+        chemical?: number;
+        date_received_after?: string;
+        date_received_before?: string;
+        expiration_date_after?: string;
+        expiration_date_before?: string;
+        has_estimated_usage?: boolean;
+        is_discarded?: boolean;
+        is_opened?: boolean;
+        location?: number;
+        manufacturer?: string;
+        name?: string;
         /** @description Which field to use when ordering the results. */
         ordering?: string;
+        product_num?: string;
+        /**
+         * @description * `mL` - mL
+         *     * `L` - L
+         *     * `mg` - mg
+         *     * `g` - g
+         *     * `kg` - kg
+         */
+        quantity_unit?: 'L' | 'g' | 'kg' | 'mL' | 'mg' | null;
+        /** @description A search term. */
+        search?: string;
       };
       header?: never;
       path?: never;
@@ -1951,10 +1983,12 @@ export interface operations {
   inventory_locations_list: {
     parameters: {
       query?: {
+        name?: string;
         /** @description Which field to use when ordering the results. */
         ordering?: string;
         /** @description A search term. */
         search?: string;
+        type?: number;
       };
       header?: never;
       path?: never;

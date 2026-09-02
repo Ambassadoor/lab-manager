@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from ..filters import LocationFilter
 from ..models import Location, LocationTypes
 from ..permissions import IsCoordinator, IsManager
 from ..serializers import (
@@ -21,6 +22,10 @@ from ..serializers import (
 
 class LocationView(ModelViewSet):
     queryset = Location.objects.all()
+    filterset_class = LocationFilter
+    search_fields = ["name"]
+    ordering_fields = ["name"]
+    ordering = ["name"]
 
     permission_classes = [IsAuthenticated]
 

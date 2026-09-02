@@ -1,12 +1,13 @@
 from django.db import transaction
 from django.db.models.functions import Lower
 from django.http import Http404
-from rest_framework import filters, status
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from ..filters import ContainerFilter
 from ..models import Chemical, ChemicalStorageCategories, CheckoutEvent, Container, WeightReading
 from ..permissions import IsManager
 from ..serializers import (
@@ -23,8 +24,25 @@ from ..serializers import (
 
 class ContainerView(ModelViewSet):
     queryset = Container.objects.all()
-    filter_backends = [filters.OrderingFilter]
-    ordering_fields = ["id"]
+    filterset_class = ContainerFilter
+    search_fields = [
+        "name",
+        "manufacturer",
+        "product_num",
+        "slug",
+        "chemical__name",
+        "chemical__cas",
+    ]
+    ordering_fields = [
+        "id",
+        "name",
+        "date_received",
+        "expiration_date",
+        "manufacturer",
+        "quantity_unit",
+        "chemical__name",
+        "location__name",
+    ]
     ordering = ["id"]
     lookup_field = "slug"
 
