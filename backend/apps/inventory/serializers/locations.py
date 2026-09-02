@@ -28,7 +28,14 @@ class LocationSerializer(serializers.ModelSerializer):
     # only pays for it once, not once per root.
     def to_representation(self, instance):
         by_id, children_by_parent = self._location_map()
-        return self._serialize(instance.id, by_id, children_by_parent)
+        # instance isn't always a root (LocationView.retrieve() can fetch any
+        # location by pk) — its own full_path still needs one ancestor walk.
+        # Every *descendant* below it, though, gets its full_path built by
+        # appending one name to its parent's already-computed path (below in
+        # _serialize) rather than re-walking from scratch, so this ancestor
+        # walk happens at most once per request instead of once per node.
+        instance_full_path = self._ancestor_full_path(by_id[instance.id], by_id)
+        return self._serialize(instance.id, by_id, children_by_parent, instance_full_path)
 
     def _location_map(self):
         cached = getattr(self, "_cached_location_map", None)
@@ -43,20 +50,20 @@ class LocationSerializer(serializers.ModelSerializer):
         self._cached_location_map = cached
         return cached
 
-    def _serialize(self, location_id, by_id, children_by_parent):
+    def _serialize(self, location_id, by_id, children_by_parent, full_path):
         location = by_id[location_id]
         return {
             "id": location.id,
             "name": location.name,
             "type": LocationTypeSerializer(location.type).data,
             "children": [
-                self._serialize(child.id, by_id, children_by_parent)
+                self._serialize(child.id, by_id, children_by_parent, f"{full_path} {child.name}")
                 for child in children_by_parent.get(location_id, [])
             ],
-            "full_path": self._full_path(location, by_id),
+            "full_path": full_path,
         }
 
-    def _full_path(self, location, by_id):
+    def _ancestor_full_path(self, location, by_id):
         names = []
         current = location
         while current is not None:
@@ -91,14 +98,29 @@ class LocationMenuSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "full_path"]
 
     def get_full_path(self, obj):
-        by_id = self._parent_map()
-        names = []
-        current_id = obj.id
-        while current_id is not None:
-            name, parent_id = by_id[current_id]
-            names.append(name)
-            current_id = parent_id
-        return " ".join(reversed(names))
+        # A flat list has no natural top-down order to walk (unlike
+        # LocationSerializer's tree recursion, where a parent's full_path is
+        # always computed before its children's), so this memoizes each id's
+        # path as it's computed instead — a location whose path was already
+        # built while resolving a sibling's ancestor chain is reused rather
+        # than re-walked, keeping the whole list's total work O(n).
+        cache = self._full_path_cache()
+        return self._full_path(obj.id, cache)
+
+    def _full_path(self, location_id, cache):
+        if location_id in cache:
+            return cache[location_id]
+        name, parent_id = self._parent_map()[location_id]
+        path = name if parent_id is None else f"{self._full_path(parent_id, cache)} {name}"
+        cache[location_id] = path
+        return path
+
+    def _full_path_cache(self):
+        cache = getattr(self, "_cached_full_paths", None)
+        if cache is None:
+            cache = {}
+            self._cached_full_paths = cache
+        return cache
 
     def _parent_map(self):
         cached = getattr(self, "_cached_parent_map", None)

@@ -1998,7 +1998,7 @@ components:
           maxLength: 150
         password:
           type: string
-          maxLength: 128
+          writeOnly: true
       required:
       - email
       - password

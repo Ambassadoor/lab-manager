@@ -1,7 +1,13 @@
 import django_filters as df
-from django.db.models import OuterRef, Q, Subquery
+from django.db.models import Q, Subquery
 
-from .models import Chemical, CheckoutEvent, Container, Location
+from .models import (
+    Chemical,
+    CheckoutEvent,
+    Container,
+    Location,
+    most_recent_checkout_event_subquery,
+)
 
 
 class ContainerFilter(df.FilterSet):
@@ -40,12 +46,7 @@ class ContainerFilter(df.FilterSet):
         return queryset.filter(Q(tare_weight__isnull=True) | Q(tare_weight__lte=0))
 
     def filter_checkout_status(self, queryset, name, value):
-        # Same subquery shape as DashboardView.most_recent_event_action.
-        most_recent_action = (
-            CheckoutEvent.objects.filter(container_id=OuterRef("pk"))
-            .order_by("-timestamp")
-            .values("action")[:1]
-        )
+        most_recent_action = most_recent_checkout_event_subquery("action")
         return queryset.annotate(most_recent_event_action=Subquery(most_recent_action)).filter(
             most_recent_event_action=value
         )
