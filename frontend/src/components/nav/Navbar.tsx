@@ -119,62 +119,66 @@ export const Navbar = (): JSX.Element | null => {
                   >
                     Containers
                   </Button>
-                  <Button
-                    component={NavLink}
-                    to="/inventory/containers/new/"
-                    color="inherit"
-                    sx={navLinkSx}
-                    end
-                  >
-                    Add Container
-                  </Button>
-                  <Box
-                    onMouseEnter={handleActionsMenuOpen}
-                    onMouseLeave={handleActionsMenuClose}
-                    sx={{ display: 'inline-flex' }}
-                  >
-                    <Button
-                      component={NavLink}
-                      to="/inventory/containers/actions/"
-                      color="inherit"
-                      sx={navLinkSx}
-                      aria-controls={actionsMenuOpen ? 'actions-menu' : undefined}
-                      aria-haspopup="true"
-                      aria-expanded={actionsMenuOpen}
-                      end
-                    >
-                      Actions
-                    </Button>
-                    <Popper
-                      id="actions-menu"
-                      anchorEl={actionsMenuEl}
-                      open={actionsMenuOpen}
-                      placement="bottom-start"
-                      transition
-                      sx={{ zIndex: (theme) => theme.zIndex.appBar + 1 }}
-                    >
-                      {({ TransitionProps }) => (
-                        <Grow {...TransitionProps}>
-                          <Paper onMouseLeave={handleActionsMenuClose}>
-                            <ClickAwayListener onClickAway={handleActionsMenuClose}>
-                              <MenuList autoFocusItem={false}>
-                                {actionTabs.map(({ label, tab }) => (
-                                  <MenuItem
-                                    key={tab}
-                                    component={Link}
-                                    to={`/inventory/containers/actions/?tab=${tab}`}
-                                    onClick={handleActionsMenuClose}
-                                  >
-                                    {label}
-                                  </MenuItem>
-                                ))}
-                              </MenuList>
-                            </ClickAwayListener>
-                          </Paper>
-                        </Grow>
-                      )}
-                    </Popper>
-                  </Box>
+                  {hasRoleAtLeast(user, 'stockroom') && (
+                    <>
+                      <Button
+                        component={NavLink}
+                        to="/inventory/containers/new/"
+                        color="inherit"
+                        sx={navLinkSx}
+                        end
+                      >
+                        Add Container
+                      </Button>
+                      <Box
+                        onMouseEnter={handleActionsMenuOpen}
+                        onMouseLeave={handleActionsMenuClose}
+                        sx={{ display: 'inline-flex' }}
+                      >
+                        <Button
+                          component={NavLink}
+                          to="/inventory/containers/actions/"
+                          color="inherit"
+                          sx={navLinkSx}
+                          aria-controls={actionsMenuOpen ? 'actions-menu' : undefined}
+                          aria-haspopup="true"
+                          aria-expanded={actionsMenuOpen}
+                          end
+                        >
+                          Actions
+                        </Button>
+                        <Popper
+                          id="actions-menu"
+                          anchorEl={actionsMenuEl}
+                          open={actionsMenuOpen}
+                          placement="bottom-start"
+                          transition
+                          sx={{ zIndex: (theme) => theme.zIndex.appBar + 1 }}
+                        >
+                          {({ TransitionProps }) => (
+                            <Grow {...TransitionProps}>
+                              <Paper onMouseLeave={handleActionsMenuClose}>
+                                <ClickAwayListener onClickAway={handleActionsMenuClose}>
+                                  <MenuList autoFocusItem={false}>
+                                    {actionTabs.map(({ label, tab }) => (
+                                      <MenuItem
+                                        key={tab}
+                                        component={Link}
+                                        to={`/inventory/containers/actions/?tab=${tab}`}
+                                        onClick={handleActionsMenuClose}
+                                      >
+                                        {label}
+                                      </MenuItem>
+                                    ))}
+                                  </MenuList>
+                                </ClickAwayListener>
+                              </Paper>
+                            </Grow>
+                          )}
+                        </Popper>
+                      </Box>
+                    </>
+                  )}
                   <Button
                     component={NavLink}
                     to="/inventory/locations/"
@@ -272,32 +276,36 @@ export const Navbar = (): JSX.Element | null => {
               >
                 <ListItemText primary="Containers" />
               </ListItemButton>
-              <ListItemButton
-                component={NavLink}
-                to="/inventory/containers/new/"
-                end
-                sx={navLinkSx}
-                onClick={closeMobileMenu}
-              >
-                <ListItemText primary="Add Container" />
-              </ListItemButton>
-              {/* Actions' four destinations inline, not a further nested
-                  submenu — the desktop hover-popup doesn't translate to
-                  touch, and a second level of disclosure here would just
-                  bury them. */}
-              <ListSubheader>Actions</ListSubheader>
-              {actionTabs.map(({ label, tab }) => (
-                <ListItemButton
-                  key={tab}
-                  component={Link}
-                  to={`/inventory/containers/actions/?tab=${tab}`}
-                  sx={{ pl: 4 }}
-                  onClick={closeMobileMenu}
-                >
-                  <ListItemText primary={label} />
-                </ListItemButton>
-              ))}
-              <Divider />
+              {hasRoleAtLeast(user, 'stockroom') && (
+                <>
+                  <ListItemButton
+                    component={NavLink}
+                    to="/inventory/containers/new/"
+                    end
+                    sx={navLinkSx}
+                    onClick={closeMobileMenu}
+                  >
+                    <ListItemText primary="Add Container" />
+                  </ListItemButton>
+                  {/* Actions' four destinations inline, not a further nested
+                      submenu — the desktop hover-popup doesn't translate to
+                      touch, and a second level of disclosure here would just
+                      bury them. */}
+                  <ListSubheader>Actions</ListSubheader>
+                  {actionTabs.map(({ label, tab }) => (
+                    <ListItemButton
+                      key={tab}
+                      component={Link}
+                      to={`/inventory/containers/actions/?tab=${tab}`}
+                      sx={{ pl: 4 }}
+                      onClick={closeMobileMenu}
+                    >
+                      <ListItemText primary={label} />
+                    </ListItemButton>
+                  ))}
+                  <Divider />
+                </>
+              )}
               <ListItemButton
                 component={NavLink}
                 to="/inventory/locations/"

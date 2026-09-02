@@ -25,9 +25,14 @@ import { Edit } from '@mui/icons-material';
 import type { ChemicalDefaults } from './AddChemical';
 import { cas_is_valid } from '../../shared/checkCas';
 import { NotFound } from '../../shared/NotFound';
+import { useAuth } from '../../../context/AuthContext';
+import { hasRoleAtLeast } from '../../shared/roles';
 
 //Convertible detail/edit component for chemicals
 export const ChemicalDetail = () => {
+  const { user } = useAuth();
+  const canEdit = hasRoleAtLeast(user, 'stockroom');
+
   const [editing, setEditing] = useState(false);
   const location = useLocation();
   const { chemId } = useParams();
@@ -100,9 +105,11 @@ export const ChemicalDetail = () => {
           <CardHeader
             title={chemical?.name}
             action={
-              <IconButton onClick={() => setEditing((prev) => !prev)}>
-                <Edit />
-              </IconButton>
+              canEdit && (
+                <IconButton onClick={() => setEditing((prev) => !prev)}>
+                  <Edit />
+                </IconButton>
+              )
             }
           />
           <CardContent>

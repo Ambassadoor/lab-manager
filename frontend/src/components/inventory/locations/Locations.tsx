@@ -50,6 +50,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { printLabel } from '../../../api/bridge';
 import { ConfirmDialog } from '../../shared/ConfirmDialog';
 import { useConfirmDialog } from '../../shared/useConfirmDialog';
+import { hasRoleAtLeast } from '../../shared/roles';
 
 type LocationProps = {
   location: Location;
@@ -82,7 +83,6 @@ const Location = ({
   const [expanded, setExpanded] = useState(false);
   const [open, setOpen] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
-  const { user } = useAuth();
 
   const handlePrint = (id: number) => {
     printLabel({
@@ -140,15 +140,18 @@ const Location = ({
             <Button size="small" color="success" onClick={() => handlePrint(location.id)}>
               <Print />
             </Button>
-            {(user?.role === 'lab_manager' || user?.role === 'coordinator') && (
-              <Button
-                size="small"
-                color="error"
-                onClick={() => onRequestDelete({ id: String(location.id), name: location.name })}
-              >
-                <Delete />
-              </Button>
-            )}
+            {/* No separate role check here — reaching this row's ButtonGroup
+                at all already requires Stockroom+ (the "Editing" toggle
+                above is itself gated), and Location delete is Stockroom+
+                same as Add/Edit, so there's nothing stricter to layer on
+                top for just this one button. */}
+            <Button
+              size="small"
+              color="error"
+              onClick={() => onRequestDelete({ id: String(location.id), name: location.name })}
+            >
+              <Delete />
+            </Button>
           </ButtonGroup>
         </Stack>
       </Stack>
@@ -170,6 +173,9 @@ const Location = ({
 
 // Component for viewing/editing locations and their assigned containers
 export const Locations = () => {
+  const { user } = useAuth();
+  const canEdit = hasRoleAtLeast(user, 'stockroom');
+
   const [open, setOpen] = useState(false);
   // Selection lives in the URL (?location=<id>) rather than local state, so
   // a link to a specific location's container list can be bookmarked/shared
@@ -274,16 +280,22 @@ export const Locations = () => {
           <Stack direction={'row'} spacing={2}>
             <Typography variant="h4">Locations</Typography>
             <AddLocation id={''} open={open} setOpen={setOpen} />
-            <FormControlLabel
-              control={<Switch checked={editing} onChange={() => setEditing((prev) => !prev)} />}
-              label="Editing"
-            />
-            {editing && (
-              <Tooltip title="Add root location">
-                <IconButton onClick={() => setOpen(true)}>
-                  <AddBox />
-                </IconButton>
-              </Tooltip>
+            {canEdit && (
+              <>
+                <FormControlLabel
+                  control={
+                    <Switch checked={editing} onChange={() => setEditing((prev) => !prev)} />
+                  }
+                  label="Editing"
+                />
+                {editing && (
+                  <Tooltip title="Add root location">
+                    <IconButton onClick={() => setOpen(true)}>
+                      <AddBox />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </>
             )}
           </Stack>
           <Typography variant="body2" color="text.secondary">

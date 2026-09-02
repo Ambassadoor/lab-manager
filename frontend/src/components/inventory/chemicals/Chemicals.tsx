@@ -20,9 +20,14 @@ import { AddChemical } from './AddChemical';
 import { useNavigate } from 'react-router-dom';
 import { DataTable } from '../../shared/DataTable';
 import type { Chemical } from '../../../types';
+import { useAuth } from '../../../context/AuthContext';
+import { hasRoleAtLeast } from '../../shared/roles';
 
 //Table for viewing chemicals
 export const Chemicals = () => {
+  const { user } = useAuth();
+  const canEdit = hasRoleAtLeast(user, 'stockroom');
+
   const [open, setOpen] = useState(false);
 
   const [searchInput, setSearchInput] = useState('');
@@ -104,15 +109,17 @@ export const Chemicals = () => {
         <Box>
           <Stack direction={'row'} spacing={2}>
             <Typography variant="h4">Chemicals</Typography>
-            <Tooltip title="Add chemical">
-              <IconButton
-                onClick={() => {
-                  setOpen(true);
-                }}
-              >
-                <AddBox />
-              </IconButton>
-            </Tooltip>
+            {canEdit && (
+              <Tooltip title="Add chemical">
+                <IconButton
+                  onClick={() => {
+                    setOpen(true);
+                  }}
+                >
+                  <AddBox />
+                </IconButton>
+              </Tooltip>
+            )}
           </Stack>
           <Typography variant="body2" color="text.secondary">
             Browse the chemical catalog.
