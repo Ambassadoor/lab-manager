@@ -1,14 +1,28 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
-import { Alert, Button, IconButton, Snackbar, Stack, TextField } from '@mui/material';
+import {
+  Alert,
+  Button,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  Snackbar,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
 import { Close } from '@mui/icons-material';
 import { ActionFormCard } from '../../shared/ActionFormCard';
 import { ScannableFieldRow } from '../../shared/ScannableFieldRow';
 import { locationKeys } from '../../../api/queryKeys';
 import { moveLocations } from '../../../api/inventory';
+import { ConfirmDialog } from '../../shared/ConfirmDialog';
+import { useConfirmDialog } from '../../shared/useConfirmDialog';
 
 type SnackbarState = { message: string; severity: 'success' | 'error' };
+type MoveTarget = { childLocations: { slug: string }[]; parentLocation: string };
 
 export const Move = () => {
   const [snackbar, setSnackbar] = useState<SnackbarState | null>(null);
@@ -22,7 +36,7 @@ export const Move = () => {
     setFocus,
     getValues,
     setValue,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = useForm({
     mode: 'onBlur',
     reValidateMode: 'onBlur',
@@ -43,26 +57,65 @@ export const Move = () => {
 
   const justScannedRef = useRef(false);
 
-  const onSubmit = async (data: { childLocations: { slug: string }[]; parentLocation: string }) => {
-    const childLocations = data.childLocations.filter((c) => c.slug.trim().length > 0);
-    if (childLocations.length === 0) return;
-    try {
-      const response = await moveLocations({ ...data, childLocations });
+  // Holds the batch awaiting confirmation — the parent-location row also
+  // fires this on a "double scan" (see onScan below), not just the Move
+  // button, so both paths funnel through the same confirm gate.
+  const moveConfirm = useConfirmDialog<MoveTarget>();
+
+  const mutation = useMutation({
+    mutationFn: (data: MoveTarget) => moveLocations(data),
+    onSuccess: (response) => {
       if (response.length > 0) {
         setSnackbar({ message: 'Locations moved.', severity: 'success' });
         reset();
         queryClient.invalidateQueries({ queryKey: locationKeys.list() });
       }
-    } catch (error) {
-      setSnackbar({
-        message: error instanceof Error ? error.message : 'Failed to move locations',
-        severity: 'error',
-      });
-    }
+      moveConfirm.cancel();
+    },
+  });
+
+  const onSubmit = (data: MoveTarget) => {
+    const childLocations = data.childLocations.filter((c) => c.slug.trim().length > 0);
+    if (childLocations.length === 0) return;
+    moveConfirm.request({ ...data, childLocations });
   };
 
   return (
     <>
+      <ConfirmDialog
+        open={moveConfirm.isOpen}
+        title="Confirm move"
+        maxWidth="xs"
+        message={
+          moveConfirm.target && (
+            <>
+              <Typography variant="body1">
+                Move {moveConfirm.target.childLocations.length} location
+                {moveConfirm.target.childLocations.length !== 1 ? 's' : ''} under{' '}
+                {moveConfirm.target.parentLocation}?
+              </Typography>
+              <List dense sx={{ maxHeight: 240, overflow: 'auto' }}>
+                {moveConfirm.target.childLocations.map((c) => (
+                  <ListItem key={c.slug} disableGutters>
+                    <ListItemText primary={c.slug.toUpperCase()} />
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          )
+        }
+        confirmLabel="Move"
+        confirmColor="primary"
+        loading={mutation.isPending}
+        error={mutation.isError ? mutation.error.message : null}
+        onCancel={() => {
+          mutation.reset();
+          moveConfirm.cancel();
+        }}
+        onConfirm={() => {
+          if (moveConfirm.target) mutation.mutate(moveConfirm.target);
+        }}
+      />
       <Snackbar
         open={!!snackbar}
         onClose={() => setSnackbar(null)}
@@ -91,7 +144,12 @@ export const Move = () => {
         onSubmit={handleSubmit(onSubmit)}
         actions={
           <>
-            <Button type="submit" variant="contained" loading={isSubmitting}>
+            <Button
+              type="submit"
+              variant="contained"
+              loading={isSubmitting}
+              disabled={!!errors.childLocations || !!errors.parentLocation}
+            >
               Move
             </Button>
             <Button variant="outlined" onClick={() => reset()}>
@@ -101,7 +159,7 @@ export const Move = () => {
         }
       >
         <Stack spacing={2}>
-          {fields.map((field, index) => (
+          {fields.map((_, index) => (
             <ScannableFieldRow
               control={control}
               name={`childLocations.${index}.slug`}

@@ -1,9 +1,4 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-  type UseMutationResult,
-} from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   deleteLocation,
   getContainers,
@@ -53,13 +48,15 @@ import { useAuth } from '../../../context/AuthContext';
 import { DataTable } from '../../shared/DataTable';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { printLabel } from '../../../api/bridge';
+import { ConfirmDialog } from '../../shared/ConfirmDialog';
+import { useConfirmDialog } from '../../shared/useConfirmDialog';
 
 type LocationProps = {
   location: Location;
   parent?: Location;
   setSelectedLocation: (id: string) => void;
   editing?: boolean;
-  onDelete: UseMutationResult<unknown, Error, string, unknown>;
+  onRequestDelete: (target: { id: string; name: string }) => void;
 };
 
 const iconMap = new Map([
@@ -75,7 +72,13 @@ const iconMap = new Map([
 ]);
 
 //Self referencing location component to allow for tiered location listing
-const Location = ({ location, parent, setSelectedLocation, editing, onDelete }: LocationProps) => {
+const Location = ({
+  location,
+  parent,
+  setSelectedLocation,
+  editing,
+  onRequestDelete,
+}: LocationProps) => {
   const [expanded, setExpanded] = useState(false);
   const [open, setOpen] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
@@ -141,7 +144,7 @@ const Location = ({ location, parent, setSelectedLocation, editing, onDelete }: 
               <Button
                 size="small"
                 color="error"
-                onClick={() => onDelete.mutate(String(location.id))}
+                onClick={() => onRequestDelete({ id: String(location.id), name: location.name })}
               >
                 <Delete />
               </Button>
@@ -157,7 +160,7 @@ const Location = ({ location, parent, setSelectedLocation, editing, onDelete }: 
             parent={location}
             setSelectedLocation={setSelectedLocation}
             editing={editing}
-            onDelete={onDelete}
+            onRequestDelete={onRequestDelete}
           />
         ))}
       </Collapse>
@@ -202,8 +205,11 @@ export const Locations = () => {
 
   const qc = useQueryClient();
 
+  // Tracks which location (if any) is pending a delete confirmation, shared
+  // by every row in the recursive tree below.
+  const deleteConfirm = useConfirmDialog<{ id: string; name: string }>();
+
   //Invalidates location data after successful deletion
-  //TODO: Need to add confirmation message to prevent accidental deletions
   const mutation = useMutation({
     mutationFn: (id: string) => deleteLocation(id),
     onSuccess: (_data, deletedId) => {
@@ -223,6 +229,7 @@ export const Locations = () => {
       qc.invalidateQueries({
         queryKey: locationKeys.all,
       });
+      deleteConfirm.cancel();
     },
   });
 
@@ -238,17 +245,25 @@ export const Locations = () => {
 
   return (
     <Container maxWidth={false}>
-      {mutation.isError && (
-        <Alert
-          severity="error"
-          onClose={() => {
-            mutation.reset();
-          }}
-          sx={{ mb: 2 }}
-        >
-          {mutation.error.message}
-        </Alert>
-      )}
+      <ConfirmDialog
+        open={deleteConfirm.isOpen}
+        title="Delete location"
+        message={
+          deleteConfirm.target &&
+          `Delete "${deleteConfirm.target.name}"? This also removes any child locations and cannot be undone.`
+        }
+        confirmLabel="Delete"
+        confirmColor="error"
+        loading={mutation.isPending}
+        error={mutation.isError ? mutation.error.message : null}
+        onCancel={() => {
+          mutation.reset();
+          deleteConfirm.cancel();
+        }}
+        onConfirm={() => {
+          if (deleteConfirm.target) mutation.mutate(deleteConfirm.target.id);
+        }}
+      />
       {isLocationsError && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {locationsError instanceof Error ? locationsError.message : 'Failed to load locations.'}
@@ -288,7 +303,7 @@ export const Locations = () => {
                 key={l.id}
                 setSelectedLocation={setSelectedLocation}
                 editing={editing}
-                onDelete={mutation}
+                onRequestDelete={deleteConfirm.request}
               />
             ))
           )}
