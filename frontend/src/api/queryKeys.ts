@@ -2,9 +2,16 @@
 // Keys are hierarchical arrays so invalidateQueries({ queryKey: someKeys.all })
 // prefix-matches every query under that resource (list, detail, related sub-resources, etc).
 
+import type { ContainerListParams } from './inventory';
+
 export const containerKeys = {
   all: ['containers'] as const,
-  list: () => [...containerKeys.all, 'list'] as const,
+  // `params` defaults to {} rather than being left undefined — TanStack's
+  // partial-match invalidation treats an object segment with no keys as a
+  // wildcard, so every existing `invalidateQueries({ queryKey:
+  // containerKeys.list() })` call site still invalidates every
+  // parameterized variant without needing to know about them.
+  list: (params?: ContainerListParams) => [...containerKeys.all, 'list', params ?? {}] as const,
   detail: (slug: string) => [...containerKeys.all, 'detail', slug] as const,
   weighIns: (slug: string) => [...containerKeys.all, 'weighIns', slug] as const,
   metaData: () => [...containerKeys.all, 'metaData'] as const,

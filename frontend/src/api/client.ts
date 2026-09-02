@@ -10,6 +10,22 @@ function getCookie(name: string): string | null {
   return match ? decodeURIComponent(match[2]) : null;
 }
 
+// Builds a "?key=value&..." query string from a plain params object,
+// skipping undefined/empty values so optional filters can be passed through
+// unconditionally without callers pre-filtering the object themselves.
+export function toQueryString(
+  params?: Record<string, string | number | boolean | undefined>
+): string {
+  if (!params) return '';
+  const usp = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === '') continue;
+    usp.set(key, String(value));
+  }
+  const qs = usp.toString();
+  return qs ? `?${qs}` : '';
+}
+
 export type FieldErrors = Record<string, string>;
 
 function firstMessage(value: unknown): string | undefined {

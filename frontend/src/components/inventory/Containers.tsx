@@ -5,13 +5,15 @@ import {
   Container,
   Drawer,
   IconButton,
+  InputAdornment,
   Snackbar,
   Stack,
+  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
-import { useCallback, useMemo, useState } from 'react';
-import { getContainers, patchContainer } from '../../api/inventory';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { getContainers, patchContainer, type ContainerListParams } from '../../api/inventory';
 import { containerKeys } from '../../api/queryKeys';
 import {
   type CellValueChangedEvent,
@@ -23,15 +25,17 @@ import { ContainerDetail } from './ContainerDetail';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DataTable } from '../shared/DataTable';
 import type { Container as ContainerType, ContainerPatch, EditableKeys } from '../../types';
-import { AddBox } from '@mui/icons-material';
+import { AddBox, Search } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 // The three dashboard-card slices "View More" can land here with, via
-// ?view=. Mirrors the same predicates DashboardView computes server-side
-// (see backend/apps/inventory/views/dashboard.py) — applied client-side
-// against the already-fetched, unbounded container list instead of a
-// dedicated endpoint, since every field they key off is already present on
-// ContainerSerializer's output.
+// ?view=. `checked_out` and `recently_added` translate straight to backend
+// query params (see listParams below); `restock_soon` is the one exception —
+// it keys off percent_remaining, a SerializerMethodField computed from tare
+// weight/density/quantity-unit rather than a real column or annotation, so
+// it's still filtered here against the fetched list. Mirrors the same
+// predicates DashboardView computes server-side (see
+// backend/apps/inventory/views/dashboard.py).
 export type ContainersViewKey = 'recently_added' | 'restock_soon' | 'checked_out';
 
 const VIEW_LABELS: Record<ContainersViewKey, string> = {
@@ -44,19 +48,20 @@ function isContainersViewKey(value: string | null): value is ContainersViewKey {
   return value === 'recently_added' || value === 'restock_soon' || value === 'checked_out';
 }
 
+// The only client-side filtering left once `checked_out`/`recently_added`
+// move to real backend query params (see listParams in Containers below).
 function filterByView(containers: ContainerType[], view: ContainersViewKey | null) {
   switch (view) {
     case 'restock_soon':
       return containers.filter(
         (c) => c.percent_remaining != null && Number(c.percent_remaining) <= 10
       );
-    case 'checked_out':
-      return containers.filter((c) => c.checkout_status?.action === 'out');
     case 'recently_added':
-      // date_received is an ISO "YYYY-MM-DD" string — safe to sort lexically.
-      return containers
-        .filter((c) => c.date_received)
-        .sort((a, b) => (a.date_received! < b.date_received! ? 1 : -1));
+      // The backend already orders by -date_received, but Postgres sorts
+      // NULLs *first* on a DESC order — so a container with no
+      // date_received would otherwise show up at the very top instead of
+      // being excluded.
+      return containers.filter((c) => c.date_received);
     default:
       return containers;
   }
@@ -67,19 +72,37 @@ function filterByView(containers: ContainerType[], view: ContainersViewKey | nul
 // renders this at exactly one route today, so there's no duplicate fetch to
 // eliminate yet). Revisit if/when a sibling route needs the same list.
 export const Containers = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewParam = searchParams.get('view');
+  const view = isContainersViewKey(viewParam) ? viewParam : null;
+
+  // Local (not URL) state — kept independent of `?view=` so the banner's
+  // "Clear" button below only clears the view, not an in-progress search.
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchInput.trim()), 300);
+    return () => clearTimeout(id);
+  }, [searchInput]);
+
+  const listParams: ContainerListParams = useMemo(() => {
+    const params: ContainerListParams = {};
+    if (debouncedSearch) params.search = debouncedSearch;
+    if (view === 'checked_out') params.checkout_status = 'out';
+    if (view === 'recently_added') params.ordering = '-date_received';
+    return params;
+  }, [debouncedSearch, view]);
+
   const {
     isPending,
     isError,
     error,
     data: containers,
   } = useQuery({
-    queryKey: containerKeys.list(),
-    queryFn: getContainers,
+    queryKey: containerKeys.list(listParams),
+    queryFn: () => getContainers(listParams),
   });
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  const viewParam = searchParams.get('view');
-  const view = isContainersViewKey(viewParam) ? viewParam : null;
   const filteredContainers = useMemo(
     () => (containers ? filterByView(containers, view) : containers),
     [containers, view]
@@ -156,6 +179,23 @@ export const Containers = () => {
             Browse and edit containers in inventory.
           </Typography>
         </Box>
+        <TextField
+          type="search"
+          size="small"
+          placeholder="Search containers…"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          sx={{ ml: 'auto', minWidth: 260 }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search fontSize="small" />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
       </Stack>
       {view && (
         <Alert
