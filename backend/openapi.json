@@ -2262,16 +2262,20 @@ components:
         * `kg` - kg
     RoleEnum:
       enum:
+      - admin
       - lab_manager
       - coordinator
+      - faculty
       - stockroom
-      - viewer
+      - lab_assistant
       type: string
       description: |-
+        * `admin` - Admin
         * `lab_manager` - Lab Manager
         * `coordinator` - Coordinator
-        * `stockroom` - Stockroom
-        * `viewer` - Viewer
+        * `faculty` - Faculty
+        * `stockroom` - Stockroom Worker
+        * `lab_assistant` - Lab Assistant
     SuccessMessage:
       type: object
       properties:

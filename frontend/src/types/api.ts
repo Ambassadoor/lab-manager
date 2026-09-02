@@ -827,13 +827,15 @@ export interface components {
      */
     QuantityUnitEnum: 'mL' | 'L' | 'mg' | 'g' | 'kg';
     /**
-     * @description * `lab_manager` - Lab Manager
+     * @description * `admin` - Admin
+     *     * `lab_manager` - Lab Manager
      *     * `coordinator` - Coordinator
-     *     * `stockroom` - Stockroom
-     *     * `viewer` - Viewer
+     *     * `faculty` - Faculty
+     *     * `stockroom` - Stockroom Worker
+     *     * `lab_assistant` - Lab Assistant
      * @enum {string}
      */
-    RoleEnum: 'lab_manager' | 'coordinator' | 'stockroom' | 'viewer';
+    RoleEnum: 'admin' | 'lab_manager' | 'coordinator' | 'faculty' | 'stockroom' | 'lab_assistant';
     SuccessMessage: {
       detail: string;
     };

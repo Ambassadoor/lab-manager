@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
@@ -13,13 +14,22 @@ from apps.inventory.models import (
     Location,
     LocationTypes,
 )
+from apps.inventory.permissions import role_at_least
 from apps.users.models import User
 
 
 @pytest.fixture
 def user(db):
+    # Top-tier role by default — these tests (transfer/move/weigh-in/filter
+    # behavior, not permission enforcement itself) predate the role system
+    # and should keep exercising that behavior unobstructed. Permission
+    # enforcement itself is covered by TestRolePermissions below, which
+    # builds its own users per-role rather than using this fixture.
     return User.objects.create_user(
-        username="tester", email="tester@lipscomb.edu", password="pw12345!"
+        username="tester",
+        email="tester@lipscomb.edu",
+        password="pw12345!",
+        role=User.Role.LAB_MANAGER,
     )
 
 
@@ -61,6 +71,25 @@ def make_container(chemical, make_location):
         defaults = {"name": slug, "slug": slug, "chemical": chemical, "location": location}
         defaults.update(overrides)
         return Container.objects.create(**defaults)
+
+    return _make
+
+
+@pytest.fixture
+def client_as(db):
+    """An authenticated APIClient for a fresh user with the given role."""
+
+    def _make(role):
+        api_client = APIClient()
+        api_client.force_authenticate(
+            user=User.objects.create_user(
+                username=f"user-{role}",
+                email=f"{role}@lipscomb.edu",
+                password="pw12345!",
+                role=role,
+            )
+        )
+        return api_client
 
     return _make
 
@@ -581,3 +610,88 @@ class TestLocationMenu:
         assert second_response.status_code == 200
 
         assert len(second_queries) == len(first_queries)
+
+
+class TestRoleAtLeast:
+    def test_denies_an_unauthenticated_request(self):
+        permission = role_at_least(User.Role.LAB_ASSISTANT)()
+        request = type("Request", (), {"user": AnonymousUser()})()
+        assert permission.has_permission(request, view=None) is False
+
+    @pytest.mark.django_db
+    def test_denies_a_role_missing_from_role_rank(self):
+        # Shouldn't happen given the model's `choices`, but role_at_least
+        # shouldn't raise if it somehow does — it should just deny.
+        user = User.objects.create_user(username="u", email="u@lipscomb.edu", password="pw12345!")
+        user.role = "not-a-real-role"
+        permission = role_at_least(User.Role.LAB_ASSISTANT)()
+        request = type("Request", (), {"user": user})()
+        assert permission.has_permission(request, view=None) is False
+
+
+@pytest.mark.django_db
+class TestRolePermissions:
+    def test_lab_assistant_can_read_but_not_write_or_delete(self, client_as, make_container):
+        client = client_as(User.Role.LAB_ASSISTANT)
+        container = make_container("c1")
+
+        assert client.get("/inventory/containers/").status_code == 200
+        assert (
+            client.patch(
+                f"/inventory/containers/{container.slug}/",
+                {"manufacturer": "Acme"},
+                format="json",
+            ).status_code
+            == 403
+        )
+        assert client.delete(f"/inventory/containers/{container.slug}/").status_code == 403
+        assert (
+            client.post(
+                "/inventory/containers/check_out/", [container.slug], format="json"
+            ).status_code
+            == 403
+        )
+
+    def test_stockroom_can_write_and_delete_locations_but_not_containers(
+        self, client_as, make_location, make_container
+    ):
+        client = client_as(User.Role.STOCKROOM)
+        origin = make_location("origin")
+        empty_location = make_location("empty")
+        container = make_container("c1", location=origin)
+
+        assert (
+            client.post(
+                "/inventory/containers/check_out/", [container.slug], format="json"
+            ).status_code
+            == 201
+        )
+        # Location delete has its own DB-level safeguard (ProtectedError for
+        # a non-empty location), which is exactly why Stockroom gets it...
+        assert client.delete(f"/inventory/locations/{empty_location.id}/").status_code == 204
+        # ...while Container delete stays Manager/Admin-only.
+        assert client.delete(f"/inventory/containers/{container.slug}/").status_code == 403
+
+    def test_coordinator_can_delete_locations_but_not_containers_or_chemicals(
+        self, client_as, make_location, make_container, chemical
+    ):
+        client = client_as(User.Role.COORDINATOR)
+        empty_location = make_location("empty")
+        container = make_container("c1")
+
+        assert client.delete(f"/inventory/locations/{empty_location.id}/").status_code == 204
+        assert client.delete(f"/inventory/containers/{container.slug}/").status_code == 403
+        assert client.delete(f"/inventory/chemicals/{chemical.id}/").status_code == 403
+
+    @pytest.mark.parametrize("role", [User.Role.LAB_MANAGER, User.Role.ADMIN])
+    def test_lab_manager_and_admin_can_delete_containers_and_chemicals(
+        self, client_as, make_container, role
+    ):
+        client = client_as(role)
+        container = make_container("c1")
+        # A chemical with no containers referencing it — deleting one that
+        # does would hit a real FK constraint, unrelated to what's tested here.
+        unused_chemical = Chemical.objects.create(name="Isopropanol", cas="67-63-0")
+
+        assert client.delete(f"/inventory/containers/{container.slug}/").status_code == 204
+        assert client.delete(f"/inventory/chemicals/{unused_chemical.id}/").status_code == 204

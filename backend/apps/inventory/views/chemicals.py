@@ -5,9 +5,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from apps.users.models import User
+
 from ..filters import ChemicalFilter
 from ..models import Chemical, ChemicalStorageCategories
-from ..permissions import IsManager
+from ..permissions import role_at_least
 from ..serializers import (
     ChemicalSerializer,
     ChemicalStorageCategoriesSerializer,
@@ -24,10 +26,13 @@ class ChemicalView(ModelViewSet):
 
     permission_classes = [IsAuthenticated]
 
-    # Only managers allowed to delete
+    # Deleting a chemical is Manager/Admin-only — chemicals aren't deleted
+    # in normal operation, a mistake gets corrected in place instead.
     def get_permissions(self):
-        if self.action in ["destroy"]:
-            return [permission() for permission in [IsManager]]
+        if self.action == "destroy":
+            return [role_at_least(User.Role.LAB_MANAGER)()]
+        if self.action in {"create", "update", "partial_update"}:
+            return [role_at_least(User.Role.STOCKROOM)()]
         return super().get_permissions()
 
     def get_serializer_class(self):
@@ -67,8 +72,10 @@ class ChemicalStorageCategoryView(ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_permissions(self):
-        if self.action in ["destroy"]:
-            return [permission() for permission in [IsManager]]
+        if self.action == "destroy":
+            return [role_at_least(User.Role.LAB_MANAGER)()]
+        if self.action in {"create", "update", "partial_update"}:
+            return [role_at_least(User.Role.STOCKROOM)()]
         return super().get_permissions()
 
     def get_queryset(self):

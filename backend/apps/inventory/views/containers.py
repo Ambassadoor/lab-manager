@@ -7,9 +7,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from apps.users.models import User
+
 from ..filters import ContainerFilter
 from ..models import Chemical, ChemicalStorageCategories, CheckoutEvent, Container, WeightReading
-from ..permissions import IsManager
+from ..permissions import role_at_least
 from ..serializers import (
     ChemicalSerializer,
     CheckoutEventSerializer,
@@ -48,10 +50,31 @@ class ContainerView(ModelViewSet):
 
     permission_classes = [IsAuthenticated]
 
-    # Only managers can delete
+    # Deleting a container is Manager/Admin-only, unchanged from before roles
+    # were fleshed out — containers get marked discarded rather than
+    # deleted in normal operation. Every other write (creating/editing a
+    # container, checking in/out, weighing in, transferring) needs at least
+    # Stockroom; plain reads (list/retrieve/is_discarded/is_valid) stay open
+    # to any authenticated role, Lab Assistant included.
+    WRITE_ACTIONS = {
+        "create",
+        "update",
+        "partial_update",
+        "check_out",
+        "check_in",
+        "weigh_in_bulk",
+        "transfer",
+    }
+
     def get_permissions(self):
-        if self.action in ["destroy"]:
-            return [permission() for permission in [IsManager]]
+        if self.action == "destroy":
+            return [role_at_least(User.Role.LAB_MANAGER)()]
+        # weigh_in is a combined GET/POST action (fetch history vs. record a
+        # reading) — only its write side needs gating.
+        if self.action == "weigh_in" and self.request.method == "POST":
+            return [role_at_least(User.Role.STOCKROOM)()]
+        if self.action in self.WRITE_ACTIONS:
+            return [role_at_least(User.Role.STOCKROOM)()]
         return super().get_permissions()
 
     # Determine which serialize to use
@@ -379,6 +402,8 @@ class WeightReadingView(ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_permissions(self):
-        if self.action in ["destroy"]:
-            return [permission() for permission in [IsManager]]
+        if self.action == "destroy":
+            return [role_at_least(User.Role.LAB_MANAGER)()]
+        if self.action in {"create", "update", "partial_update"}:
+            return [role_at_least(User.Role.STOCKROOM)()]
         return super().get_permissions()

@@ -8,9 +8,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from apps.users.models import User
+
 from ..filters import LocationFilter
 from ..models import Location, LocationTypes
-from ..permissions import IsCoordinator, IsManager
+from ..permissions import role_at_least
 from ..serializers import (
     LocationContainersSerializer,
     LocationMenuSerializer,
@@ -29,9 +31,18 @@ class LocationView(ModelViewSet):
 
     permission_classes = [IsAuthenticated]
 
+    # Location delete is the one delete Coordinator and Stockroom get (see
+    # apps/inventory/permissions.py) — it already has a DB-level safeguard
+    # (ProtectedError below, in destroy()) against removing a location that
+    # still has children/containers, which is exactly why it's safe to
+    # allow more broadly than Container/Chemical delete. create/add_child/
+    # move need at least Stockroom too; reads stay open to any authenticated
+    # role.
+    WRITE_ACTIONS = {"create", "add_child", "move"}
+
     def get_permissions(self):
-        if self.action in ["destroy"]:
-            return [permission() for permission in [IsManager | IsCoordinator]]
+        if self.action == "destroy" or self.action in self.WRITE_ACTIONS:
+            return [role_at_least(User.Role.STOCKROOM)()]
         return super().get_permissions()
 
     def get_queryset(self):
@@ -201,6 +212,8 @@ class LocationTypeView(ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_permissions(self):
-        if self.action in ["destroy"]:
-            return [permission() for permission in [IsManager]]
+        if self.action == "destroy":
+            return [role_at_least(User.Role.LAB_MANAGER)()]
+        if self.action in {"create", "update", "partial_update"}:
+            return [role_at_least(User.Role.STOCKROOM)()]
         return super().get_permissions()

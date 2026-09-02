@@ -1,7 +1,7 @@
 import pytest
 from rest_framework.test import APIClient
 
-from apps.inventory.permissions import IsManager
+from apps.inventory.permissions import role_at_least
 from apps.users.models import User
 from apps.users.serializers import NewUserSerializer
 
@@ -42,12 +42,13 @@ class TestNewUserSerializerEmailValidation:
 
 @pytest.mark.django_db
 class TestRegisterView:
-    def test_creates_a_user_that_actually_passes_ismanager(self):
+    def test_creates_a_user_that_actually_passes_role_at_least_lab_manager(self):
         # Regression test: RegisterView used to pass role="Lab Manager" (the
         # choice's display label) instead of "lab_manager" (the stored
         # value), so every self-registered user silently failed every
-        # IsManager check forever. Assert on the real permission check, not
-        # just the raw field, so this can't regress the same way again.
+        # role_at_least(LAB_MANAGER) check forever. Assert on the real
+        # permission check, not just the raw field, so this can't regress
+        # the same way again.
         client = APIClient()
         response = client.post("/api/auth/register/", _valid_registration(), format="json")
 
@@ -56,7 +57,8 @@ class TestRegisterView:
         assert user.role == User.Role.LAB_MANAGER
 
         request = type("Request", (), {"user": user})()
-        assert IsManager().has_permission(request, view=None) is True
+        permission = role_at_least(User.Role.LAB_MANAGER)()
+        assert permission.has_permission(request, view=None) is True
 
     def test_rejects_non_lipscomb_email(self):
         client = APIClient()

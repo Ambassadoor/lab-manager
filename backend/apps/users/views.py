@@ -99,7 +99,7 @@ class RegisterView(APIView):
         # TODO: Implement actual role determination logic
         # role/user_type must be the TextChoices *value* ("lab_manager"), not
         # the display label ("Lab Manager") — the two differ, and permission
-        # checks like IsManager compare against the value.
+        # checks like role_at_least compare against the value.
         new_user = serializer.save(role=User.Role.LAB_MANAGER, user_type=User.UserType.FULL)
 
         return Response(UserSerializer(new_user).data, status=status.HTTP_201_CREATED)
