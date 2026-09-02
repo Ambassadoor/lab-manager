@@ -1,4 +1,15 @@
-import { Alert, Box, Button, IconButton, Snackbar, Stack } from '@mui/material';
+import {
+  Alert,
+  Box,
+  Button,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  Snackbar,
+  Stack,
+  Typography,
+} from '@mui/material';
 import { useFieldArray, useForm, useWatch, type SubmitHandler } from 'react-hook-form';
 import { checkIfDiscarded, createWeighIn } from '../../api/inventory';
 import { getBalanceWeight } from '../../api/bridge';
@@ -12,6 +23,8 @@ import { ScannableFieldRow } from '../shared/ScannableFieldRow';
 import { ActionFormCard } from '../shared/ActionFormCard';
 import { RhfTextField } from '../shared/RhfTextField';
 import { decimalPatternRule } from '../shared/formRules';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
+import { useConfirmDialog } from '../shared/useConfirmDialog';
 
 type SnackbarState = { message: string; severity: 'success' | 'error' };
 
@@ -30,7 +43,7 @@ export const WeighIn = () => {
     setValue,
     getValues,
     resetField,
-    formState: { isSubmitting, isValidating },
+    formState: { isSubmitting, isValidating, errors },
   } = useForm({
     mode: 'onBlur',
     reValidateMode: 'onBlur',
@@ -64,22 +77,72 @@ export const WeighIn = () => {
   // separate manual click.
   const scaleMutation = useMutation({ mutationFn: getBalanceWeight });
 
-  const onSubmit: SubmitHandler<WeighInDefaults> = async (data) => {
+  // Holds the rows awaiting confirmation — scanning several containers in a
+  // row queues up weight readings and check-ins that aren't trivial to
+  // undo, so this gates the actual submit behind one deliberate click.
+  const checkinConfirm = useConfirmDialog<WeighInDefaults['checkin']>();
+
+  const weighInMutation = useMutation({
+    mutationFn: (checkin: WeighInDefaults['checkin']) => createWeighIn({ checkin }),
+    onSuccess: (response) => {
+      if (response.readings.length > 0) {
+        setSnackbar({ message: 'Weigh in recorded.', severity: 'success' });
+        reset();
+        // .all, not .list() — also refreshes this container's weigh-in history table
+        queryClient.invalidateQueries({ queryKey: containerKeys.all });
+        // restock_soon on the dashboard depends on percent_remaining, which shifts with every reading
+        queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+      }
+      checkinConfirm.cancel();
+    },
+  });
+
+  const onSubmit: SubmitHandler<WeighInDefaults> = (data) => {
     const checkin = data.checkin.filter((c) => c.slug.trim().length > 0);
     if (checkin.length === 0) return;
-    const response = await createWeighIn({ checkin });
-    if (response.readings.length > 0) {
-      setSnackbar({ message: 'Weigh in recorded.', severity: 'success' });
-      reset();
-      // .all, not .list() — also refreshes this container's weigh-in history table
-      queryClient.invalidateQueries({ queryKey: containerKeys.all });
-      // restock_soon on the dashboard depends on percent_remaining, which shifts with every reading
-      queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
-    }
+    checkinConfirm.request(checkin);
   };
 
   return (
     <>
+      <ConfirmDialog
+        open={checkinConfirm.isOpen}
+        title="Confirm check in"
+        maxWidth="xs"
+        message={
+          checkinConfirm.target && (
+            <>
+              <Typography variant="body1">
+                Record {checkinConfirm.target.length} weigh-in
+                {checkinConfirm.target.length !== 1 ? 's' : ''} and check these containers in?
+              </Typography>
+              <List dense sx={{ maxHeight: 240, overflow: 'auto' }}>
+                {checkinConfirm.target.map((row) => (
+                  <ListItem key={row.slug} disableGutters>
+                    <ListItemText
+                      primary={row.slug.toUpperCase()}
+                      secondary={
+                        `${row.weight}g` + (row.tare_weight ? ` · tare ${row.tare_weight}g` : '')
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          )
+        }
+        confirmLabel="Check In"
+        confirmColor="primary"
+        loading={weighInMutation.isPending}
+        error={weighInMutation.isError ? weighInMutation.error.message : null}
+        onCancel={() => {
+          weighInMutation.reset();
+          checkinConfirm.cancel();
+        }}
+        onConfirm={() => {
+          if (checkinConfirm.target) weighInMutation.mutate(checkinConfirm.target);
+        }}
+      />
       <Snackbar
         open={!!snackbar}
         onClose={() => setSnackbar(null)}
@@ -109,7 +172,12 @@ export const WeighIn = () => {
         maxWidth={760}
         actions={
           <>
-            <Button type="submit" variant="contained" loading={isSubmitting || isValidating}>
+            <Button
+              type="submit"
+              variant="contained"
+              loading={isSubmitting || isValidating}
+              disabled={!!errors.checkin}
+            >
               Check In
             </Button>
             <Button variant="outlined" onClick={() => reset()}>
