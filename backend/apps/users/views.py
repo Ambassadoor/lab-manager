@@ -139,24 +139,8 @@ class ValidateView(APIView):
         email = request.query_params.get("email", None)
         username = request.query_params.get("username", None)
 
-        new_account = True
-        username_available = True
-
-        if username is not None:
-            try:
-                user = User.objects.get(username=username)
-                if user:
-                    username_available = False
-            except User.DoesNotExist:
-                pass
-
-        if email is not None:
-            try:
-                user = User.objects.get(email=email)
-                if user:
-                    new_account = False
-            except User.DoesNotExist:
-                pass
+        username_available = username is None or not User.objects.filter(username=username).exists()
+        new_account = email is None or not User.objects.filter(email=email).exists()
 
         if not new_account or not username_available:
             return Response(

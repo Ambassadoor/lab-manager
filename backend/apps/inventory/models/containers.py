@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import models
-from django.db.models import Max
+from django.db.models import Max, OuterRef
 from django.utils import timezone
 
 from .chemicals import Chemical, SDS
@@ -118,3 +118,16 @@ class CheckoutEvent(models.Model):
 
     def __str__(self):
         return f"{self.container.name}: {self.action}"
+
+
+# Shared by DashboardView (checked_out card) and ContainerFilter.checkout_status
+# (?checkout_status=out/in) — both need "this container's most recent
+# CheckoutEvent.<field>", keyed for use with .annotate(Subquery(...)). Kept as
+# one function so the "most recent" tiebreak (order_by("-timestamp")) can't
+# drift between the two call sites.
+def most_recent_checkout_event_subquery(field: str):
+    return (
+        CheckoutEvent.objects.filter(container_id=OuterRef("pk"))
+        .order_by("-timestamp")
+        .values(field)[:1]
+    )

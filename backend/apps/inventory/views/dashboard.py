@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from ..models import CheckoutEvent, Container, WeightReading
+from ..models import Container, WeightReading, most_recent_checkout_event_subquery
 from ..serializers import ContainerSerializer
 
 
@@ -26,17 +26,8 @@ class DashboardView(ModelViewSet):
         .values("weight")[:1]
     )
 
-    most_recent_event = (
-        CheckoutEvent.objects.filter(container_id=OuterRef("pk"))
-        .order_by("-timestamp")
-        .values("timestamp")[:1]
-    )
-
-    most_recent_event_action = (
-        CheckoutEvent.objects.filter(container_id=OuterRef("pk"))
-        .order_by("-timestamp")
-        .values("action")[:1]
-    )
+    most_recent_event = most_recent_checkout_event_subquery("timestamp")
+    most_recent_event_action = most_recent_checkout_event_subquery("action")
 
     def list(self, request):
         queryset = self.get_queryset()

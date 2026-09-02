@@ -24,6 +24,13 @@ class UserCheckoutEventSerializer(serializers.ModelSerializer):
 
 # Serializer to use for new account creation
 class NewUserSerializer(serializers.ModelSerializer):
+    # Explicit write_only — otherwise this serializer's declared "password"
+    # field would auto-generate as readable, and (although it's only ever
+    # used as a request-body serializer today) that would both leak the
+    # password hash if this serializer were ever reused for a response and
+    # mislead the generated OpenAPI schema into advertising it as returned.
+    password = serializers.CharField(write_only=True)
+
     class Meta:
         model = User
         fields = ["email", "lipscomb_id", "username", "first_name", "last_name", "password"]

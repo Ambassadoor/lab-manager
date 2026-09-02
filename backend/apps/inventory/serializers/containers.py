@@ -156,13 +156,22 @@ class LocationContainersSerializer(serializers.ModelSerializer):
         for child_id, parent_id in Location.objects.values_list("id", "parent_id"):
             children_by_parent.setdefault(parent_id, []).append(child_id)
 
+        # `visited` guards against a corrupted parent chain (a cycle) turning
+        # this into an infinite loop. Location.clean() blocks cycles through
+        # normal save(), but nothing stops a bulk .update() from introducing
+        # one directly — without this guard, a cycle would requeue the same
+        # ids forever instead of failing.
         location_ids = [obj.id]
+        visited = {obj.id}
         queue = [obj.id]
         while queue:
             current = queue.pop()
-            children = children_by_parent.get(current, [])
-            location_ids.extend(children)
-            queue.extend(children)
+            for child_id in children_by_parent.get(current, []):
+                if child_id in visited:
+                    continue
+                visited.add(child_id)
+                location_ids.append(child_id)
+                queue.append(child_id)
 
         containers = Container.objects.filter(location__id__in=location_ids)
         serializer = ContainerSerializer(containers, many=True)
