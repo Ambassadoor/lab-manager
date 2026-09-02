@@ -13,6 +13,7 @@ import { Navbar } from './components/nav/Navbar';
 import { useAuth } from './context/AuthContext';
 import { Login } from './components/accounts/Login';
 import { Register } from './components/accounts/Register';
+import { Profile } from './components/accounts/Profile';
 import { Containers } from './components/inventory/Containers';
 import { ContainerForm } from './components/inventory/ContainerForm';
 import { ContainerDetail } from './components/inventory/ContainerDetail';
@@ -81,6 +82,11 @@ export default function App() {
             { path: 'register', element: <Register /> },
             // Auth protected routes
             ...[
+              {
+                path: 'profile',
+                element: <RequireAuth />,
+                children: [{ index: true, element: <Profile /> }],
+              },
               {
                 path: 'inventory',
                 element: <RequireAuth />,

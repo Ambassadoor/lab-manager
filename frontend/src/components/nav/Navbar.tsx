@@ -221,7 +221,12 @@ export const Navbar = (): JSX.Element | null => {
                   onClose={handleCloseUserMenu}
                   onClick={handleCloseUserMenu}
                 >
-                  <MenuItem onClick={handleCloseUserMenu}>
+                  <MenuItem
+                    onClick={() => {
+                      navigate('/profile');
+                      handleCloseUserMenu();
+                    }}
+                  >
                     <Avatar sx={{ width: 32, height: 32, ml: -0.5, mr: 1 }} /> Profile
                   </MenuItem>
                   <MenuItem

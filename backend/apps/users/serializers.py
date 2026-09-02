@@ -3,11 +3,41 @@ from .models import User
 import re
 
 
+LIPSCOMB_EMAIL_REGEX = r"^[a-zA-Z0-9._%+-]+@(mail\.)?lipscomb\.edu$"
+
+
+def validate_lipscomb_email(value):
+    """Shared by NewUserSerializer (registration) and UserSerializer (profile
+    edits) — a user shouldn't be able to escape the domain restriction just
+    by editing their email after the fact.
+    """
+    if not re.match(LIPSCOMB_EMAIL_REGEX, value):
+        raise serializers.ValidationError("You must use your lipscomb email address.")
+    return value
+
+
 class UserSerializer(serializers.ModelSerializer):
+    # get_role_display() (Django's auto-generated accessor for a `choices`
+    # field) rather than duplicating Role's value->label mapping in the
+    # frontend just to show "Lab Manager" instead of "lab_manager".
+    role_display = serializers.CharField(source="get_role_display", read_only=True)
+
     class Meta:
         model = User
-        fields = ["id", "username", "email", "first_name", "last_name", "role"]
+        fields = [
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "lipscomb_id",
+            "role",
+            "role_display",
+        ]
         read_only_fields = ["id", "role"]
+
+    def validate_email(self, value):
+        return validate_lipscomb_email(value)
 
 
 # Returns users full name for display in checkout events
@@ -36,14 +66,7 @@ class NewUserSerializer(serializers.ModelSerializer):
         fields = ["email", "lipscomb_id", "username", "first_name", "last_name", "password"]
 
     def validate_email(self, value):
-        email_regex = r"^[a-zA-Z0-9._%+-]+@(mail\.)?lipscomb\.edu$"
-        match = re.match(email_regex, value)
-        if match:
-            return value
-        else:
-            raise serializers.ValidationError(
-                "You must use your lipscomb email address for account creation."
-            )
+        return validate_lipscomb_email(value)
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)

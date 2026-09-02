@@ -70,13 +70,22 @@ class LogoutView(APIView):
 
 
 class MeView(APIView):
-    """Returns the currently authenticated user."""
+    """Returns or updates the currently authenticated user's own profile."""
 
     permission_classes = [IsAuthenticated]
 
     @extend_schema(request=None, responses=UserSerializer)
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+
+    # Self-service profile edits — role stays read_only on UserSerializer,
+    # so this can't be used to self-promote regardless of what's posted.
+    @extend_schema(request=UserSerializer, responses={200: UserSerializer})
+    def patch(self, request):
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class RegisterView(APIView):

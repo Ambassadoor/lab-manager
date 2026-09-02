@@ -55,9 +55,34 @@ paths:
   /api/auth/me/:
     get:
       operationId: api_auth_me_retrieve
-      description: Returns the currently authenticated user.
+      description: Returns or updates the currently authenticated user's own profile.
       tags:
       - api
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: api_auth_me_partial_update
+      description: Returns or updates the currently authenticated user's own profile.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
       security:
       - cookieAuth: []
       responses:
@@ -2230,6 +2255,39 @@ components:
         parent:
           type: integer
           nullable: true
+    PatchedUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        lipscomb_id:
+          type: string
+          nullable: true
+          maxLength: 11
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+        role_display:
+          type: string
+          readOnly: true
     PatchedWeightReading:
       type: object
       properties:
@@ -2305,14 +2363,22 @@ components:
         last_name:
           type: string
           maxLength: 150
+        lipscomb_id:
+          type: string
+          nullable: true
+          maxLength: 11
         role:
           allOf:
           - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+        role_display:
+          type: string
           readOnly: true
       required:
       - email
       - id
       - role
+      - role_display
       - username
     UserCheckoutEvent:
       type: object

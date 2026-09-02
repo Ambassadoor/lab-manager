@@ -72,6 +72,79 @@ class TestRegisterView:
         assert not User.objects.filter(username="student").exists()
 
 
+@pytest.fixture
+def user(db):
+    return User.objects.create_user(
+        username="tester",
+        email="tester@lipscomb.edu",
+        password="pw12345!",
+        first_name="Original",
+        last_name="Name",
+        lipscomb_id="L00000001",
+        role=User.Role.COORDINATOR,
+    )
+
+
+@pytest.fixture
+def client(user):
+    api_client = APIClient()
+    api_client.force_authenticate(user=user)
+    return api_client
+
+
+@pytest.mark.django_db
+class TestMeView:
+    def test_get_returns_own_profile_with_a_readable_role_label(self, client, user):
+        response = client.get("/api/auth/me/")
+
+        assert response.status_code == 200
+        assert response.data["username"] == user.username
+        assert response.data["role"] == "coordinator"
+        assert response.data["role_display"] == "Coordinator"
+
+    def test_patch_updates_own_editable_fields(self, client, user):
+        response = client.patch(
+            "/api/auth/me/",
+            {"first_name": "Updated", "last_name": "Person", "lipscomb_id": "L00000002"},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        user.refresh_from_db()
+        assert user.first_name == "Updated"
+        assert user.last_name == "Person"
+        assert user.lipscomb_id == "L00000002"
+
+    def test_patch_cannot_change_role(self, client, user):
+        response = client.patch("/api/auth/me/", {"role": "admin"}, format="json")
+
+        assert response.status_code == 200
+        user.refresh_from_db()
+        assert user.role == User.Role.COORDINATOR
+
+    def test_patch_rejects_a_non_lipscomb_email(self, client, user):
+        response = client.patch("/api/auth/me/", {"email": "tester@gmail.com"}, format="json")
+
+        assert response.status_code == 400
+        assert "email" in response.data
+        user.refresh_from_db()
+        assert user.email == "tester@lipscomb.edu"
+
+    def test_patch_allows_saving_without_changing_own_email(self, client, user):
+        # Regression guard: UserSerializer's email UniqueValidator must
+        # exclude the current instance, or leaving email untouched on any
+        # other field edit would spuriously fail as "already taken".
+        response = client.patch("/api/auth/me/", {"first_name": "Updated"}, format="json")
+
+        assert response.status_code == 200
+
+    def test_unauthenticated_request_is_rejected(self):
+        client = APIClient()
+        response = client.patch("/api/auth/me/", {"first_name": "Nope"}, format="json")
+
+        assert response.status_code == 403
+
+
 @pytest.mark.django_db
 class TestValidateView:
     def test_new_email_and_available_username_pass(self):

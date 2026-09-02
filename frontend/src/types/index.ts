@@ -1,7 +1,13 @@
 // Shared application types.
 import type { Dayjs } from 'dayjs';
 import type { components } from './api';
-export type Role = 'lab_manager' | 'stockroom' | 'viewer' | 'coordinator';
+export type Role =
+  | 'admin'
+  | 'lab_manager'
+  | 'coordinator'
+  | 'faculty'
+  | 'stockroom'
+  | 'lab_assistant';
 
 export interface User {
   id: number;
@@ -9,10 +15,17 @@ export interface User {
   email: string;
   first_name: string;
   last_name: string;
+  lipscomb_id: string | null;
   role: Role;
+  // Human-readable label for `role` (e.g. "Lab Manager") — from the
+  // backend's Role.choices via get_role_display(), not duplicated here.
+  role_display: string;
 }
 
-export interface UserRegistration extends Omit<User, 'id' | 'role'> {
+export interface UserRegistration extends Omit<
+  User,
+  'id' | 'role' | 'role_display' | 'lipscomb_id'
+> {
   password: string;
   lipscomb_id: string;
 }

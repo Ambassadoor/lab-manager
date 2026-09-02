@@ -62,14 +62,15 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** @description Returns the currently authenticated user. */
+    /** @description Returns or updates the currently authenticated user's own profile. */
     get: operations['api_auth_me_retrieve'];
     put?: never;
     post?: never;
     delete?: never;
     options?: never;
     head?: never;
-    patch?: never;
+    /** @description Returns or updates the currently authenticated user's own profile. */
+    patch: operations['api_auth_me_partial_update'];
     trace?: never;
   };
   '/api/auth/register/': {
@@ -809,6 +810,18 @@ export interface components {
       type?: number;
       parent?: number | null;
     };
+    PatchedUser: {
+      readonly id?: number;
+      /** @description Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only. */
+      username?: string;
+      /** Format: email */
+      email?: string;
+      first_name?: string;
+      last_name?: string;
+      lipscomb_id?: string | null;
+      readonly role?: components['schemas']['RoleEnum'];
+      readonly role_display?: string;
+    };
     PatchedWeightReading: {
       readonly id?: number;
       /** Format: decimal */
@@ -847,7 +860,9 @@ export interface components {
       email: string;
       first_name?: string;
       last_name?: string;
+      lipscomb_id?: string | null;
       readonly role: components['schemas']['RoleEnum'];
+      readonly role_display: string;
     };
     UserCheckoutEvent: {
       readonly full_name: string;
@@ -941,6 +956,31 @@ export interface operations {
       cookie?: never;
     };
     requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['User'];
+        };
+      };
+    };
+  };
+  api_auth_me_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedUser'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedUser'];
+        'multipart/form-data': components['schemas']['PatchedUser'];
+      };
+    };
     responses: {
       200: {
         headers: {
