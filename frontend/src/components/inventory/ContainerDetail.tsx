@@ -10,6 +10,7 @@ import {
   Divider,
   IconButton,
   InputAdornment,
+  Link,
   Stack,
   Tooltip,
   Typography,
@@ -389,7 +390,9 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
                       {sdsFallback.sds.map((s, i) => (
                         <span key={s.id}>
                           {i > 0 && ', '}
-                          <RouterLink to={`/sds/${s.id}`}>{s.file_name}</RouterLink>
+                          <Link component={RouterLink} to={`/sds/${s.id}`}>
+                            {s.file_name}
+                          </Link>
                         </span>
                       ))}{' '}
                       for this chemical.
