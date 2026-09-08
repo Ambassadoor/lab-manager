@@ -49,7 +49,21 @@ export const SdsViewer = () => {
                   component="img"
                   src={ghsPictogramIconSrc(p)}
                   alt={ghsPictogramLabel(p)}
-                  sx={{ width: 48, height: 48 }}
+                  // Transparent-background PNGs — the pictogram's own black
+                  // glyph would otherwise vanish against a dark-mode page.
+                  // GHS pictograms are always shown on white in the wild
+                  // anyway, so a fixed white backing (not theme-following)
+                  // matches how they're actually printed on a label.
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    bgcolor: 'common.white',
+                    borderRadius: 1,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    p: 0.5,
+                    boxSizing: 'border-box',
+                  }}
                 />
                 <Typography variant="caption" align="center">
                   {ghsPictogramLabel(p)}

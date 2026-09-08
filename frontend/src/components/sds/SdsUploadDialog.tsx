@@ -368,7 +368,16 @@ export const SdsUploadDialog = ({
                         {(selected as GHSPictogram[]).map((value) => (
                           <Chip
                             key={value}
-                            avatar={<Avatar src={ghsPictogramIconSrc(value)} alt="" />}
+                            avatar={
+                              // Transparent-background PNGs — bgcolor keeps
+                              // the glyph visible in dark mode (see
+                              // SdsViewer's fuller comment on the same fix).
+                              <Avatar
+                                src={ghsPictogramIconSrc(value)}
+                                alt=""
+                                sx={{ bgcolor: 'common.white' }}
+                              />
+                            }
                             label={ghsPictogramLabel(value)}
                             size="small"
                           />
@@ -382,7 +391,7 @@ export const SdsUploadDialog = ({
                           <Avatar
                             src={ghsPictogramIconSrc(p.value)}
                             alt=""
-                            sx={{ width: 28, height: 28 }}
+                            sx={{ width: 28, height: 28, bgcolor: 'common.white' }}
                           />
                         </ListItemAvatar>
                         <ListItemText primary={p.label} />
