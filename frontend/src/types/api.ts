@@ -564,6 +564,38 @@ export interface paths {
     patch: operations['inventory_locations_move_partial_update'];
     trace?: never;
   };
+  '/inventory/sds/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_sds_list'];
+    put?: never;
+    post: operations['inventory_sds_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/sds/{id}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_sds_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/inventory/weight_readings/': {
     parameters: {
       query?: never;
@@ -618,6 +650,7 @@ export interface components {
     };
     Chemical: {
       readonly id: number;
+      readonly sds: string;
       name: string;
       iupac?: string | null;
       cas?: string | null;
@@ -647,6 +680,7 @@ export interface components {
       readonly label: string;
       slug: string;
       name: string;
+      readonly chemical: number;
       /**
        * Density/specific gravity
        * Format: decimal
@@ -679,6 +713,7 @@ export interface components {
       readonly latest_reading: string;
       readonly percent_remaining: string;
       readonly checkout_status: string;
+      readonly latest_sds: string;
     };
     ContainerWrite: {
       name: string;
@@ -719,6 +754,28 @@ export interface components {
        */
       tare_weight?: string | null;
     };
+    /**
+     * @description * `flammable` - Flammable
+     *     * `oxidizing` - Oxidizing
+     *     * `compressed_gas` - Compressed Gas
+     *     * `corrosive` - Corrosive
+     *     * `toxic` - Acute Toxicity
+     *     * `harmful` - Irritant / Harmful
+     *     * `health_hazard` - Health Hazard
+     *     * `explosive` - Explosive
+     *     * `environment` - Environmental Hazard
+     * @enum {string}
+     */
+    GhsPictogramsEnum:
+      | 'flammable'
+      | 'oxidizing'
+      | 'compressed_gas'
+      | 'corrosive'
+      | 'toxic'
+      | 'harmful'
+      | 'health_hazard'
+      | 'explosive'
+      | 'environment';
     InvalidRequest: {
       detail: string;
     };
@@ -766,6 +823,7 @@ export interface components {
     NullEnum: null;
     PatchedChemical: {
       readonly id?: number;
+      readonly sds?: string;
       name?: string;
       iupac?: string | null;
       cas?: string | null;
@@ -787,6 +845,7 @@ export interface components {
       readonly label?: string;
       slug?: string;
       name?: string;
+      readonly chemical?: number;
       /**
        * Density/specific gravity
        * Format: decimal
@@ -819,6 +878,7 @@ export interface components {
       readonly latest_reading?: string;
       readonly percent_remaining?: string;
       readonly checkout_status?: string;
+      readonly latest_sds?: string;
     };
     PatchedContainerWrite: {
       name?: string;
@@ -929,6 +989,33 @@ export interface components {
      * @enum {string}
      */
     RoleEnum: 'admin' | 'lab_manager' | 'coordinator' | 'faculty' | 'stockroom' | 'lab_assistant';
+    SDS: {
+      readonly id: number;
+      readonly container: components['schemas']['SDSContainer'];
+      file_name: string;
+      drive_id: string;
+      /** Format: date */
+      revision_date?: string | null;
+      revision_number?: number | null;
+      ghs_pictograms?: components['schemas']['GhsPictogramsEnum'][];
+      readonly view_url: string;
+    };
+    SDSContainer: {
+      readonly id: number;
+      readonly label: string;
+      name: string;
+    };
+    SDSWrite: {
+      readonly id: number;
+      container: number;
+      /** Format: uri */
+      file?: string;
+      existing_sds?: number;
+      /** Format: date */
+      revision_date?: string | null;
+      revision_number?: number | null;
+      ghs_pictograms?: components['schemas']['GhsPictogramsEnum'][];
+    };
     SuccessMessage: {
       detail: string;
     };
@@ -2465,6 +2552,81 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['Location'];
+        };
+      };
+    };
+  };
+  inventory_sds_list: {
+    parameters: {
+      query?: {
+        chemical?: number;
+        container?: number;
+        manufacturer?: string;
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+        product_num?: string;
+        /** @description A search term. */
+        search?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SDS'][];
+        };
+      };
+    };
+  };
+  inventory_sds_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SDSWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['SDSWrite'];
+        'multipart/form-data': components['schemas']['SDSWrite'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SDSWrite'];
+        };
+      };
+    };
+  };
+  inventory_sds_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this sds. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SDS'];
         };
       };
     };

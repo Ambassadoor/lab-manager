@@ -1,3 +1,5 @@
+import re
+
 import django_filters as df
 from django.db.models import Q, Subquery
 
@@ -6,6 +8,7 @@ from .models import (
     CheckoutEvent,
     Container,
     Location,
+    SDS,
     most_recent_checkout_event_subquery,
 )
 
@@ -61,6 +64,32 @@ class ChemicalFilter(df.FilterSet):
         model = Chemical
         # storage_category (FK) and is_organic (BooleanField) auto-generated.
         fields = ["name", "cas", "formula", "storage_category", "is_organic"]
+
+
+class SDSFilter(df.FilterSet):
+    container = df.NumberFilter(field_name="container_id")
+    chemical = df.NumberFilter(field_name="container__chemical_id")
+    manufacturer = df.CharFilter(field_name="container__manufacturer", lookup_expr="icontains")
+    product_num = df.CharFilter(field_name="container__product_num", lookup_expr="icontains")
+    search = df.CharFilter(method="filter_search")
+
+    class Meta:
+        model = SDS
+        fields = ["container", "chemical", "manufacturer", "product_num"]
+
+    # One combined search box covers Chemical name, CAS #, Product #, and
+    # Chem-ID (Container.label, e.g. "CHEM-1143") — matches the single
+    # search-box pattern already used for Containers/Chemicals.
+    def filter_search(self, queryset, name, value):
+        q = (
+            Q(container__chemical__name__icontains=value)
+            | Q(container__chemical__cas__icontains=value)
+            | Q(container__product_num__icontains=value)
+        )
+        match = re.fullmatch(r"(?:chem-)?0*(\d+)", value.strip(), re.IGNORECASE)
+        if match:
+            q |= Q(container_id=int(match.group(1)))
+        return queryset.filter(q)
 
 
 class LocationFilter(df.FilterSet):

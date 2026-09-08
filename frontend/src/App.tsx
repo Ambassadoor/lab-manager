@@ -27,6 +27,8 @@ import { Chemicals } from './components/inventory/chemicals/Chemicals';
 import { ChemicalDetail } from './components/inventory/chemicals/ChemicalDetail';
 import { Dashboard } from './components/inventory/Dashboard';
 import { NotFound, StatusPage } from './components/shared/NotFound';
+import { SdsSearch } from './components/sds/SdsSearch';
+import { SdsViewer } from './components/sds/SdsViewer';
 
 // Component to show when an error is thrown. In practice this only ever
 // sees plain unexpected exceptions today — this app has no React Router
@@ -95,6 +97,17 @@ export default function App() {
             { index: true, element: user ? <Dashboard /> : <Login /> },
             { path: 'login', element: <Login /> },
             { path: 'register', element: <Register /> },
+            // Fully public — no RequireAuth — SDS viewing is public safety
+            // information, matching the roles roadmap's "public SDS
+            // viewing" decision. Reachable via Navbar's always-visible
+            // "Search SDS" link.
+            {
+              path: 'sds',
+              children: [
+                { index: true, element: <SdsSearch /> },
+                { path: ':id', element: <SdsViewer /> },
+              ],
+            },
             // Auth protected routes
             ...[
               {

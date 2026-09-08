@@ -4,6 +4,7 @@ from .chemicals import (
     ChemicalWriteSerializer,
     IngredientSerializer,
     SDSSerializer,
+    SDSWriteSerializer,
 )
 from .containers import (
     CheckoutEventSerializer,
@@ -36,6 +37,7 @@ __all__ = [
     "LocationTypeSerializer",
     "LocationWriteSerializer",
     "SDSSerializer",
+    "SDSWriteSerializer",
     "WeightReadingReadSerializer",
     "WeightReadingSerializer",
 ]

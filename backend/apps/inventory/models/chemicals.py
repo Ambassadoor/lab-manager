@@ -71,18 +71,6 @@ class Chemical(models.Model):
         return self.name
 
 
-class SDS(models.Model):
-    chemical = models.ForeignKey(Chemical, on_delete=models.DO_NOTHING, related_name="sds")
-    file_name = models.CharField(max_length=20)
-    drive_id = models.CharField(max_length=100)
-    revision_date = models.DateField(null=True, blank=True)
-    revision_number = models.IntegerField(null=True, blank=True)
-    is_uploaded = models.BooleanField(default=False)
-
-    def __str__(self):
-        return self.file_name
-
-
 class Ingredient(models.Model):
     mixture = models.ForeignKey(Chemical, on_delete=models.CASCADE, related_name="ingredients")
     ingredient = models.ForeignKey(Chemical, on_delete=models.CASCADE, related_name="mixtures")

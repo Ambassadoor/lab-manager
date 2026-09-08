@@ -1,9 +1,10 @@
 from django.conf import settings
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Max, OuterRef
 from django.utils import timezone
 
-from .chemicals import Chemical, SDS
+from .chemicals import Chemical
 from .locations import Location
 
 
@@ -28,9 +29,6 @@ class Container(models.Model):
         "unit", max_length=2, choices=QUANTITY_UNIT_CHOICES, null=True, blank=True
     )
     product_num = models.CharField("product #", max_length=25, null=True, blank=True)
-    sds = models.ForeignKey(
-        SDS, on_delete=models.DO_NOTHING, null=True, blank=True, verbose_name="sds"
-    )
     date_received = models.DateField("received on", default=timezone.now, null=True, blank=True)
     date_opened = models.DateField("opened on", null=True, blank=True)
     date_discarded = models.DateField("discarded on", null=True, blank=True)
@@ -131,3 +129,40 @@ def most_recent_checkout_event_subquery(field: str):
         .order_by("-timestamp")
         .values(field)[:1]
     )
+
+
+class GHSPictogram(models.TextChoices):
+    FLAMMABLE = "flammable", "Flammable"
+    OXIDIZING = "oxidizing", "Oxidizing"
+    COMPRESSED_GAS = "compressed_gas", "Compressed Gas"
+    CORROSIVE = "corrosive", "Corrosive"
+    TOXIC = "toxic", "Acute Toxicity"
+    HARMFUL = "harmful", "Irritant / Harmful"
+    HEALTH_HAZARD = "health_hazard", "Health Hazard"
+    EXPLOSIVE = "explosive", "Explosive"
+    ENVIRONMENT = "environment", "Environmental Hazard"
+
+
+class SDS(models.Model):
+    # A safety data sheet is specific to a container's actual product (a
+    # given chemical from two manufacturers can have two different SDS
+    # documents) — not the Chemical in general. A Chemical's "all SDS" view
+    # (ChemicalSerializer.get_sds) aggregates across its containers instead
+    # of this being a direct FK to Chemical.
+    container = models.ForeignKey(Container, on_delete=models.CASCADE, related_name="sds")
+    file_name = models.CharField(max_length=255)
+    drive_id = models.CharField(max_length=100)
+    revision_date = models.DateField(null=True, blank=True)
+    revision_number = models.IntegerField(null=True, blank=True)
+    ghs_pictograms = ArrayField(
+        models.CharField(max_length=20, choices=GHSPictogram.choices),
+        default=list,
+        blank=True,
+    )
+    # Reserved for a later, separate feature: pushing the file on to a
+    # university-wide EHS system (a requirement independent of this
+    # project). Not set by anything in this app today.
+    is_uploaded = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.file_name

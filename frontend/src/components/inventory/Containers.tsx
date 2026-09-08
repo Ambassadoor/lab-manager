@@ -21,14 +21,16 @@ import {
   type GetRowIdParams,
   type RowSelectionOptions,
 } from 'ag-grid-community';
+import { type CustomCellRendererProps } from 'ag-grid-react';
 import { ContainerDetail } from './ContainerDetail';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DataTable } from '../shared/DataTable';
 import type { Container as ContainerType, ContainerPatch, EditableKeys } from '../../types';
-import { AddBox, Search } from '@mui/icons-material';
+import { AddBox, Description, Search, UploadFile } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { hasRoleAtLeast } from '../shared/roles';
+import { SdsUploadDialog } from '../sds/SdsUploadDialog';
 
 // The three dashboard-card slices "View More" can land here with, via
 // ?view=. `checked_out` and `recently_added` translate straight to backend
@@ -68,6 +70,56 @@ function filterByView(containers: ContainerType[], view: ContainersViewKey | nul
       return containers;
   }
 }
+
+// The SDS column's cellRenderer — a real component (not a plain render
+// function like formulaCellRenderer in Chemicals.tsx) since it needs its
+// own hooks: per-row upload-dialog state, and its own role check (rows
+// render independently of the table's own canEdit closure).
+const SdsCellRenderer = (params: CustomCellRendererProps<ContainerType>) => {
+  const { user } = useAuth();
+  const canEdit = hasRoleAtLeast(user, 'stockroom');
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
+  const container = params.data;
+  if (!container) return null;
+
+  if (container.latest_sds) {
+    const sdsId = container.latest_sds.id;
+    return (
+      <Tooltip title="View SDS">
+        <IconButton size="small" onClick={() => navigate(`/sds/${sdsId}`)}>
+          <Description fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    );
+  }
+
+  if (!canEdit) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        None on file
+      </Typography>
+    );
+  }
+
+  return (
+    <>
+      <Tooltip title="Upload SDS">
+        <IconButton size="small" onClick={() => setOpen(true)}>
+          <UploadFile fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <SdsUploadDialog
+        open={open}
+        setOpen={setOpen}
+        containerId={container.id}
+        manufacturer={container.manufacturer}
+        productNum={container.product_num}
+      />
+    </>
+  );
+};
 
 // Fetches its own container list rather than receiving it as a prop — this
 // only pays for itself once a second consumer needs the same data (App.tsx
@@ -128,6 +180,13 @@ export const Containers = () => {
       editable: canEdit,
     },
     { field: 'is_opened', headerName: 'Opened?' },
+    {
+      field: 'latest_sds',
+      headerName: 'SDS',
+      cellRenderer: SdsCellRenderer,
+      sortable: false,
+      filter: false,
+    },
   ]);
 
   const rowSelection = useMemo<RowSelectionOptions>(() => {

@@ -87,18 +87,19 @@ export const Navbar = (): JSX.Element | null => {
       <Box sx={{ flexGrow: 1, marginBottom: 5 }}>
         <AppBar position="static">
           <Toolbar>
-            {user && (
-              <IconButton
-                size="large"
-                edge="start"
-                color="inherit"
-                aria-label="menu"
-                sx={{ mr: 2, display: { xs: 'inline-flex', sm: 'none' } }}
-                onClick={() => setMobileOpen((prev) => !prev)}
-              >
-                <MenuIcon />
-              </IconButton>
-            )}
+            {/* Not gated by `user` — the mobile drawer now also carries the
+                always-public "Search SDS" link, so the menu itself has to
+                stay reachable while logged out too. */}
+            <IconButton
+              size="large"
+              edge="start"
+              color="inherit"
+              aria-label="menu"
+              sx={{ mr: 2, display: { xs: 'inline-flex', sm: 'none' } }}
+              onClick={() => setMobileOpen((prev) => !prev)}
+            >
+              <MenuIcon />
+            </IconButton>
             <Typography
               variant="h6"
               component={Link}
@@ -108,102 +109,109 @@ export const Navbar = (): JSX.Element | null => {
               Lab Manager
             </Typography>
             <Box sx={{ flexGrow: 1, pl: 4, display: { xs: 'none', sm: 'block' } }}>
-              {user && (
-                <Stack spacing={2} direction={'row'}>
-                  <Button
-                    component={NavLink}
-                    to="/inventory/containers/"
-                    color="inherit"
-                    sx={navLinkSx}
-                    end
-                  >
-                    Containers
-                  </Button>
-                  {hasRoleAtLeast(user, 'stockroom') && (
-                    <>
-                      <Button
-                        component={NavLink}
-                        to="/inventory/containers/new/"
-                        color="inherit"
-                        sx={navLinkSx}
-                        end
-                      >
-                        Add Container
-                      </Button>
-                      <Box
-                        onMouseEnter={handleActionsMenuOpen}
-                        onMouseLeave={handleActionsMenuClose}
-                        sx={{ display: 'inline-flex' }}
-                      >
+              <Stack spacing={2} direction={'row'}>
+                {/* Always visible, logged in or out — SDS viewing is public
+                    safety information (see App.tsx's /sds routes). */}
+                <Button component={NavLink} to="/sds" color="inherit" sx={navLinkSx} end>
+                  Search SDS
+                </Button>
+                {user && (
+                  <>
+                    <Button
+                      component={NavLink}
+                      to="/inventory/containers/"
+                      color="inherit"
+                      sx={navLinkSx}
+                      end
+                    >
+                      Containers
+                    </Button>
+                    {hasRoleAtLeast(user, 'stockroom') && (
+                      <>
                         <Button
                           component={NavLink}
-                          to="/inventory/containers/actions/"
+                          to="/inventory/containers/new/"
                           color="inherit"
                           sx={navLinkSx}
-                          aria-controls={actionsMenuOpen ? 'actions-menu' : undefined}
-                          aria-haspopup="true"
-                          aria-expanded={actionsMenuOpen}
                           end
                         >
-                          Actions
+                          Add Container
                         </Button>
-                        <Popper
-                          id="actions-menu"
-                          anchorEl={actionsMenuEl}
-                          open={actionsMenuOpen}
-                          placement="bottom-start"
-                          transition
-                          sx={{ zIndex: (theme) => theme.zIndex.appBar + 1 }}
+                        <Box
+                          onMouseEnter={handleActionsMenuOpen}
+                          onMouseLeave={handleActionsMenuClose}
+                          sx={{ display: 'inline-flex' }}
                         >
-                          {({ TransitionProps }) => (
-                            <Grow {...TransitionProps}>
-                              <Paper onMouseLeave={handleActionsMenuClose}>
-                                <ClickAwayListener onClickAway={handleActionsMenuClose}>
-                                  <MenuList autoFocusItem={false}>
-                                    {actionTabs.map(({ label, tab }) => (
-                                      <MenuItem
-                                        key={tab}
-                                        component={Link}
-                                        to={`/inventory/containers/actions/?tab=${tab}`}
-                                        onClick={handleActionsMenuClose}
-                                      >
-                                        {label}
-                                      </MenuItem>
-                                    ))}
-                                  </MenuList>
-                                </ClickAwayListener>
-                              </Paper>
-                            </Grow>
-                          )}
-                        </Popper>
-                      </Box>
-                    </>
-                  )}
-                  <Button
-                    component={NavLink}
-                    to="/inventory/locations/"
-                    color="inherit"
-                    sx={navLinkSx}
-                    end
-                  >
-                    Locations
-                  </Button>
-                  <Button
-                    component={NavLink}
-                    to="/inventory/chemicals"
-                    color="inherit"
-                    sx={navLinkSx}
-                    end
-                  >
-                    Chemicals
-                  </Button>
-                  {hasRoleAtLeast(user, 'lab_manager') && (
-                    <Button component={NavLink} to="/users/" color="inherit" sx={navLinkSx} end>
-                      Users
+                          <Button
+                            component={NavLink}
+                            to="/inventory/containers/actions/"
+                            color="inherit"
+                            sx={navLinkSx}
+                            aria-controls={actionsMenuOpen ? 'actions-menu' : undefined}
+                            aria-haspopup="true"
+                            aria-expanded={actionsMenuOpen}
+                            end
+                          >
+                            Actions
+                          </Button>
+                          <Popper
+                            id="actions-menu"
+                            anchorEl={actionsMenuEl}
+                            open={actionsMenuOpen}
+                            placement="bottom-start"
+                            transition
+                            sx={{ zIndex: (theme) => theme.zIndex.appBar + 1 }}
+                          >
+                            {({ TransitionProps }) => (
+                              <Grow {...TransitionProps}>
+                                <Paper onMouseLeave={handleActionsMenuClose}>
+                                  <ClickAwayListener onClickAway={handleActionsMenuClose}>
+                                    <MenuList autoFocusItem={false}>
+                                      {actionTabs.map(({ label, tab }) => (
+                                        <MenuItem
+                                          key={tab}
+                                          component={Link}
+                                          to={`/inventory/containers/actions/?tab=${tab}`}
+                                          onClick={handleActionsMenuClose}
+                                        >
+                                          {label}
+                                        </MenuItem>
+                                      ))}
+                                    </MenuList>
+                                  </ClickAwayListener>
+                                </Paper>
+                              </Grow>
+                            )}
+                          </Popper>
+                        </Box>
+                      </>
+                    )}
+                    <Button
+                      component={NavLink}
+                      to="/inventory/locations/"
+                      color="inherit"
+                      sx={navLinkSx}
+                      end
+                    >
+                      Locations
                     </Button>
-                  )}
-                </Stack>
-              )}
+                    <Button
+                      component={NavLink}
+                      to="/inventory/chemicals"
+                      color="inherit"
+                      sx={navLinkSx}
+                      end
+                    >
+                      Chemicals
+                    </Button>
+                    {hasRoleAtLeast(user, 'lab_manager') && (
+                      <Button component={NavLink} to="/users/" color="inherit" sx={navLinkSx} end>
+                        Users
+                      </Button>
+                    )}
+                  </>
+                )}
+              </Stack>
             </Box>
             <DarkModeToggle />
             {!user ? (
@@ -258,87 +266,100 @@ export const Navbar = (): JSX.Element | null => {
         </AppBar>
         {navigation.state !== 'idle' && <LinearProgress />}
       </Box>
-      {user && (
-        <Drawer
-          anchor="left"
-          open={mobileOpen}
-          onClose={closeMobileMenu}
-          sx={{ display: { xs: 'block', sm: 'none' } }}
-        >
-          <Box sx={{ width: 260 }} role="presentation">
-            <List>
-              <ListItemButton
-                component={NavLink}
-                to="/inventory/containers/"
-                end
-                sx={navLinkSx}
-                onClick={closeMobileMenu}
-              >
-                <ListItemText primary="Containers" />
-              </ListItemButton>
-              {hasRoleAtLeast(user, 'stockroom') && (
-                <>
-                  <ListItemButton
-                    component={NavLink}
-                    to="/inventory/containers/new/"
-                    end
-                    sx={navLinkSx}
-                    onClick={closeMobileMenu}
-                  >
-                    <ListItemText primary="Add Container" />
-                  </ListItemButton>
-                  {/* Actions' four destinations inline, not a further nested
-                      submenu — the desktop hover-popup doesn't translate to
-                      touch, and a second level of disclosure here would just
-                      bury them. */}
-                  <ListSubheader>Actions</ListSubheader>
-                  {actionTabs.map(({ label, tab }) => (
-                    <ListItemButton
-                      key={tab}
-                      component={Link}
-                      to={`/inventory/containers/actions/?tab=${tab}`}
-                      sx={{ pl: 4 }}
-                      onClick={closeMobileMenu}
-                    >
-                      <ListItemText primary={label} />
-                    </ListItemButton>
-                  ))}
-                  <Divider />
-                </>
-              )}
-              <ListItemButton
-                component={NavLink}
-                to="/inventory/locations/"
-                end
-                sx={navLinkSx}
-                onClick={closeMobileMenu}
-              >
-                <ListItemText primary="Locations" />
-              </ListItemButton>
-              <ListItemButton
-                component={NavLink}
-                to="/inventory/chemicals"
-                end
-                sx={navLinkSx}
-                onClick={closeMobileMenu}
-              >
-                <ListItemText primary="Chemicals" />
-              </ListItemButton>
-              {hasRoleAtLeast(user, 'lab_manager') && (
+      {/* Not gated by `user` — same reasoning as the menu IconButton above:
+          "Search SDS" has to be reachable here while logged out too. */}
+      <Drawer
+        anchor="left"
+        open={mobileOpen}
+        onClose={closeMobileMenu}
+        sx={{ display: { xs: 'block', sm: 'none' } }}
+      >
+        <Box sx={{ width: 260 }} role="presentation">
+          <List>
+            <ListItemButton
+              component={NavLink}
+              to="/sds"
+              end
+              sx={navLinkSx}
+              onClick={closeMobileMenu}
+            >
+              <ListItemText primary="Search SDS" />
+            </ListItemButton>
+            {user && (
+              <>
                 <ListItemButton
                   component={NavLink}
-                  to="/users/"
+                  to="/inventory/containers/"
                   end
                   sx={navLinkSx}
                   onClick={closeMobileMenu}
                 >
-                  <ListItemText primary="Users" />
+                  <ListItemText primary="Containers" />
                 </ListItemButton>
-              )}
-            </List>
-          </Box>
-        </Drawer>
-      )}
+                {hasRoleAtLeast(user, 'stockroom') && (
+                  <>
+                    <ListItemButton
+                      component={NavLink}
+                      to="/inventory/containers/new/"
+                      end
+                      sx={navLinkSx}
+                      onClick={closeMobileMenu}
+                    >
+                      <ListItemText primary="Add Container" />
+                    </ListItemButton>
+                    {/* Actions' four destinations inline, not a further nested
+                        submenu — the desktop hover-popup doesn't translate to
+                        touch, and a second level of disclosure here would just
+                        bury them. */}
+                    <ListSubheader>Actions</ListSubheader>
+                    {actionTabs.map(({ label, tab }) => (
+                      <ListItemButton
+                        key={tab}
+                        component={Link}
+                        to={`/inventory/containers/actions/?tab=${tab}`}
+                        sx={{ pl: 4 }}
+                        onClick={closeMobileMenu}
+                      >
+                        <ListItemText primary={label} />
+                      </ListItemButton>
+                    ))}
+                    <Divider />
+                  </>
+                )}
+                <ListItemButton
+                  component={NavLink}
+                  to="/inventory/locations/"
+                  end
+                  sx={navLinkSx}
+                  onClick={closeMobileMenu}
+                >
+                  <ListItemText primary="Locations" />
+                </ListItemButton>
+                <ListItemButton
+                  component={NavLink}
+                  to="/inventory/chemicals"
+                  end
+                  sx={navLinkSx}
+                  onClick={closeMobileMenu}
+                >
+                  <ListItemText primary="Chemicals" />
+                </ListItemButton>
+                {hasRoleAtLeast(user, 'lab_manager') && (
+                  <ListItemButton
+                    component={NavLink}
+                    to="/users/"
+                    end
+                    sx={navLinkSx}
+                    onClick={closeMobileMenu}
+                  >
+                    <ListItemText primary="Users" />
+                  </ListItemButton>
+                )}
+              </>
+            )}
+          </List>
+        </Box>
+      </Drawer>
       <Outlet />
     </Paper>
   );

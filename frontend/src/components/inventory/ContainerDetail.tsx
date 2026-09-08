@@ -15,7 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   getContainerDetails,
   getContainerMetaData,
@@ -32,6 +32,8 @@ import { WeighInTable } from './WeighinTable';
 import { NotFound } from '../shared/NotFound';
 import { useAuth } from '../../context/AuthContext';
 import { hasRoleAtLeast } from '../shared/roles';
+import { SdsUploadDialog } from '../sds/SdsUploadDialog';
+import { useContainerSdsFallback } from '../../hooks/useContainerSdsFallback';
 
 type ContainerDetailProps = {
   data?: Container;
@@ -62,6 +64,9 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
     enabled: !!params.id,
     initialData: seed,
   });
+
+  const [sdsDialogOpen, setSdsDialogOpen] = useState(false);
+  const sdsFallback = useContainerSdsFallback(container);
 
   //Get select field options
   const { data: locations } = useQuery({
@@ -366,8 +371,51 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
                     <strong>Percent Remaining:</strong> {container.percent_remaining}%
                   </Typography>
                 )}
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Typography>
+                    <strong>SDS:</strong>
+                  </Typography>
+                  {container.latest_sds ? (
+                    <Button
+                      size="small"
+                      component={RouterLink}
+                      to={`/sds/${container.latest_sds.id}`}
+                    >
+                      View SDS
+                    </Button>
+                  ) : sdsFallback.sds.length > 0 ? (
+                    <Typography variant="body2" color="text.secondary">
+                      None on file for this container — see{' '}
+                      {sdsFallback.sds.map((s, i) => (
+                        <span key={s.id}>
+                          {i > 0 && ', '}
+                          <RouterLink to={`/sds/${s.id}`}>{s.file_name}</RouterLink>
+                        </span>
+                      ))}{' '}
+                      for this chemical.
+                    </Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      None on file.
+                    </Typography>
+                  )}
+                  {canEdit && (
+                    <Button size="small" variant="outlined" onClick={() => setSdsDialogOpen(true)}>
+                      {container.latest_sds ? 'Upload New Revision' : 'Upload SDS'}
+                    </Button>
+                  )}
+                </Stack>
               </Stack>
             </CardContent>
+            {canEdit && (
+              <SdsUploadDialog
+                open={sdsDialogOpen}
+                setOpen={setSdsDialogOpen}
+                containerId={container.id}
+                manufacturer={container.manufacturer}
+                productNum={container.product_num}
+              />
+            )}
             {editing && (
               <CardActions sx={{ ml: 'auto' }}>
                 <Button type="submit" variant="contained" loading={formState.isSubmitting}>

@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.postgres",
     # Third party
     "rest_framework",
     "corsheaders",
@@ -126,3 +127,10 @@ REST_FRAMEWORK = {
     "DEFAULT_METADATA_CLASS": "rest_framework.metadata.SimpleMetadata",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
+
+# --- Google Drive (SDS file storage) -----------------------------------------
+# Service account credentials + target folder for uploaded SDS files (see
+# apps/inventory/drive.py). Both unset in dev until the account/folder exist;
+# uploads fail with a clear error until then rather than at import time.
+GOOGLE_SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE")
+SDS_DRIVE_FOLDER_ID = os.getenv("SDS_DRIVE_FOLDER_ID")
