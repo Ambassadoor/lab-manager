@@ -1,5 +1,6 @@
 import {
   Alert,
+  Avatar,
   Box,
   Button,
   Chip,
@@ -12,6 +13,7 @@ import {
   InputLabel,
   List,
   ListItem,
+  ListItemAvatar,
   ListItemButton,
   ListItemText,
   MenuItem,
@@ -28,7 +30,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 import { createSds, getSdsList, type PendingSdsSelection } from '../../api/sds';
 import { chemicalKeys, containerKeys, sdsKeys } from '../../api/queryKeys';
-import { GHS_PICTOGRAMS, ghsPictogramLabel } from '../shared/ghsPictograms';
+import { GHS_PICTOGRAMS, ghsPictogramIconSrc, ghsPictogramLabel } from '../shared/ghsPictograms';
 import { RhfDateField } from '../shared/RhfDateField';
 import type { GHSPictogram, SDS } from '../../types';
 
@@ -318,14 +320,26 @@ export const SdsUploadDialog = ({
                   renderValue={(selected) => (
                     <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
                       {(selected as GHSPictogram[]).map((value) => (
-                        <Chip key={value} label={ghsPictogramLabel(value)} size="small" />
+                        <Chip
+                          key={value}
+                          avatar={<Avatar src={ghsPictogramIconSrc(value)} alt="" />}
+                          label={ghsPictogramLabel(value)}
+                          size="small"
+                        />
                       ))}
                     </Stack>
                   )}
                 >
                   {GHS_PICTOGRAMS.map((p) => (
                     <MenuItem key={p.value} value={p.value}>
-                      {p.label}
+                      <ListItemAvatar>
+                        <Avatar
+                          src={ghsPictogramIconSrc(p.value)}
+                          alt=""
+                          sx={{ width: 28, height: 28 }}
+                        />
+                      </ListItemAvatar>
+                      <ListItemText primary={p.label} />
                     </MenuItem>
                   ))}
                 </Select>

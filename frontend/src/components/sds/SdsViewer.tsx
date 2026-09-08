@@ -1,11 +1,11 @@
-import { Box, Chip, Container, Stack, Typography } from '@mui/material';
+import { Box, Container, Stack, Typography } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getSdsById } from '../../api/sds';
 import { sdsKeys } from '../../api/queryKeys';
 import { SafetyHeader } from './SafetyHeader';
 import { NotFound } from '../shared/NotFound';
-import { ghsPictogramLabel } from '../shared/ghsPictograms';
+import { ghsPictogramIconSrc, ghsPictogramLabel } from '../shared/ghsPictograms';
 
 // Fully public — no login, matching the "SDS viewing is public safety
 // information" decision. Embeds the document itself via Drive's own
@@ -38,9 +38,23 @@ export const SdsViewer = () => {
           {sds.revision_number != null && ` · Rev. # ${sds.revision_number}`}
         </Typography>
         {sds.ghs_pictograms && sds.ghs_pictograms.length > 0 && (
-          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+          // Shown as a proper legend (image + label), not a text Chip —
+          // this is the one page where someone might actually be trying to
+          // visually match a hazard symbol against the container in front
+          // of them, so the real pictogram deserves to be legible.
+          <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', mt: 1 }}>
             {sds.ghs_pictograms.map((p) => (
-              <Chip key={p} label={ghsPictogramLabel(p)} size="small" color="warning" />
+              <Stack key={p} spacing={0.5} sx={{ alignItems: 'center', width: 72 }}>
+                <Box
+                  component="img"
+                  src={ghsPictogramIconSrc(p)}
+                  alt={ghsPictogramLabel(p)}
+                  sx={{ width: 48, height: 48 }}
+                />
+                <Typography variant="caption" align="center">
+                  {ghsPictogramLabel(p)}
+                </Typography>
+              </Stack>
             ))}
           </Stack>
         )}

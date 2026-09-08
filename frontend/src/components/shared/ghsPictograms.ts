@@ -1,8 +1,7 @@
 // The 9 standard GHS pictogram categories (see GHSPictogram in
-// backend/apps/inventory/models/containers.py) — rendered as plain MUI Chips
-// for now (no pictogram artwork bundled); swapping in the real
-// black-and-red-diamond icon images later is a drop-in change to whatever
-// renders this list, not a structural one.
+// backend/apps/inventory/models/containers.py). Icon files live in
+// frontend/public/ghs/<value>.png (Vite serves public/ as-is, no import
+// needed) — see ghsPictogramIconSrc.
 import type { GHSPictogram } from '../../types';
 
 export const GHS_PICTOGRAMS: { value: GHSPictogram; label: string }[] = [
@@ -19,3 +18,5 @@ export const GHS_PICTOGRAMS: { value: GHSPictogram; label: string }[] = [
 
 export const ghsPictogramLabel = (value: GHSPictogram): string =>
   GHS_PICTOGRAMS.find((p) => p.value === value)?.label ?? value;
+
+export const ghsPictogramIconSrc = (value: GHSPictogram): string => `/ghs/${value}.png`;
