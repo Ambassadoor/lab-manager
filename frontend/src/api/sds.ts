@@ -37,6 +37,12 @@ export type CreateSdsInput = {
   ghsPictograms?: string[];
 };
 
+// Same shape as CreateSdsInput minus `container` — used when the container
+// doesn't exist yet (ContainerForm), so a selection has to be staged
+// locally and turned into a real createSds call once a real container id
+// exists. See SdsUploadDialog's `onSelect` (deferred) mode.
+export type PendingSdsSelection = Omit<CreateSdsInput, 'container'>;
+
 export const createSds = (input: CreateSdsInput): Promise<SDS> => {
   const formData = new FormData();
   formData.set('container', String(input.container));

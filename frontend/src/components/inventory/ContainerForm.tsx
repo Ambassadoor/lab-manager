@@ -20,8 +20,6 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import { DateField } from '@mui/x-date-pickers';
-import { UploadFile } from '@mui/icons-material';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Controller,
@@ -40,23 +38,18 @@ import {
   submitNewContainerForm,
 } from '../../api/inventory';
 import { getBalanceWeight, printLabel } from '../../api/bridge';
-import { createSds } from '../../api/sds';
+import { createSds, type PendingSdsSelection } from '../../api/sds';
 import { containerKeys, chemicalKeys, dashboardKeys, locationKeys } from '../../api/queryKeys';
-import {
-  type ContainerFormDefaults,
-  type CasCheck,
-  type GHSPictogram,
-  type Location,
-} from '../../types';
+import { type ContainerFormDefaults, type CasCheck, type Location } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { Decimal } from 'decimal.js';
-import dayjs, { type Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { cas_is_valid } from '../shared/checkCas';
 import { WeightField } from '../shared/WeightField';
 import { RhfTextField } from '../shared/RhfTextField';
 import { RhfDateField } from '../shared/RhfDateField';
-import { GHS_PICTOGRAMS, ghsPictogramLabel } from '../shared/ghsPictograms';
+import { SdsUploadDialog } from '../sds/SdsUploadDialog';
 import { ChemicalRow } from './ChemicalRow';
 import { MixtureFields } from './MixtureFields';
 import { requiredRule, required, decimalPatternRule } from '../shared/formRules';
@@ -93,14 +86,14 @@ export const ContainerForm = () => {
   // JSON.stringify, which the session-storage form-memory effect below
   // does to every RHF field on every change, and this shouldn't be part of
   // that "resume where I left off on reload" cache anyway. The chemical/
-  // container this belongs to doesn't exist until submit, so the actual
-  // upload happens as a second call in onSubmit once the real container id
-  // comes back — see SdsUploadDialog for the same document-already-on-file
-  // flow used everywhere else an SDS gets attached.
-  const [sdsFile, setSdsFile] = useState<File | null>(null);
-  const [sdsRevisionDate, setSdsRevisionDate] = useState<Dayjs | null>(null);
-  const [sdsRevisionNumber, setSdsRevisionNumber] = useState('');
-  const [sdsPictograms, setSdsPictograms] = useState<GHSPictogram[]>([]);
+  // container this belongs to doesn't exist until submit, so
+  // SdsUploadDialog runs in its "deferred" mode here (see its own comment) —
+  // it stages a selection via onSelect instead of attaching immediately, and
+  // the actual createSds call happens in onSubmit once the real container
+  // id comes back.
+  const [sdsDialogOpen, setSdsDialogOpen] = useState(false);
+  const [pendingSds, setPendingSds] = useState<PendingSdsSelection | null>(null);
+  const [pendingSdsLabel, setPendingSdsLabel] = useState('');
   const [sdsError, setSdsError] = useState<string | null>(null);
 
   const theme = useTheme();
@@ -313,6 +306,17 @@ export const ContainerForm = () => {
     setValue('mixture_storage_category', chosenMixture?.storage_category.id || '');
   }, [formValues.mixture_id, setValue, cas]);
 
+  // The real chemical id to scope "attach an existing SDS" suggestions by —
+  // only resolvable once we actually know one: either the typed CAS matched
+  // an existing chemical (nothing to suggest for a brand-new one — it can't
+  // have a prior SDS), or an existing mixture was picked via mixture_id (a
+  // new mixture, same reasoning, has nothing to suggest either).
+  const resolvedChemicalId = useMemo(() => {
+    if (formValues.multiple_cas) return formValues.mixture_id || undefined;
+    const typedCas = formValues.chemicals?.[0]?.cas;
+    return cas?.chemicals.find((c) => c.cas === typedCas)?.id;
+  }, [formValues.multiple_cas, formValues.mixture_id, formValues.chemicals, cas]);
+
   const queryClient = useQueryClient();
 
   const scaleMutation = useMutation({ mutationFn: getBalanceWeight });
@@ -340,15 +344,9 @@ export const ContainerForm = () => {
     // Second call, now that the container (and possibly its chemical) is
     // real — awaited, unlike the label print above, so the detail page
     // navigated to next already reflects the upload instead of racing it.
-    if (sdsFile) {
+    if (pendingSds) {
       try {
-        await createSds({
-          container: response.id,
-          file: sdsFile,
-          revisionDate: sdsRevisionDate ? sdsRevisionDate.toISOString().split('T')[0] : null,
-          revisionNumber: sdsRevisionNumber,
-          ghsPictograms: sdsPictograms,
-        });
+        await createSds({ container: response.id, ...pendingSds });
       } catch (e) {
         setSdsError(e instanceof Error ? e.message : 'Failed to upload SDS.');
       }
@@ -698,63 +696,33 @@ export const ContainerForm = () => {
                 />
               </Stack>
               <Divider />
-              <Stack spacing={2}>
+              <Stack spacing={1}>
                 <Typography variant="subtitle1">Attach SDS (optional)</Typography>
-                <Button component="label" variant="outlined" startIcon={<UploadFile />}>
-                  {sdsFile ? sdsFile.name : 'Choose a PDF'}
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    hidden
-                    onChange={(e) => setSdsFile(e.target.files?.[0] ?? null)}
-                  />
-                </Button>
-                {sdsFile && (
-                  <>
-                    <DateField
-                      label="Revision Date"
-                      value={sdsRevisionDate}
-                      onChange={(value) => setSdsRevisionDate(value)}
-                      clearable
-                      disableFuture
+                <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                  <Button variant="outlined" onClick={() => setSdsDialogOpen(true)}>
+                    {pendingSds ? 'Change SDS' : 'Attach SDS'}
+                  </Button>
+                  {pendingSds && (
+                    <Chip
+                      label={pendingSdsLabel}
+                      onDelete={() => {
+                        setPendingSds(null);
+                        setPendingSdsLabel('');
+                      }}
                     />
-                    <TextField
-                      label="Revision #"
-                      type="number"
-                      value={sdsRevisionNumber}
-                      onChange={(e) => setSdsRevisionNumber(e.target.value)}
-                    />
-                    <FormControl>
-                      <InputLabel id="sds-ghs-pictograms">GHS Pictograms</InputLabel>
-                      <Select
-                        multiple
-                        labelId="sds-ghs-pictograms"
-                        label="GHS Pictograms"
-                        value={sdsPictograms}
-                        onChange={(e) =>
-                          setSdsPictograms(
-                            typeof e.target.value === 'string'
-                              ? (e.target.value.split(',') as GHSPictogram[])
-                              : e.target.value
-                          )
-                        }
-                        renderValue={(selected) => (
-                          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
-                            {selected.map((value) => (
-                              <Chip key={value} label={ghsPictogramLabel(value)} size="small" />
-                            ))}
-                          </Stack>
-                        )}
-                      >
-                        {GHS_PICTOGRAMS.map((p) => (
-                          <MenuItem key={p.value} value={p.value}>
-                            {p.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </>
-                )}
+                  )}
+                </Stack>
+                <SdsUploadDialog
+                  open={sdsDialogOpen}
+                  setOpen={setSdsDialogOpen}
+                  chemicalId={resolvedChemicalId}
+                  manufacturer={formValues.manufacturer}
+                  productNum={formValues.product_num}
+                  onSelect={(selection, label) => {
+                    setPendingSds(selection);
+                    setPendingSdsLabel(label);
+                  }}
+                />
               </Stack>
               <Divider />
               <Stack direction={'row'} spacing={2} sx={{ justifyContent: 'right' }}>
@@ -766,10 +734,8 @@ export const ContainerForm = () => {
                   onClick={() => {
                     sessionStorage.removeItem('container_form_cache');
                     reset();
-                    setSdsFile(null);
-                    setSdsRevisionDate(null);
-                    setSdsRevisionNumber('');
-                    setSdsPictograms([]);
+                    setPendingSds(null);
+                    setPendingSdsLabel('');
                     navigate('/');
                   }}
                 >

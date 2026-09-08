@@ -26,7 +26,7 @@ import { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
-import { createSds, getSdsList } from '../../api/sds';
+import { createSds, getSdsList, type PendingSdsSelection } from '../../api/sds';
 import { chemicalKeys, containerKeys, sdsKeys } from '../../api/queryKeys';
 import { GHS_PICTOGRAMS, ghsPictogramLabel } from '../shared/ghsPictograms';
 import { RhfDateField } from '../shared/RhfDateField';
@@ -35,7 +35,6 @@ import type { GHSPictogram, SDS } from '../../types';
 type SdsUploadDialogProps = {
   open: boolean;
   setOpen: (open: boolean) => void;
-  containerId: number | string;
   // The container's own chemical id/manufacturer/product # — passed in
   // (rather than looked up here) so this stays reusable from ContainerForm,
   // where the container doesn't exist as a row yet. Used only to suggest
@@ -46,8 +45,25 @@ type SdsUploadDialogProps = {
   chemicalId?: number | string | null;
   manufacturer?: string | null;
   productNum?: string | null;
-  onUploaded?: (sds: SDS) => void;
-};
+} & (
+  | {
+      // Immediate mode (ContainerDetail, the Containers table): the
+      // container already exists — submitting attaches the SDS right away.
+      containerId: number | string;
+      onUploaded?: (sds: SDS) => void;
+      onSelect?: never;
+    }
+  | {
+      // Deferred mode (ContainerForm): no container to attach to yet —
+      // submitting just reports the picked file/existing-SDS selection back
+      // to the caller (plus a human-readable label for it to display),
+      // which stages it and does the actual createSds call itself once a
+      // real container id exists.
+      containerId?: undefined;
+      onUploaded?: never;
+      onSelect: (selection: PendingSdsSelection, label: string) => void;
+    }
+);
 
 type SdsUploadFormValues = {
   revision_date: Dayjs | null | string;
@@ -72,9 +88,14 @@ export const SdsUploadDialog = ({
   manufacturer,
   productNum,
   onUploaded,
+  onSelect,
 }: SdsUploadDialogProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [existingId, setExistingId] = useState<number | null>(null);
+  // Only used in deferred mode, to label the staged selection back to the
+  // caller without having to re-look it up out of `suggestions` at submit
+  // time (that list may have refetched/changed by then).
+  const [existingLabel, setExistingLabel] = useState('');
 
   const { control, handleSubmit, reset, clearErrors, setValue } = useForm<SdsUploadFormValues>({
     mode: 'onBlur',
@@ -122,25 +143,21 @@ export const SdsUploadDialog = ({
     setValue('revision_date', s?.revision_date ?? null);
     setValue('revision_number', s?.revision_number != null ? String(s.revision_number) : '');
     setValue('ghs_pictograms', s?.ghs_pictograms ?? []);
+    setExistingLabel(s?.file_name ?? '');
+  };
+
+  const resetLocal = () => {
+    reset();
+    setFile(null);
+    setExistingId(null);
+    setExistingLabel('');
   };
 
   const qc = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (data: SdsUploadFormValues) => {
-      const revisionDate =
-        data.revision_date && dayjs.isDayjs(data.revision_date)
-          ? data.revision_date.toISOString().split('T')[0]
-          : (data.revision_date ?? null);
-      return createSds({
-        container: containerId,
-        file: file ?? undefined,
-        existingSdsId: existingId ?? undefined,
-        revisionDate,
-        revisionNumber: data.revision_number,
-        ghsPictograms: data.ghs_pictograms,
-      });
-    },
+    mutationFn: (selection: PendingSdsSelection) =>
+      createSds({ container: containerId!, ...selection }),
     onSuccess: (sds) => {
       // .all on every one — a new/attached SDS can change what's shown on
       // the container it's attached to, its chemical's SDS list, and any
@@ -148,17 +165,37 @@ export const SdsUploadDialog = ({
       qc.invalidateQueries({ queryKey: containerKeys.all });
       qc.invalidateQueries({ queryKey: chemicalKeys.all });
       qc.invalidateQueries({ queryKey: sdsKeys.all });
-      reset();
-      setFile(null);
-      setExistingId(null);
+      resetLocal();
       setOpen(false);
       onUploaded?.(sds);
     },
   });
 
   const onSubmit = (data: SdsUploadFormValues) => {
-    mutation.mutate(data);
+    const revisionDate =
+      data.revision_date && dayjs.isDayjs(data.revision_date)
+        ? data.revision_date.toISOString().split('T')[0]
+        : (data.revision_date ?? null);
+    const selection: PendingSdsSelection = {
+      file: file ?? undefined,
+      existingSdsId: existingId ?? undefined,
+      revisionDate,
+      revisionNumber: data.revision_number,
+      ghsPictograms: data.ghs_pictograms,
+    };
+
+    if (containerId !== undefined) {
+      mutation.mutate(selection);
+    } else {
+      // Deferred mode — nothing to persist yet, just hand the selection
+      // (and a label to show for it) back to the caller.
+      onSelect(selection, file ? file.name : existingLabel);
+      resetLocal();
+      setOpen(false);
+    }
   };
+
+  const isDeferred = containerId === undefined;
 
   // Exactly one of file/existingId — mirrors SDSWriteSerializer.validate()
   // on the backend.
@@ -304,13 +341,11 @@ export const SdsUploadDialog = ({
           loading={mutation.isPending}
           disabled={!canSubmit}
         >
-          {existingId ? 'Attach' : 'Upload'}
+          {isDeferred ? 'Select' : existingId ? 'Attach' : 'Upload'}
         </Button>
         <Button
           onClick={() => {
-            reset();
-            setFile(null);
-            setExistingId(null);
+            resetLocal();
             setOpen(false);
           }}
         >
