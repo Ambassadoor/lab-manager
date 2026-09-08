@@ -22,7 +22,7 @@ import {
   Typography,
 } from '@mui/material';
 import { OpenInNew, UploadFile } from '@mui/icons-material';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -99,6 +99,21 @@ export const SdsUploadDialog = ({
     enabled: open && !!chemicalId && !!manufacturer && !!productNum,
   });
 
+  // The same physical document can be attached (via this exact flow) to any
+  // number of containers, each getting its own SDS row pointing at the same
+  // drive_id — collapse those down to one suggestion per unique document.
+  // Which row "wins" doesn't matter for what gets submitted: attaching only
+  // ever needs drive_id/file_name, identical across every row that shares it.
+  const uniqueSuggestions = useMemo(() => {
+    if (!suggestions) return suggestions;
+    const seen = new Set<string>();
+    return suggestions.filter((s) => {
+      if (seen.has(s.drive_id)) return false;
+      seen.add(s.drive_id);
+      return true;
+    });
+  }, [suggestions]);
+
   // Fills the revision fields from a picked suggestion (or clears them back
   // to blank when deselecting) — keeps what's shown in the form always
   // matching what's about to be saved, rather than silently submitting
@@ -166,11 +181,11 @@ export const SdsUploadDialog = ({
           </Alert>
         )}
         <Stack spacing={2} sx={{ mt: 2 }}>
-          {suggestions && suggestions.length > 0 && (
+          {uniqueSuggestions && uniqueSuggestions.length > 0 && (
             <Box>
               <Typography variant="subtitle2">Use an existing SDS on file?</Typography>
               <List dense>
-                {suggestions.map((s) => (
+                {uniqueSuggestions.map((s) => (
                   <ListItem
                     key={s.id}
                     disablePadding
