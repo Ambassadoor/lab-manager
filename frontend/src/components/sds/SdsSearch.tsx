@@ -16,11 +16,11 @@ import { useNavigate } from 'react-router-dom';
 import { getSdsList } from '../../api/sds';
 import { sdsKeys } from '../../api/queryKeys';
 
-// Fully public — no login. One search box covers Chemical name, CAS #,
-// Product #, and Chem-ID (e.g. "CHEM-1143", the barcode printed on a
-// container's label) at once, matching SDSFilter.filter_search on the
-// backend — someone who's just been exposed to a chemical shouldn't have to
-// guess which field to search.
+// Fully public — no login. One search box covers Chemical name, Product
+// name, CAS #, Product #, and Chem-ID (e.g. "CHEM-1143", the barcode
+// printed on a container's label) at once, matching SDSFilter.filter_search
+// on the backend — someone who's just been exposed to a chemical shouldn't
+// have to guess which field to search.
 export const SdsSearch = () => {
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -48,7 +48,7 @@ export const SdsSearch = () => {
         Search Safety Data Sheets
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Search by chemical name, CAS #, Chem-ID (e.g. CHEM-1143), or product #.
+        Search by chemical name, product name, CAS #, product #, or Chem-ID (e.g. CHEM-1143).
       </Typography>
       <TextField
         type="search"

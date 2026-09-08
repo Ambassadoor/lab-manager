@@ -88,12 +88,13 @@ class SDSFilter(df.FilterSet):
             "revision_number",
         ]
 
-    # One combined search box covers Chemical name, CAS #, Product #, and
-    # Chem-ID (Container.label, e.g. "CHEM-1143") — matches the single
-    # search-box pattern already used for Containers/Chemicals.
+    # One combined search box covers Chemical name, Product name, CAS #,
+    # Product #, and Chem-ID (Container.label, e.g. "CHEM-1143") — matches
+    # the single search-box pattern already used for Containers/Chemicals.
     def filter_search(self, queryset, name, value):
         q = (
             Q(container__chemical__name__icontains=value)
+            | Q(container__name__icontains=value)
             | Q(container__chemical__cas__icontains=value)
             | Q(container__product_num__icontains=value)
         )

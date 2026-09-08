@@ -105,6 +105,17 @@ class TestSDSFilter:
         assert len(client.get("/inventory/sds/?search=7732-18-5").data) == 1
         assert len(client.get("/inventory/sds/?search=P-1").data) == 1
 
+    def test_search_matches_product_name(self, make_container):
+        # Container.name — the "Product Name" field on the Add Container
+        # form — distinct from the chemical's own name (e.g. a specific
+        # branded/labeled product vs. the substance itself).
+        client = APIClient()
+        container = make_container("c1", name="Sodium Hydroxide Pellets, ACS Grade")
+        SDS.objects.create(container=container, file_name="sds.pdf", drive_id="drive-1")
+
+        assert len(client.get("/inventory/sds/?search=Pellets").data) == 1
+        assert len(client.get("/inventory/sds/?search=nonexistent-product").data) == 0
+
     def test_search_matches_chem_id_with_and_without_prefix(self, sds):
         client = APIClient()
         label = sds.container.label  # e.g. "CHEM-1"
