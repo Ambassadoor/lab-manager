@@ -1,10 +1,13 @@
 """Google Drive integration for SDS file storage.
 
-SDS documents are uploaded to a single shared Drive folder (SDS_DRIVE_FOLDER_ID)
-via a service account (GOOGLE_SERVICE_ACCOUNT_FILE). Neither is set up yet —
-see .env.example and the SDS feature plan for the manual setup this depends on
-(create the Cloud project/service account, share the target folder with it).
-Until then, any call here raises DriveUploadError.
+SDS documents are uploaded to a single shared Drive folder (SDS_DRIVE_FOLDER_ID,
+a folder inside a *shared drive* — a service account has no personal storage
+quota of its own, so a regular My Drive folder won't accept uploads from it)
+via a service account (GOOGLE_SERVICE_ACCOUNT_FILE). Neither is set up in
+every environment — see .env.example and the SDS feature plan for the manual
+setup this depends on (create the Cloud project/service account, create a
+shared drive, share it with the service account). Until then, any call here
+raises DriveUploadError.
 """
 
 from django.conf import settings
@@ -49,12 +52,20 @@ def upload_sds_file(file, filename: str) -> str:
                 body={"name": filename, "parents": [settings.SDS_DRIVE_FOLDER_ID]},
                 media_body=media,
                 fields="id",
+                # Required whenever the target folder lives in a shared
+                # drive (the only kind of Drive storage a service account
+                # can actually write to — service accounts have no personal
+                # storage quota of their own) — omitting it makes the API
+                # unable to resolve a shared-drive parent at all.
+                supportsAllDrives=True,
             )
             .execute()
         )
         drive_id = created["id"]
         client.permissions().create(
-            fileId=drive_id, body={"role": "reader", "type": "anyone"}
+            fileId=drive_id,
+            body={"role": "reader", "type": "anyone"},
+            supportsAllDrives=True,
         ).execute()
     except HttpError as e:
         raise DriveUploadError(f"Failed to upload file to Google Drive: {e}") from e

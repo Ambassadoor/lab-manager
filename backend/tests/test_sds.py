@@ -62,6 +62,31 @@ class TestSDSViewPermissions:
 
         assert response.status_code == 201
 
+    @patch("apps.inventory.serializers.chemicals.upload_sds_file")
+    def test_create_recognizes_a_real_session_login(self, mock_upload, make_container):
+        # Regression test: SDSView used to set authentication_classes = []
+        # at the class level (copied from RegisterView, whose only action
+        # is genuinely public) — that left request.user as AnonymousUser
+        # for every action, including create, so role_at_least denied every
+        # request no matter the real user's role. Every other test here
+        # uses client_as (force_authenticate), which bypasses the
+        # authenticator pipeline entirely and can't catch that class of
+        # bug — this logs in for real, the way the browser actually does.
+        mock_upload.return_value = "drive-xyz"
+        User.objects.create_user(
+            username="real-login-manager",
+            email="manager@lipscomb.edu",
+            password="pw12345!",
+            role=User.Role.LAB_MANAGER,
+        )
+        client = APIClient()
+        assert client.login(username="real-login-manager", password="pw12345!")
+        container = make_container("c1")
+
+        response = client.post("/inventory/sds/", {"container": container.id, "file": make_pdf()})
+
+        assert response.status_code == 201
+
 
 @pytest.mark.django_db
 class TestSDSFilter:

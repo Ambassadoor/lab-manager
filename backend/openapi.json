@@ -1676,6 +1676,7 @@ paths:
       tags:
       - inventory
       security:
+      - cookieAuth: []
       - {}
       responses:
         '200':
@@ -1702,6 +1703,8 @@ paths:
             schema:
               $ref: '#/components/schemas/SDSWrite'
         required: true
+      security:
+      - cookieAuth: []
       responses:
         '201':
           content:
@@ -1722,6 +1725,7 @@ paths:
       tags:
       - inventory
       security:
+      - cookieAuth: []
       - {}
       responses:
         '200':

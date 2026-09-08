@@ -22,7 +22,15 @@ class SDSView(
     queryset = SDS.objects.select_related("container", "container__chemical")
     filterset_class = SDSFilter
     permission_classes = [AllowAny]
-    authentication_classes = []
+    # No authentication_classes override here (unlike RegisterView, which
+    # this was first modeled on) — that view only ever has one, genuinely
+    # public action. This one also has `create`, which needs to see who's
+    # actually logged in; class-level authentication_classes = [] would
+    # leave request.user as AnonymousUser for every action, including
+    # create, so role_at_least would reject every request regardless of
+    # the real user's role. AllowAny on list/retrieve already makes those
+    # work with or without a session, so the default authenticators are
+    # safe to leave in place here.
 
     def get_permissions(self):
         if self.action == "create":
