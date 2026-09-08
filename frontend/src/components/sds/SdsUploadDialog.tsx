@@ -8,17 +8,20 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  IconButton,
   InputLabel,
   List,
+  ListItem,
   ListItemButton,
   ListItemText,
   MenuItem,
   Select,
   Stack,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
-import { UploadFile } from '@mui/icons-material';
+import { OpenInNew, UploadFile } from '@mui/icons-material';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -33,10 +36,14 @@ type SdsUploadDialogProps = {
   open: boolean;
   setOpen: (open: boolean) => void;
   containerId: number | string;
-  // The container's own manufacturer/product # — passed in (rather than
-  // looked up here) so this stays reusable from ContainerForm, where the
-  // container doesn't exist as a row yet. Used only to suggest documents
-  // already on file for the same product.
+  // The container's own chemical id/manufacturer/product # — passed in
+  // (rather than looked up here) so this stays reusable from ContainerForm,
+  // where the container doesn't exist as a row yet. Used only to suggest
+  // documents already on file for the same product: all three have to match
+  // (not just manufacturer + product #) so two different chemicals that
+  // happen to share a manufacturer/product # never cross-suggest each
+  // other's safety document.
+  chemicalId?: number | string | null;
   manufacturer?: string | null;
   productNum?: string | null;
   onUploaded?: (sds: SDS) => void;
@@ -61,6 +68,7 @@ export const SdsUploadDialog = ({
   open,
   setOpen,
   containerId,
+  chemicalId,
   manufacturer,
   productNum,
   onUploaded,
@@ -68,24 +76,38 @@ export const SdsUploadDialog = ({
   const [file, setFile] = useState<File | null>(null);
   const [existingId, setExistingId] = useState<number | null>(null);
 
-  const { control, handleSubmit, reset, clearErrors } = useForm<SdsUploadFormValues>({
+  const { control, handleSubmit, reset, clearErrors, setValue } = useForm<SdsUploadFormValues>({
     mode: 'onBlur',
     defaultValues,
   });
 
+  const suggestionParams = {
+    chemical: chemicalId ?? undefined,
+    manufacturer: manufacturer ?? undefined,
+    product_num: productNum ?? undefined,
+  };
+
   // Suggests documents already on file for the same product, so the same
   // physical SDS isn't uploaded to Drive again for every container that
   // happens to use it — revision date/# show per suggestion so the user can
-  // tell them apart.
+  // tell them apart. Scoped to the same chemical too, not just manufacturer +
+  // product #, so a coincidental match between two different chemicals never
+  // suggests the wrong safety document.
   const { data: suggestions } = useQuery({
-    queryKey: sdsKeys.list({
-      manufacturer: manufacturer ?? undefined,
-      product_num: productNum ?? undefined,
-    }),
-    queryFn: () =>
-      getSdsList({ manufacturer: manufacturer ?? undefined, product_num: productNum ?? undefined }),
-    enabled: open && !!manufacturer && !!productNum,
+    queryKey: sdsKeys.list(suggestionParams),
+    queryFn: () => getSdsList(suggestionParams),
+    enabled: open && !!chemicalId && !!manufacturer && !!productNum,
   });
+
+  // Fills the revision fields from a picked suggestion (or clears them back
+  // to blank when deselecting) — keeps what's shown in the form always
+  // matching what's about to be saved, rather than silently submitting
+  // whatever was typed before the suggestion was noticed.
+  const applySuggestion = (s: SDS | null) => {
+    setValue('revision_date', s?.revision_date ?? null);
+    setValue('revision_number', s?.revision_number != null ? String(s.revision_number) : '');
+    setValue('ghs_pictograms', s?.ghs_pictograms ?? []);
+  };
 
   const qc = useQueryClient();
 
@@ -149,24 +171,45 @@ export const SdsUploadDialog = ({
               <Typography variant="subtitle2">Use an existing SDS on file?</Typography>
               <List dense>
                 {suggestions.map((s) => (
-                  <ListItemButton
+                  <ListItem
                     key={s.id}
-                    selected={existingId === s.id}
-                    onClick={() => {
-                      setExistingId((prev) => (prev === s.id ? null : s.id));
-                      setFile(null);
-                    }}
+                    disablePadding
+                    secondaryAction={
+                      <Tooltip title="Preview this document">
+                        <IconButton
+                          edge="end"
+                          size="small"
+                          href={`/sds/${s.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <OpenInNew fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    }
                   >
-                    <ListItemText
-                      primary={s.file_name}
-                      secondary={[
-                        s.revision_date && `Rev. date ${s.revision_date}`,
-                        s.revision_number != null && `Rev. # ${s.revision_number}`,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    />
-                  </ListItemButton>
+                    <ListItemButton
+                      selected={existingId === s.id}
+                      onClick={() => {
+                        setExistingId((prev) => {
+                          const next = prev === s.id ? null : s.id;
+                          applySuggestion(next === null ? null : s);
+                          return next;
+                        });
+                        setFile(null);
+                      }}
+                    >
+                      <ListItemText
+                        primary={s.file_name}
+                        secondary={[
+                          s.revision_date && `Rev. date ${s.revision_date}`,
+                          s.revision_number != null && `Rev. # ${s.revision_number}`,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      />
+                    </ListItemButton>
+                  </ListItem>
                 ))}
               </List>
             </Box>

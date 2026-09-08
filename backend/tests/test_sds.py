@@ -1,5 +1,5 @@
 from datetime import date
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -131,17 +131,40 @@ class TestSDSWriteSerializerCreatePaths:
     def test_file_path_uploads_to_drive(self, mock_upload, client_as, make_container):
         mock_upload.return_value = "drive-new"
         client = client_as(User.Role.STOCKROOM)
-        container = make_container("c1")
+        container = make_container("c1", manufacturer="Acme", product_num="P-1")
 
         response = client.post(
-            "/inventory/sds/", {"container": container.id, "file": make_pdf("new.pdf")}
+            "/inventory/sds/",
+            {
+                "container": container.id,
+                "file": make_pdf("original-name-discarded.pdf"),
+                "revision_number": 3,
+                "revision_date": "2024-06-01",
+            },
         )
 
         assert response.status_code == 201
-        mock_upload.assert_called_once()
+        # The original uploaded filename is discarded in favor of a generated,
+        # human-navigable one — same name used for both the Drive file and
+        # the stored row, so browsing Drive directly matches the app.
+        expected_name = "Acme_P-1_Water_Rev3_2024-06-01.pdf"
+        mock_upload.assert_called_once_with(ANY, expected_name)
         created = SDS.objects.get(id=response.data["id"])
         assert created.drive_id == "drive-new"
-        assert created.file_name == "new.pdf"
+        assert created.file_name == expected_name
+
+    @patch("apps.inventory.serializers.chemicals.upload_sds_file")
+    def test_filename_falls_back_when_manufacturer_product_num_or_revision_missing(
+        self, mock_upload, client_as, make_container
+    ):
+        mock_upload.return_value = "drive-new"
+        client = client_as(User.Role.STOCKROOM)
+        container = make_container("c1")  # no manufacturer/product_num, no revision info
+
+        response = client.post("/inventory/sds/", {"container": container.id, "file": make_pdf()})
+
+        assert response.status_code == 201
+        assert SDS.objects.get(id=response.data["id"]).file_name == "Unknown_NA_Water.pdf"
 
     @patch("apps.inventory.serializers.chemicals.upload_sds_file")
     def test_existing_sds_path_reuses_the_drive_file_without_uploading(

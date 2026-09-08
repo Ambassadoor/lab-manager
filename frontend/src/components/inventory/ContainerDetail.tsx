@@ -412,6 +412,7 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
                 open={sdsDialogOpen}
                 setOpen={setSdsDialogOpen}
                 containerId={container.id}
+                chemicalId={container.chemical}
                 manufacturer={container.manufacturer}
                 productNum={container.product_num}
               />

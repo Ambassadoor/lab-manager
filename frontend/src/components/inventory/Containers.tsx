@@ -114,6 +114,7 @@ const SdsCellRenderer = (params: CustomCellRendererProps<ContainerType>) => {
         open={open}
         setOpen={setOpen}
         containerId={container.id}
+        chemicalId={container.chemical}
         manufacturer={container.manufacturer}
         productNum={container.product_num}
       />

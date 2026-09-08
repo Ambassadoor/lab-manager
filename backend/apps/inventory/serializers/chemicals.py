@@ -1,9 +1,34 @@
+import re
+
 from rest_framework import serializers
 
 from ..drive import DriveUploadError, upload_sds_file
 from ..models import Chemical, ChemicalStorageCategories, Container, Ingredient, SDS
 
 MAX_SDS_FILE_SIZE = 25 * 1024 * 1024  # 25MB
+
+
+def _slugify_filename_part(value: str) -> str:
+    value = re.sub(r"[^\w\- ]", "", value).strip()
+    return re.sub(r"\s+", "-", value)
+
+
+# Manufacturer_ProductNum_ChemicalName_RevN_Date.pdf (parts omitted where
+# unavailable) — used as both the Drive filename and the stored SDS.file_name,
+# so what someone sees browsing the Drive folder directly always matches what
+# the app shows. The original uploaded filename is discarded entirely; for an
+# internal lab tool, findability wins over keeping someone's own filename.
+def _build_sds_filename(container, revision_date, revision_number) -> str:
+    parts = [
+        _slugify_filename_part(container.manufacturer or "Unknown"),
+        _slugify_filename_part(container.product_num or "NA"),
+        _slugify_filename_part(container.chemical.name),
+    ]
+    if revision_number is not None:
+        parts.append(f"Rev{revision_number}")
+    if revision_date is not None:
+        parts.append(str(revision_date))
+    return "_".join(parts) + ".pdf"
 
 
 class ChemicalSerializer(serializers.ModelSerializer):
@@ -116,14 +141,20 @@ class SDSWriteSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         file = validated_data.pop("file", None)
         existing_sds = validated_data.pop("existing_sds", None)
+        container = validated_data["container"]
 
         if file is not None:
+            filename = _build_sds_filename(
+                container,
+                validated_data.get("revision_date"),
+                validated_data.get("revision_number"),
+            )
             try:
-                drive_id = upload_sds_file(file, file.name)
+                drive_id = upload_sds_file(file, filename)
             except DriveUploadError as e:
                 raise serializers.ValidationError({"file": str(e)}) from e
             validated_data["drive_id"] = drive_id
-            validated_data["file_name"] = file.name
+            validated_data["file_name"] = filename
         else:
             # Reuse the existing document's Drive file rather than uploading
             # a duplicate copy — this row is still its own revision-history
