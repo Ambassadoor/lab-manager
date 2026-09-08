@@ -124,6 +124,27 @@ class TestSDSFilter:
         assert len(client.get("/inventory/sds/?product_num=P-1").data) == 1
         assert len(client.get("/inventory/sds/?manufacturer=Other").data) == 1
 
+    def test_revision_date_and_number_filters(self, sds, make_container):
+        # Used by the frontend's pre-submit duplicate check — same chemical
+        # + exact revision date + # already on file, independent of
+        # manufacturer/product # text (which is how a typo like "Fisher
+        # Chemical" vs "Thermo Fisher Chemical" still gets caught).
+        client = APIClient()
+        SDS.objects.create(
+            container=make_container("other"),
+            file_name="other.pdf",
+            drive_id="drive-other",
+            revision_date=date(2024, 6, 1),
+            revision_number=9,
+        )
+
+        assert len(client.get("/inventory/sds/?revision_date=2024-01-01").data) == 1
+        assert len(client.get("/inventory/sds/?revision_number=2").data) == 1
+        assert (
+            len(client.get("/inventory/sds/?revision_date=2024-01-01&revision_number=2").data) == 1
+        )
+        assert len(client.get("/inventory/sds/?revision_number=9").data) == 1
+
 
 @pytest.mark.django_db
 class TestSDSWriteSerializerCreatePaths:

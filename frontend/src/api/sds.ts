@@ -7,14 +7,18 @@ import type { SDS } from '../types';
 // Mirrors the subset of SDSFilter the frontend drives (see
 // backend/apps/inventory/filters.py) — `search` alone covers Chemical name,
 // CAS #, Product #, and Chem-ID at once (SdsSearch.tsx); the rest scope a
-// lookup to one container/chemical, or suggest an existing document by
-// manufacturer + product # (SdsUploadDialog.tsx).
+// lookup to one container/chemical, suggest an existing document by
+// chemical + manufacturer/product # (product # a refiner, not required —
+// one SDS often covers many product numbers), or catch a likely duplicate
+// by chemical + exact revision date/# (SdsUploadDialog.tsx, both).
 export type SdsListParams = {
   search?: string;
   container?: number | string;
   chemical?: number | string;
   manufacturer?: string;
   product_num?: string;
+  revision_date?: string;
+  revision_number?: number | string;
 };
 
 export const getSdsList = (params?: SdsListParams): Promise<SDS[]> => {

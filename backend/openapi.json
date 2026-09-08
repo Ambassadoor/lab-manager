@@ -1667,6 +1667,15 @@ paths:
         name: product_num
         schema:
           type: string
+      - in: query
+        name: revision_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: revision_number
+        schema:
+          type: integer
       - name: search
         required: false
         in: query

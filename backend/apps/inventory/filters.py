@@ -75,7 +75,18 @@ class SDSFilter(df.FilterSet):
 
     class Meta:
         model = SDS
-        fields = ["container", "chemical", "manufacturer", "product_num"]
+        # revision_date/revision_number (exact match) auto-generated from
+        # the model field types — used by the frontend's pre-submit
+        # duplicate check (same chemical + revision date + # already on
+        # file), not just the "existing SDS" suggestion list above.
+        fields = [
+            "container",
+            "chemical",
+            "manufacturer",
+            "product_num",
+            "revision_date",
+            "revision_number",
+        ]
 
     # One combined search box covers Chemical name, CAS #, Product #, and
     # Chem-ID (Container.label, e.g. "CHEM-1143") — matches the single

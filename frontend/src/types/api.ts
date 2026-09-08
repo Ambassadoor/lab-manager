@@ -2565,6 +2565,8 @@ export interface operations {
         /** @description Which field to use when ordering the results. */
         ordering?: string;
         product_num?: string;
+        revision_date?: string;
+        revision_number?: number;
         /** @description A search term. */
         search?: string;
       };
