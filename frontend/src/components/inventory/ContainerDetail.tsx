@@ -24,7 +24,7 @@ import {
   updateContainer,
 } from '../../api/inventory';
 import { containerKeys, locationKeys, printerKeys } from '../../api/queryKeys';
-import { printLabel } from '../../api/bridge';
+import { printLabelChecked } from '../../api/bridge';
 import type { Container, ContainerDetailDefaults } from '../../types';
 import { Close, Edit, ExpandLess, ExpandMore, Print, UnfoldMore } from '@mui/icons-material';
 import { ToggleField } from '../shared/ToggleField';
@@ -114,7 +114,7 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
   const queryClient = useQueryClient();
 
   const printMutation = useMutation({
-    mutationFn: printLabel,
+    mutationFn: printLabelChecked,
     // The one place here the printer's own hardware state (media, errors)
     // is guaranteed to have just changed — refetch the nav bar's status
     // indicator instead of waiting on its own poll interval.

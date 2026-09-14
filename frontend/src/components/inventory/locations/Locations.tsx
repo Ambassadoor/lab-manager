@@ -47,7 +47,7 @@ import { EditLocation } from './EditLocation';
 import { useAuth } from '../../../context/AuthContext';
 import { DataTable } from '../../shared/DataTable';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { printLabel } from '../../../api/bridge';
+import { printLabelChecked } from '../../../api/bridge';
 import { printerKeys } from '../../../api/queryKeys';
 import { ConfirmDialog } from '../../shared/ConfirmDialog';
 import { useConfirmDialog } from '../../shared/useConfirmDialog';
@@ -205,7 +205,7 @@ export const Locations = () => {
   // of which row in the tree triggered it. See PrintResultSnackbar for why
   // it can watch this mutation directly with no onSuccess/onError here.
   const printMutation = useMutation({
-    mutationFn: printLabel,
+    mutationFn: printLabelChecked,
     // A print attempt is the one place in the app where the printer's own
     // hardware state (media, errors) is guaranteed to have just changed —
     // refetch the nav bar's status indicator instead of waiting up to

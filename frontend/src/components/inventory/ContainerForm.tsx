@@ -37,7 +37,7 @@ import {
   getStorageCategories,
   submitNewContainerForm,
 } from '../../api/inventory';
-import { getBalanceWeight, printLabel } from '../../api/bridge';
+import { getBalanceWeight, printLabelChecked } from '../../api/bridge';
 import { createSds, type PendingSdsSelection } from '../../api/sds';
 import {
   containerKeys,
@@ -329,7 +329,7 @@ export const ContainerForm = () => {
   const scaleMutation = useMutation({ mutationFn: getBalanceWeight });
 
   const printMutation = useMutation({
-    mutationFn: printLabel,
+    mutationFn: printLabelChecked,
     // The one place in this form where the printer's own hardware state
     // (media, errors) is guaranteed to have just changed — refetch the nav
     // bar's status indicator instead of waiting on its own poll interval.

@@ -3,7 +3,7 @@ import type { UseMutationResult } from '@tanstack/react-query';
 import type { PrintConfirmation, PrintParams } from '../../types';
 
 type PrintResultSnackbarProps = {
-  // Owned by the caller (created via useMutation({ mutationFn: printLabel })),
+  // Owned by the caller (created via useMutation({ mutationFn: printLabelChecked })),
   // same reasoning as WeightField's scaleMutation prop — a caller that needs
   // to know when printing finishes (e.g. to re-enable a button) can watch
   // the exact same mutation instance instead of a second, uncoordinated one.
@@ -18,10 +18,10 @@ type PrintResultSnackbarProps = {
 // (see bridge/PRINTER_PLAN.md's "print result feedback everywhere printing
 // happens" TODO) — one presentation reused everywhere instead of each page
 // inventing its own. Distinguishes success from failure but not *why* a
-// failure happened (bridge unreachable vs. a printer-reported error); the
-// bridge's own error message, shown verbatim, already does that (see
-// bridgeFetch in api/bridge.ts) without this component needing to know the
-// difference itself.
+// failure happened (bridge unreachable, a bad HTTP response, or — thanks to
+// printLabelChecked — the printer reporting an error after accepting the
+// print); the thrown error's own message, shown verbatim, already does
+// that without this component needing to know the difference itself.
 export const PrintResultSnackbar = ({ mutation, label = 'Label' }: PrintResultSnackbarProps) => {
   // Derived directly from the mutation, no local open state — a repeat
   // print goes isSuccess/isError -> false (isPending) -> true again while

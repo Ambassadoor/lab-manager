@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getContainers, patchContainer, type ContainerListParams } from '../../api/inventory';
-import { printLabel } from '../../api/bridge';
+import { printLabelChecked } from '../../api/bridge';
 import { containerKeys, printerKeys } from '../../api/queryKeys';
 import {
   type CellValueChangedEvent,
@@ -199,7 +199,7 @@ export const Containers = () => {
   // print at a time, one snackbar for whichever row triggered it, same
   // reasoning as Locations.tsx's recursive tree.
   const printMutation = useMutation({
-    mutationFn: printLabel,
+    mutationFn: printLabelChecked,
     // A print attempt is the one place here the printer's own hardware
     // state (media, errors) is guaranteed to have just changed — refetch
     // the nav bar's status indicator instead of waiting on its own poll.
