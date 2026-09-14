@@ -7,6 +7,7 @@ from .containers import (
     WeightReading,
     most_recent_checkout_event_subquery,
 )
+from .labels import LabelTemplate, LabelTemplateField
 from .locations import Location, LocationTypes
 
 __all__ = [
@@ -16,6 +17,8 @@ __all__ = [
     "Container",
     "GHSPictogram",
     "Ingredient",
+    "LabelTemplate",
+    "LabelTemplateField",
     "Location",
     "LocationTypes",
     "SDS",

@@ -7,6 +7,7 @@ from .models import (
     Chemical,
     CheckoutEvent,
     Container,
+    LabelTemplate,
     Location,
     SDS,
     most_recent_checkout_event_subquery,
@@ -113,3 +114,12 @@ class LocationFilter(df.FilterSet):
         # LocationView.get_queryset() already forces parent=None for the
         # plain list action, so a parent filter would be a silent no-op there.
         fields = ["name", "type"]
+
+
+class LabelTemplateFilter(df.FilterSet):
+    class Meta:
+        model = LabelTemplate
+        # Both choices fields — exact-match filters auto-generated from the
+        # model field type. `kind` is what the print flow's own lookup
+        # (frontend printTemplates.ts) filters by.
+        fields = ["kind", "media_width_mm"]

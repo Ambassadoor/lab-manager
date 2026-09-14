@@ -15,6 +15,7 @@ from .containers import (
     WeightReadingReadSerializer,
     WeightReadingSerializer,
 )
+from .labels import LabelTemplateFieldSerializer, LabelTemplateSerializer
 from .locations import (
     LocationMenuSerializer,
     LocationSerializer,
@@ -31,6 +32,8 @@ __all__ = [
     "ContainerSerializer",
     "ContainerWriteSerializer",
     "IngredientSerializer",
+    "LabelTemplateFieldSerializer",
+    "LabelTemplateSerializer",
     "LocationContainersSerializer",
     "LocationMenuSerializer",
     "LocationSerializer",

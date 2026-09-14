@@ -436,6 +436,38 @@ export interface paths {
     patch: operations['inventory_dashboard_partial_update'];
     trace?: never;
   };
+  '/inventory/label_templates/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_label_templates_list'];
+    put?: never;
+    post: operations['inventory_label_templates_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/inventory/label_templates/{id}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['inventory_label_templates_retrieve'];
+    put: operations['inventory_label_templates_update'];
+    post?: never;
+    delete: operations['inventory_label_templates_destroy'];
+    options?: never;
+    head?: never;
+    patch: operations['inventory_label_templates_partial_update'];
+    trace?: never;
+  };
   '/inventory/location_types/': {
     parameters: {
       query?: never;
@@ -779,6 +811,34 @@ export interface components {
     InvalidRequest: {
       detail: string;
     };
+    /**
+     * @description * `container` - Container
+     *     * `location` - Location
+     * @enum {string}
+     */
+    KindEnum: 'container' | 'location';
+    LabelTemplate: {
+      readonly id: number;
+      /** @description Human-readable, e.g. 'Location label (12mm)'. Not sent to the printer. */
+      name: string;
+      kind: components['schemas']['KindEnum'];
+      /** @description The number assigned to this template in P-touch Transfer Manager (1-99). */
+      template_number: number;
+      media_width_mm: components['schemas']['MediaWidthMmEnum'];
+      fields: components['schemas']['LabelTemplateField'][];
+    };
+    LabelTemplateField: {
+      readonly id: number;
+      role: components['schemas']['LabelTemplateFieldRoleEnum'];
+      /** @description The object's name inside the template, as set in P-touch Editor (e.g. 'Barcode1'). */
+      object_name: string;
+    };
+    /**
+     * @description * `barcode` - Barcode
+     *     * `text` - Text
+     * @enum {string}
+     */
+    LabelTemplateFieldRoleEnum: 'barcode' | 'text';
     Location: {
       readonly id: number;
       name: string;
@@ -803,6 +863,16 @@ export interface components {
       type: number;
       parent?: number | null;
     };
+    /**
+     * @description * `6` - 6 mm
+     *     * `9` - 9 mm
+     *     * `12` - 12 mm
+     *     * `18` - 18 mm
+     *     * `24` - 24 mm
+     *     * `36` - 36 mm
+     * @enum {integer}
+     */
+    MediaWidthMmEnum: 6 | 9 | 12 | 18 | 24 | 36;
     Nested: {
       readonly id: number;
       shorthand: string;
@@ -918,6 +988,16 @@ export interface components {
        * Format: decimal
        */
       tare_weight?: string | null;
+    };
+    PatchedLabelTemplate: {
+      readonly id?: number;
+      /** @description Human-readable, e.g. 'Location label (12mm)'. Not sent to the printer. */
+      name?: string;
+      kind?: components['schemas']['KindEnum'];
+      /** @description The number assigned to this template in P-touch Transfer Manager (1-99). */
+      template_number?: number;
+      media_width_mm?: components['schemas']['MediaWidthMmEnum'];
+      fields?: components['schemas']['LabelTemplateField'][];
     };
     PatchedLocation: {
       readonly id?: number;
@@ -2160,6 +2240,168 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['Container'];
+        };
+      };
+    };
+  };
+  inventory_label_templates_list: {
+    parameters: {
+      query?: {
+        /**
+         * @description * `container` - Container
+         *     * `location` - Location
+         */
+        kind?: 'container' | 'location';
+        /**
+         * @description * `6` - 6 mm
+         *     * `9` - 9 mm
+         *     * `12` - 12 mm
+         *     * `18` - 18 mm
+         *     * `24` - 24 mm
+         *     * `36` - 36 mm
+         */
+        media_width_mm?: 12 | 18 | 24 | 36 | 6 | 9;
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+        /** @description A search term. */
+        search?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LabelTemplate'][];
+        };
+      };
+    };
+  };
+  inventory_label_templates_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LabelTemplate'];
+        'application/x-www-form-urlencoded': components['schemas']['LabelTemplate'];
+        'multipart/form-data': components['schemas']['LabelTemplate'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LabelTemplate'];
+        };
+      };
+    };
+  };
+  inventory_label_templates_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this label template. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LabelTemplate'];
+        };
+      };
+    };
+  };
+  inventory_label_templates_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this label template. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['LabelTemplate'];
+        'application/x-www-form-urlencoded': components['schemas']['LabelTemplate'];
+        'multipart/form-data': components['schemas']['LabelTemplate'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LabelTemplate'];
+        };
+      };
+    };
+  };
+  inventory_label_templates_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this label template. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No response body */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  inventory_label_templates_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this label template. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedLabelTemplate'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedLabelTemplate'];
+        'multipart/form-data': components['schemas']['PatchedLabelTemplate'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LabelTemplate'];
         };
       };
     };

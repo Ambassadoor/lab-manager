@@ -128,6 +128,21 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
+SPECTACULAR_SETTINGS = {
+    # LabelTemplateField.Role and User.Role both have a field named "role" —
+    # before LabelTemplateField existed, User.Role was the only "role"
+    # enum in the schema and got the clean name "RoleEnum" for free. Adding
+    # a second one means *both* now need an explicit name, or drf-spectacular
+    # falls back to an opaque hash-suffixed name like "Role3f7Enum" for
+    # whichever one it can't disambiguate (which one depends on how many
+    # serializers reference it, not the model these actually make sense
+    # to read from — hence overriding both rather than just the new one).
+    "ENUM_NAME_OVERRIDES": {
+        "RoleEnum": "apps.users.models.User.Role",
+        "LabelTemplateFieldRoleEnum": "apps.inventory.models.LabelTemplateField.Role",
+    },
+}
+
 # --- Google Drive (SDS file storage) -----------------------------------------
 # Service account credentials + target folder for uploaded SDS files (see
 # apps/inventory/drive.py). Both unset in dev until the account/folder exist;
