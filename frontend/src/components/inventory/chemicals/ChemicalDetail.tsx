@@ -5,11 +5,16 @@ import {
   CardContent,
   CardHeader,
   Container,
+  Divider,
   IconButton,
+  List,
+  ListItemButton,
+  ListItemText,
   Stack,
+  Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useLocation, useParams } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useParams } from 'react-router-dom';
 import {
   getChemicalByCas,
   getChemicalById,
@@ -23,6 +28,7 @@ import { useState } from 'react';
 import Decimal from 'decimal.js';
 import { Edit } from '@mui/icons-material';
 import type { ChemicalDefaults } from './AddChemical';
+import type { SDS } from '../../../types';
 import { cas_is_valid } from '../../shared/checkCas';
 import { NotFound } from '../../shared/NotFound';
 import { useAuth } from '../../../context/AuthContext';
@@ -274,6 +280,33 @@ export const ChemicalDetail = () => {
                 )}
               />
             </Stack>
+          </CardContent>
+          <Divider />
+          <CardContent>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+              Safety Data Sheets
+            </Typography>
+            {chemical?.sds && chemical.sds.length > 0 ? (
+              <List dense disablePadding>
+                {chemical.sds.map((s: SDS) => (
+                  <ListItemButton key={s.id} component={RouterLink} to={`/sds/${s.id}`} divider>
+                    <ListItemText
+                      primary={`${s.container.name} — ${s.file_name}`}
+                      secondary={[
+                        s.revision_date && `Rev. date ${s.revision_date}`,
+                        s.revision_number != null && `Rev. # ${s.revision_number}`,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    />
+                  </ListItemButton>
+                ))}
+              </List>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No SDS on file for this chemical yet.
+              </Typography>
+            )}
           </CardContent>
           {editing && (
             <CardActions>

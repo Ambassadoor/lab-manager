@@ -4,6 +4,7 @@ from .chemicals import (
     ChemicalWriteSerializer,
     IngredientSerializer,
     SDSSerializer,
+    SDSWriteSerializer,
 )
 from .containers import (
     CheckoutEventSerializer,
@@ -14,6 +15,7 @@ from .containers import (
     WeightReadingReadSerializer,
     WeightReadingSerializer,
 )
+from .labels import LabelTemplateFieldSerializer, LabelTemplateSerializer
 from .locations import (
     LocationMenuSerializer,
     LocationSerializer,
@@ -30,12 +32,15 @@ __all__ = [
     "ContainerSerializer",
     "ContainerWriteSerializer",
     "IngredientSerializer",
+    "LabelTemplateFieldSerializer",
+    "LabelTemplateSerializer",
     "LocationContainersSerializer",
     "LocationMenuSerializer",
     "LocationSerializer",
     "LocationTypeSerializer",
     "LocationWriteSerializer",
     "SDSSerializer",
+    "SDSWriteSerializer",
     "WeightReadingReadSerializer",
     "WeightReadingSerializer",
 ]

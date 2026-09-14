@@ -3,6 +3,8 @@
 // prefix-matches every query under that resource (list, detail, related sub-resources, etc).
 
 import type { ChemicalListParams, ContainerListParams } from './inventory';
+import type { LabelTemplateListParams } from './labelTemplates';
+import type { SdsListParams } from './sds';
 import type { UserListParams } from './users';
 
 export const containerKeys = {
@@ -43,4 +45,28 @@ export const userKeys = {
   // See containerKeys.list's comment — same partial-match reasoning applies.
   list: (params?: UserListParams) => [...userKeys.all, 'list', params ?? {}] as const,
   detail: (id: string) => [...userKeys.all, 'detail', id] as const,
+};
+
+export const sdsKeys = {
+  all: ['sds'] as const,
+  // See containerKeys.list's comment — same partial-match reasoning applies.
+  list: (params?: SdsListParams) => [...sdsKeys.all, 'list', params ?? {}] as const,
+  detail: (id: number | string) => [...sdsKeys.all, 'detail', id] as const,
+};
+
+export const printerKeys = {
+  all: ['printer'] as const,
+  // Bridge hardware status, not a Django resource — no `list`/`detail`
+  // shape, just the one live value. Kept as its own key (rather than
+  // inlined at the call site) so a future print mutation can invalidate/
+  // refetch it after printing without duplicating the key array.
+  status: () => [...printerKeys.all, 'status'] as const,
+};
+
+export const labelTemplateKeys = {
+  all: ['labelTemplates'] as const,
+  // See containerKeys.list's comment — same partial-match reasoning applies.
+  list: (params?: LabelTemplateListParams) =>
+    [...labelTemplateKeys.all, 'list', params ?? {}] as const,
+  detail: (id: number) => [...labelTemplateKeys.all, 'detail', id] as const,
 };

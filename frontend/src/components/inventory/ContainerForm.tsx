@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   Checkbox,
+  Chip,
   Container,
   Divider,
   FormControl,
@@ -36,8 +37,17 @@ import {
   getStorageCategories,
   submitNewContainerForm,
 } from '../../api/inventory';
-import { getBalanceWeight, printLabel } from '../../api/bridge';
-import { containerKeys, chemicalKeys, dashboardKeys, locationKeys } from '../../api/queryKeys';
+import { getBalanceWeight } from '../../api/bridge';
+import { createSds, type PendingSdsSelection } from '../../api/sds';
+import {
+  containerKeys,
+  chemicalKeys,
+  dashboardKeys,
+  locationKeys,
+  printerKeys,
+} from '../../api/queryKeys';
+import { setPendingActionResult, type PendingActionResult } from '../shared/pendingActionResult';
+import { printContainerLabel } from '../shared/printTemplates';
 import { type ContainerFormDefaults, type CasCheck, type Location } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { Decimal } from 'decimal.js';
@@ -47,6 +57,7 @@ import { cas_is_valid } from '../shared/checkCas';
 import { WeightField } from '../shared/WeightField';
 import { RhfTextField } from '../shared/RhfTextField';
 import { RhfDateField } from '../shared/RhfDateField';
+import { SdsUploadDialog } from '../sds/SdsUploadDialog';
 import { ChemicalRow } from './ChemicalRow';
 import { MixtureFields } from './MixtureFields';
 import { requiredRule, required, decimalPatternRule } from '../shared/formRules';
@@ -78,6 +89,19 @@ const convertUnits = (defaultUnit: string, currentUnit: string, quantity: string
 export const ContainerForm = () => {
   const [cas, setCas] = useState<CasCheck | undefined>();
   const [bridgeError, setBridgeError] = useState<string | null>(null);
+
+  // Kept outside RHF (unlike the rest of the form): a File can't survive
+  // JSON.stringify, which the session-storage form-memory effect below
+  // does to every RHF field on every change, and this shouldn't be part of
+  // that "resume where I left off on reload" cache anyway. The chemical/
+  // container this belongs to doesn't exist until submit, so
+  // SdsUploadDialog runs in its "deferred" mode here (see its own comment) —
+  // it stages a selection via onSelect instead of attaching immediately, and
+  // the actual createSds call happens in onSubmit once the real container
+  // id comes back.
+  const [sdsDialogOpen, setSdsDialogOpen] = useState(false);
+  const [pendingSds, setPendingSds] = useState<PendingSdsSelection | null>(null);
+  const [pendingSdsLabel, setPendingSdsLabel] = useState('');
 
   const theme = useTheme();
   const navigate = useNavigate();
@@ -289,9 +313,28 @@ export const ContainerForm = () => {
     setValue('mixture_storage_category', chosenMixture?.storage_category.id || '');
   }, [formValues.mixture_id, setValue, cas]);
 
+  // The real chemical id to scope "attach an existing SDS" suggestions by —
+  // only resolvable once we actually know one: either the typed CAS matched
+  // an existing chemical (nothing to suggest for a brand-new one — it can't
+  // have a prior SDS), or an existing mixture was picked via mixture_id (a
+  // new mixture, same reasoning, has nothing to suggest either).
+  const resolvedChemicalId = useMemo(() => {
+    if (formValues.multiple_cas) return formValues.mixture_id || undefined;
+    const typedCas = formValues.chemicals?.[0]?.cas;
+    return cas?.chemicals.find((c) => c.cas === typedCas)?.id;
+  }, [formValues.multiple_cas, formValues.mixture_id, formValues.chemicals, cas]);
+
   const queryClient = useQueryClient();
 
   const scaleMutation = useMutation({ mutationFn: getBalanceWeight });
+
+  const printMutation = useMutation({
+    mutationFn: printContainerLabel,
+    // The one place in this form where the printer's own hardware state
+    // (media, errors) is guaranteed to have just changed — refetch the nav
+    // bar's status indicator instead of waiting on its own poll interval.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: printerKeys.status() }),
+  });
 
   //Format date fields, clear session storage, invalidate stale container data and navigate to detail page
   const onSubmit: SubmitHandler<ContainerFormDefaults> = async (data) => {
@@ -306,13 +349,46 @@ export const ContainerForm = () => {
     sessionStorage.removeItem('container_form_cache');
     queryClient.invalidateQueries({ queryKey: containerKeys.list() });
     queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+
+    // Both of these used to be fire-and-forget (print) or awaited but only
+    // shown via a Snackbar in *this* component (SDS) — but navigate() below
+    // unmounts this form immediately after, before either async result
+    // could ever actually be seen. Both are awaited now and their outcome
+    // stashed via setPendingActionResult instead, for the destination page
+    // to show once it lands (see that module's comment for why).
+    const results: PendingActionResult[] = [];
+
     if (data.print) {
-      printLabel({
-        template: 1,
-        fields: { Barcode1: JSON.stringify({ id: response.label }), Text1: response.label },
-        copies: 1,
-      }).catch((e) => setBridgeError(e.message));
+      try {
+        await printMutation.mutateAsync(response);
+        results.push({ severity: 'success', message: 'Container label sent to printer.' });
+      } catch (e) {
+        results.push({
+          severity: 'error',
+          message: `Container label failed to print: ${e instanceof Error ? e.message : 'Unknown error'}`,
+        });
+      }
     }
+    if (pendingSds) {
+      try {
+        await createSds({ container: response.id, ...pendingSds });
+      } catch (e) {
+        results.push({
+          severity: 'error',
+          message: e instanceof Error ? e.message : 'Failed to upload SDS.',
+        });
+      }
+    }
+    // Combined into one message rather than picking a winner — print and
+    // SDS failing independently in the same submit is rare, but dropping
+    // whichever one didn't "win" would hide a real problem either way.
+    if (results.length > 0) {
+      setPendingActionResult({
+        severity: results.some((r) => r.severity === 'error') ? 'error' : 'success',
+        message: results.map((r) => r.message).join(' '),
+      });
+    }
+
     navigate(`/inventory/containers/${response.slug}`);
   };
 
@@ -643,6 +719,35 @@ export const ContainerForm = () => {
                 />
               </Stack>
               <Divider />
+              <Stack spacing={1}>
+                <Typography variant="subtitle1">Attach SDS (optional)</Typography>
+                <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                  <Button variant="outlined" onClick={() => setSdsDialogOpen(true)}>
+                    {pendingSds ? 'Change SDS' : 'Attach SDS'}
+                  </Button>
+                  {pendingSds && (
+                    <Chip
+                      label={pendingSdsLabel}
+                      onDelete={() => {
+                        setPendingSds(null);
+                        setPendingSdsLabel('');
+                      }}
+                    />
+                  )}
+                </Stack>
+                <SdsUploadDialog
+                  open={sdsDialogOpen}
+                  setOpen={setSdsDialogOpen}
+                  chemicalId={resolvedChemicalId}
+                  manufacturer={formValues.manufacturer}
+                  productNum={formValues.product_num}
+                  onSelect={(selection, label) => {
+                    setPendingSds(selection);
+                    setPendingSdsLabel(label);
+                  }}
+                />
+              </Stack>
+              <Divider />
               <Stack direction={'row'} spacing={2} sx={{ justifyContent: 'right' }}>
                 <Button variant="contained" type="submit" loading={isSubmitting || isValidating}>
                   Submit
@@ -652,6 +757,8 @@ export const ContainerForm = () => {
                   onClick={() => {
                     sessionStorage.removeItem('container_form_cache');
                     reset();
+                    setPendingSds(null);
+                    setPendingSdsLabel('');
                     navigate('/');
                   }}
                 >

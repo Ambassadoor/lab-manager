@@ -1232,6 +1232,188 @@ paths:
       responses:
         '204':
           description: No response body
+  /inventory/label_templates/:
+    get:
+      operationId: inventory_label_templates_list
+      parameters:
+      - in: query
+        name: kind
+        schema:
+          type: string
+          enum:
+          - container
+          - location
+        description: |-
+          * `container` - Container
+          * `location` - Location
+      - in: query
+        name: media_width_mm
+        schema:
+          type: integer
+          enum:
+          - 12
+          - 18
+          - 24
+          - 36
+          - 6
+          - 9
+        description: |-
+          * `6` - 6 mm
+          * `9` - 9 mm
+          * `12` - 12 mm
+          * `18` - 18 mm
+          * `24` - 24 mm
+          * `36` - 36 mm
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LabelTemplate'
+          description: ''
+    post:
+      operationId: inventory_label_templates_create
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LabelTemplate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LabelTemplate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LabelTemplate'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabelTemplate'
+          description: ''
+  /inventory/label_templates/{id}/:
+    get:
+      operationId: inventory_label_templates_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this label template.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabelTemplate'
+          description: ''
+    put:
+      operationId: inventory_label_templates_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this label template.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LabelTemplate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LabelTemplate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LabelTemplate'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabelTemplate'
+          description: ''
+    patch:
+      operationId: inventory_label_templates_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this label template.
+        required: true
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLabelTemplate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLabelTemplate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLabelTemplate'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabelTemplate'
+          description: ''
+    delete:
+      operationId: inventory_label_templates_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this label template.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
   /inventory/location_types/:
     get:
       operationId: inventory_location_types_list
@@ -1641,6 +1823,108 @@ paths:
               schema:
                 $ref: '#/components/schemas/Location'
           description: ''
+  /inventory/sds/:
+    get:
+      operationId: inventory_sds_list
+      parameters:
+      - in: query
+        name: chemical
+        schema:
+          type: number
+      - in: query
+        name: container
+        schema:
+          type: number
+      - in: query
+        name: manufacturer
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - in: query
+        name: product_num
+        schema:
+          type: string
+      - in: query
+        name: revision_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: revision_number
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SDS'
+          description: ''
+    post:
+      operationId: inventory_sds_create
+      tags:
+      - inventory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SDSWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SDSWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SDSWrite'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SDSWrite'
+          description: ''
+  /inventory/sds/{id}/:
+    get:
+      operationId: inventory_sds_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this sds.
+        required: true
+      tags:
+      - inventory
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SDS'
+          description: ''
   /inventory/weight_readings/:
     get:
       operationId: inventory_weight_readings_list
@@ -1838,6 +2122,9 @@ components:
         id:
           type: integer
           readOnly: true
+        sds:
+          type: string
+          readOnly: true
         name:
           type: string
           maxLength: 200
@@ -1868,6 +2155,7 @@ components:
       required:
       - id
       - name
+      - sds
       - storage_category
     ChemicalStorageCategories:
       type: object
@@ -1929,6 +2217,9 @@ components:
         name:
           type: string
           maxLength: 200
+        chemical:
+          type: integer
+          readOnly: true
         density:
           type: string
           format: decimal
@@ -1984,13 +2275,18 @@ components:
         checkout_status:
           type: string
           readOnly: true
+        latest_sds:
+          type: string
+          readOnly: true
       required:
       - checkout_status
+      - chemical
       - has_estimated_usage
       - id
       - is_opened
       - label
       - latest_reading
+      - latest_sds
       - location
       - name
       - percent_remaining
@@ -2057,6 +2353,28 @@ components:
       - initial_quantity
       - location
       - name
+    GhsPictogramsEnum:
+      enum:
+      - flammable
+      - oxidizing
+      - compressed_gas
+      - corrosive
+      - toxic
+      - harmful
+      - health_hazard
+      - explosive
+      - environment
+      type: string
+      description: |-
+        * `flammable` - Flammable
+        * `oxidizing` - Oxidizing
+        * `compressed_gas` - Compressed Gas
+        * `corrosive` - Corrosive
+        * `toxic` - Acute Toxicity
+        * `harmful` - Irritant / Harmful
+        * `health_hazard` - Health Hazard
+        * `explosive` - Explosive
+        * `environment` - Environmental Hazard
     InvalidRequest:
       type: object
       properties:
@@ -2064,6 +2382,74 @@ components:
           type: string
       required:
       - detail
+    KindEnum:
+      enum:
+      - container
+      - location
+      type: string
+      description: |-
+        * `container` - Container
+        * `location` - Location
+    LabelTemplate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: Human-readable, e.g. 'Location label (12mm)'. Not sent to the
+            printer.
+          maxLength: 50
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        template_number:
+          type: integer
+          maximum: 99
+          minimum: 1
+          description: The number assigned to this template in P-touch Transfer Manager
+            (1-99).
+        media_width_mm:
+          allOf:
+          - $ref: '#/components/schemas/MediaWidthMmEnum'
+          minimum: 0
+          maximum: 32767
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/LabelTemplateField'
+      required:
+      - fields
+      - id
+      - kind
+      - media_width_mm
+      - name
+      - template_number
+    LabelTemplateField:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        role:
+          $ref: '#/components/schemas/LabelTemplateFieldRoleEnum'
+        object_name:
+          type: string
+          description: The object's name inside the template, as set in P-touch Editor
+            (e.g. 'Barcode1').
+          maxLength: 50
+      required:
+      - id
+      - object_name
+      - role
+    LabelTemplateFieldRoleEnum:
+      enum:
+      - barcode
+      - text
+      type: string
+      description: |-
+        * `barcode` - Barcode
+        * `text` - Text
     Location:
       type: object
       properties:
@@ -2142,6 +2528,22 @@ components:
       required:
       - name
       - type
+    MediaWidthMmEnum:
+      enum:
+      - 6
+      - 9
+      - 12
+      - 18
+      - 24
+      - 36
+      type: integer
+      description: |-
+        * `6` - 6 mm
+        * `9` - 9 mm
+        * `12` - 12 mm
+        * `18` - 18 mm
+        * `24` - 24 mm
+        * `36` - 36 mm
     Nested:
       type: object
       properties:
@@ -2199,6 +2601,9 @@ components:
       properties:
         id:
           type: integer
+          readOnly: true
+        sds:
+          type: string
           readOnly: true
         name:
           type: string
@@ -2258,6 +2663,9 @@ components:
         name:
           type: string
           maxLength: 200
+        chemical:
+          type: integer
+          readOnly: true
         density:
           type: string
           format: decimal
@@ -2311,6 +2719,9 @@ components:
           type: string
           readOnly: true
         checkout_status:
+          type: string
+          readOnly: true
+        latest_sds:
           type: string
           readOnly: true
     PatchedContainerWrite:
@@ -2369,6 +2780,34 @@ components:
           pattern: ^-?\d{0,4}(?:\.\d{0,4})?$
           nullable: true
           title: Container weight
+    PatchedLabelTemplate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: Human-readable, e.g. 'Location label (12mm)'. Not sent to the
+            printer.
+          maxLength: 50
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        template_number:
+          type: integer
+          maximum: 99
+          minimum: 1
+          description: The number assigned to this template in P-touch Transfer Manager
+            (1-99).
+        media_width_mm:
+          allOf:
+          - $ref: '#/components/schemas/MediaWidthMmEnum'
+          minimum: 0
+          maximum: 32767
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/LabelTemplateField'
     PatchedLocation:
       type: object
       properties:
@@ -2528,6 +2967,89 @@ components:
         * `faculty` - Faculty
         * `stockroom` - Stockroom Worker
         * `lab_assistant` - Lab Assistant
+    SDS:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        container:
+          allOf:
+          - $ref: '#/components/schemas/SDSContainer'
+          readOnly: true
+        file_name:
+          type: string
+          maxLength: 255
+        drive_id:
+          type: string
+          maxLength: 100
+        revision_date:
+          type: string
+          format: date
+          nullable: true
+        revision_number:
+          type: string
+          nullable: true
+          maxLength: 20
+        ghs_pictograms:
+          type: array
+          items:
+            $ref: '#/components/schemas/GhsPictogramsEnum'
+        view_url:
+          type: string
+          readOnly: true
+      required:
+      - container
+      - drive_id
+      - file_name
+      - id
+      - view_url
+    SDSContainer:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        label:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          maxLength: 200
+      required:
+      - id
+      - label
+      - name
+    SDSWrite:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        container:
+          type: integer
+        file:
+          type: string
+          format: uri
+          writeOnly: true
+        existing_sds:
+          type: integer
+          writeOnly: true
+        revision_date:
+          type: string
+          format: date
+          nullable: true
+        revision_number:
+          type: string
+          nullable: true
+          maxLength: 20
+        ghs_pictograms:
+          type: array
+          items:
+            $ref: '#/components/schemas/GhsPictogramsEnum'
+      required:
+      - container
+      - id
     SuccessMessage:
       type: object
       properties:

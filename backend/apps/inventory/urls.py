@@ -4,9 +4,11 @@ from .views import (
     ContainerView,
     ChemicalView,
     DashboardView,
+    LabelTemplateView,
     LocationView,
     LocationTypeView,
     ChemicalStorageCategoryView,
+    SDSView,
     WeightReadingView,
 )
 
@@ -23,6 +25,8 @@ router.register(
 router.register(r"weight_readings", WeightReadingView, basename="weight_reading")
 router.register(r"location_types", LocationTypeView, basename="location_type")
 router.register(r"dashboard", DashboardView, basename="dashboard")
+router.register(r"sds", SDSView, basename="sds")
+router.register(r"label_templates", LabelTemplateView, basename="label_template")
 urlpatterns = [
     path("", include(router.urls)),
 ]

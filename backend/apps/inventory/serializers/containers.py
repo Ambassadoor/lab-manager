@@ -5,6 +5,7 @@ from rest_framework import serializers
 from apps.users.serializers import UserCheckoutEventSerializer
 
 from ..models import Chemical, CheckoutEvent, Container, Location, WeightReading
+from .chemicals import SDSSerializer
 from .locations import LocationSerializer, LocationTypeSerializer
 
 
@@ -14,9 +15,15 @@ class ContainerSerializer(serializers.ModelSerializer):
     quantity = serializers.ReadOnlyField(label="Quantity")
     has_estimated_usage = serializers.ReadOnlyField(label="Has Estimated Usage?")
     location = LocationSerializer()
+    # Read-only PK, not nested — the frontend only needs the id, to fall
+    # back to the chemical's other SDS when this container has none of its
+    # own (see useContainerSdsFallback.ts). Writes still go through
+    # ContainerWriteSerializer, unaffected by this being read-only here.
+    chemical = serializers.PrimaryKeyRelatedField(read_only=True)
     percent_remaining = serializers.SerializerMethodField()
     latest_reading = serializers.SerializerMethodField()
     checkout_status = serializers.SerializerMethodField()
+    latest_sds = serializers.SerializerMethodField()
 
     class Meta:
         model = Container
@@ -25,6 +32,7 @@ class ContainerSerializer(serializers.ModelSerializer):
             "label",
             "slug",
             "name",
+            "chemical",
             "density",
             "location",
             "manufacturer",
@@ -38,6 +46,7 @@ class ContainerSerializer(serializers.ModelSerializer):
             "latest_reading",
             "percent_remaining",
             "checkout_status",
+            "latest_sds",
         ]
 
     # Returns the most recent weight reading
@@ -45,6 +54,15 @@ class ContainerSerializer(serializers.ModelSerializer):
         latest = obj.readings.order_by("-recorded_at").first()
         if latest:
             return WeightReadingSerializer(latest).data
+
+    # Returns this container's own most recent SDS, if it has one — a
+    # container with none should fall back to its chemical's other SDS
+    # (see ChemicalSerializer.get_sds), which the frontend fetches
+    # separately rather than this serializer guessing at a substitute.
+    def get_latest_sds(self, obj):
+        latest = obj.sds.order_by("-revision_date", "-revision_number").first()
+        if latest:
+            return SDSSerializer(latest).data
 
     # Calculates the percentage remaining using the most recent reading
     def get_percent_remaining(self, obj):

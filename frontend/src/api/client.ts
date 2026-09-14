@@ -102,12 +102,17 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   const method = (options.method ?? 'GET').toUpperCase();
   const needsCsrf = !['GET', 'HEAD', 'OPTIONS'].includes(method);
   const csrfToken = getCookie('csrftoken');
+  // A FormData body (SDS file uploads) needs the browser's own
+  // multipart/form-data Content-Type, boundary included — forcing
+  // application/json here the way every other (JSON) call needs would
+  // silently break the upload.
+  const isFormData = options.body instanceof FormData;
 
   const res = await fetch(`${BASE_URL}${path}`, {
     credentials: 'include',
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(needsCsrf && csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
       ...options.headers,
     },

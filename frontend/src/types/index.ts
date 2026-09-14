@@ -58,7 +58,20 @@ export type ReadonlyKeys<T> = {
 }[keyof T];
 
 export type EditableKeys<T> = Exclude<keyof T, ReadonlyKeys<T>>;
-export type Chemical = components['schemas']['Chemical'];
+export type SDS = components['schemas']['SDS'];
+// `SDSWrite`'s `file` field is typed `string` (openapi-typescript's best
+// guess for a binary/multipart field) — createSds (api/sds.ts) builds a
+// FormData body directly rather than going through this type, so it isn't
+// re-exported for that use.
+export type GHSPictogram = components['schemas']['GhsPictogramsEnum'];
+
+type ApiChemical = components['schemas']['Chemical'];
+// `sds` is a SerializerMethodField — the generated schema can't infer its
+// real type and defaults to `string` (same reason Container does this for
+// latest_reading/checkout_status/latest_sds below).
+export interface Chemical extends Omit<ApiChemical, 'sds'> {
+  readonly sds: SDS[];
+}
 export type StorageCategory = components['schemas']['ChemicalStorageCategories'];
 export type UnitEnums = components['schemas']['QuantityUnitEnum'];
 export type CheckoutEvent = components['schemas']['CheckoutEvent'];
@@ -69,9 +82,13 @@ export type Dashboard = {
   restock_soon: Container[];
   checked_out: Container[];
 };
-export interface Container extends Omit<ApiContainer, 'latest_reading' | 'checkout_status'> {
+export interface Container extends Omit<
+  ApiContainer,
+  'latest_reading' | 'checkout_status' | 'latest_sds'
+> {
   readonly latest_reading: WeightReading;
   readonly checkout_status: CheckoutEvent;
+  readonly latest_sds: SDS | null;
 }
 
 export interface Location extends Omit<ApiLocation, 'children'> {
@@ -152,7 +169,7 @@ export type BalanceReading = {
 export type PrinterStatus = {
   battery_level: number;
   media_width_mm: number;
-  media_length: number;
+  media_length_mm: number;
   media_type: string;
   errors: string[];
 };
@@ -166,3 +183,23 @@ export type PrintParams = {
 export type PrintConfirmation = {
   printed: true;
 };
+
+// A P-touch Template registered in the DB-backed template registry (see
+// bridge/PRINTER_PLAN.md's "template registry" TODO) — replaces the
+// hardcoded template numbers/field names printTemplates.ts used to carry.
+export type LabelTemplateKind = components['schemas']['KindEnum'];
+export type LabelFieldRole = components['schemas']['LabelTemplateFieldRoleEnum'];
+export type LabelMediaWidthMm = components['schemas']['MediaWidthMmEnum'];
+
+export type LabelTemplateField = components['schemas']['LabelTemplateField'];
+export type LabelTemplate = components['schemas']['LabelTemplate'];
+
+// A field row has no `id` yet when constructing a create/update payload —
+// the backend assigns one.
+export type LabelTemplateFieldWrite = Omit<LabelTemplateField, 'id'>;
+export type LabelTemplateWrite = Omit<LabelTemplate, 'id' | 'fields'> & {
+  fields: LabelTemplateFieldWrite[];
+};
+// Matches DRF's partial=True PATCH semantics — same fields as
+// LabelTemplateWrite, all optional.
+export type LabelTemplatePatch = components['schemas']['PatchedLabelTemplate'];

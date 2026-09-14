@@ -47,9 +47,11 @@ import { EditLocation } from './EditLocation';
 import { useAuth } from '../../../context/AuthContext';
 import { DataTable } from '../../shared/DataTable';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { printLabel } from '../../../api/bridge';
+import { printerKeys } from '../../../api/queryKeys';
 import { ConfirmDialog } from '../../shared/ConfirmDialog';
 import { useConfirmDialog } from '../../shared/useConfirmDialog';
+import { PrintResultSnackbar } from '../../shared/PrintResultSnackbar';
+import { printLocationLabel } from '../../shared/printTemplates';
 import { hasRoleAtLeast } from '../../shared/roles';
 
 type LocationProps = {
@@ -58,6 +60,11 @@ type LocationProps = {
   setSelectedLocation: (id: string) => void;
   editing?: boolean;
   onRequestDelete: (target: { id: string; name: string }) => void;
+  // Lifted to the top-level Locations component (see its own comment) —
+  // every row in this recursively-rendered tree calls the same one, so
+  // printing two rows in a row doesn't spawn two uncoordinated mutations
+  // or snackbars.
+  onPrint: (id: number) => void;
 };
 
 const iconMap = new Map([
@@ -79,18 +86,11 @@ const Location = ({
   setSelectedLocation,
   editing,
   onRequestDelete,
+  onPrint,
 }: LocationProps) => {
   const [expanded, setExpanded] = useState(false);
   const [open, setOpen] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
-
-  const handlePrint = (id: number) => {
-    printLabel({
-      template: 2,
-      fields: { QRCode: JSON.stringify({ id: id }), Text: `Loc-${id}` },
-      copies: 1,
-    });
-  };
 
   return (
     <Container>
@@ -137,7 +137,7 @@ const Location = ({
             <Button size="small" color="info" onClick={() => setOpenEdit(true)}>
               <Edit />
             </Button>
-            <Button size="small" color="success" onClick={() => handlePrint(location.id)}>
+            <Button size="small" color="success" onClick={() => onPrint(location.id)}>
               <Print />
             </Button>
             {/* No separate role check here — reaching this row's ButtonGroup
@@ -164,6 +164,7 @@ const Location = ({
             setSelectedLocation={setSelectedLocation}
             editing={editing}
             onRequestDelete={onRequestDelete}
+            onPrint={onPrint}
           />
         ))}
       </Collapse>
@@ -196,6 +197,24 @@ export const Locations = () => {
     queryFn: getLocations,
   });
 
+  const qc = useQueryClient();
+
+  // Lifted above the recursive Location tree (rather than one mutation per
+  // row) — one print at a time, one snackbar to show its result, regardless
+  // of which row in the tree triggered it. See PrintResultSnackbar for why
+  // it can watch this mutation directly with no onSuccess/onError here.
+  const printMutation = useMutation({
+    mutationFn: printLocationLabel,
+    // A print attempt is the one place in the app where the printer's own
+    // hardware state (media, errors) is guaranteed to have just changed —
+    // refetch the nav bar's status indicator instead of waiting up to
+    // POLL_INTERVAL_MS for it to notice on its own.
+    onSettled: () => qc.invalidateQueries({ queryKey: printerKeys.status() }),
+  });
+  const handlePrint = (id: number) => {
+    printMutation.mutate({ id });
+  };
+
   //Get's all containers for selected location and any child locations
   const { isPending, data: locationContainers } = useQuery({
     queryKey: locationKeys.containers(selectedLocation),
@@ -208,8 +227,6 @@ export const Locations = () => {
       }
     },
   });
-
-  const qc = useQueryClient();
 
   // Tracks which location (if any) is pending a delete confirmation, shared
   // by every row in the recursive tree below.
@@ -270,6 +287,7 @@ export const Locations = () => {
           if (deleteConfirm.target) mutation.mutate(deleteConfirm.target.id);
         }}
       />
+      <PrintResultSnackbar mutation={printMutation} label="Location label" />
       {isLocationsError && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {locationsError instanceof Error ? locationsError.message : 'Failed to load locations.'}
@@ -316,6 +334,7 @@ export const Locations = () => {
                 setSelectedLocation={setSelectedLocation}
                 editing={editing}
                 onRequestDelete={deleteConfirm.request}
+                onPrint={handlePrint}
               />
             ))
           )}

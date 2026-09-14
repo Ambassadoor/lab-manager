@@ -296,19 +296,125 @@ a fresh angle rather than a third guess at documented command wording:
 possibly Web Based Management's job-queue view (if it has one), or
 asking Brother support directly the same way the status OID was obtained.
 
-## Open questions for next session
+## TODO — frontend/backend wiring (next session)
 
-1. Frontend wiring (bridge client functions in `api/bridge.ts`, UI
-   buttons) — not started yet. `/print/label` and `/print/status` are
-   both implemented and confirmed working against real hardware.
-2. `CLAUDE.md`'s repo-level line still mentions b-PAC/`pywin32` for the
+`/print/label` and `/print/status` are both implemented and confirmed
+working against real hardware (see above). Nothing on the frontend or in
+Django consumes them yet. In priority order:
+
+1. **Printer status component.** Frontend component (bridge client
+   functions already stubbed in `api/bridge.ts` per
+   [types/index.ts](../frontend/src/types/index.ts)'s `PrinterStatus`
+   type, not yet called anywhere) that lets a user quickly check
+   online/offline, media installed, and current errors at a glance —
+   surfaces `GET /print/status`. Somewhere globally visible (header/nav),
+   not buried in one page, since printing happens from several places
+   (chemical labels, location labels).
+2. **Print result feedback everywhere printing happens.** Every UI entry
+   point that calls `POST /print/label` needs to show success/fail/error
+   to the user — not just log it. Reuse one presentation (toast/snackbar)
+   rather than inventing a pattern per page. Bridge unreachable, printer
+   offline, and printer-reported errors (from the `errors` array) are
+   three distinct cases worth distinguishing in the message rather than
+   a generic "print failed."
+3. **Template registry (DB-backed, admin/manager-managed).** A Django
+   model + admin UI so template number, object/field names (e.g.
+   `Barcode1`, `Text1`), and media size (mm) are data, not hardcoded —
+   see `print_label()`'s docstring in `app/printer.py` for why the
+   bridge itself can only select-by-number, never introspect a
+   template's fields from the printer.
+   - **Needs a resolved design for "same content, multiple sizes":** a
+     given label *kind* (e.g. Location) can map to more than one
+     template number depending on installed media width — template 2 at
+     12mm, template 3 at 24mm, etc., with the same field names. So the
+     registry can't be a flat `kind → template #` map; it's closer to
+     `kind → [{template #, media_width_mm, field mapping}]`, and the
+     print flow needs to either compare `media_width_mm` from this table
+     against `GET /print/status`'s live `media_width_mm` and pick the
+     matching row (or reject/warn if none matches the loaded media), or
+     let the user pick a size explicitly at print time. Decide which
+     before building the model, since it affects the schema (one row per
+     template vs. one row per label-kind with a nested size list).
+   - **Media width choices:** the user guide's spec table (p.170,
+     `cv_ptp950nw_useng_usr_04.pdf`) gives the fixed set of standard TZe/
+     HGe tape widths this printer takes: **3.5, 6, 9, 12, 18, 24, 36 mm**
+     (plus FLe/HSe specialty cassettes at their own fixed sizes). Use
+     this as the enum/dropdown for `media_width_mm` rather than a free
+     `int` field — matches `_MEDIA_TYPES`' style of a closed set in
+     `printer.py`.
+   - **No live read-back of a template's fields — confirmed again, but
+     found a manual cross-check.** The guide's "Backing up Templates...
+     Saved in the P-touch Label Printer" (p.118) confirms P-touch
+     Transfer Manager *can* read back what's currently on the printer
+     (name + key/template number, per item) via its `[Backup]` button —
+     but this is a manual, Windows-only, GUI-triggered action against
+     that specific software, not a protocol command; nothing our bridge
+     can call. Useful as a periodic manual audit for whoever maintains
+     the registry (confirm the DB rows still match reality after any
+     P-touch Editor changes), not as an automation path.
+   - **Template numbering constraint worth surfacing in the registry
+     UI:** Transfer Manager auto-assigns key numbers 1–10 when you drag a
+     template into a printer folder; going to 11–99 requires deliberately
+     setting that in Transfer Manager's advanced options (p.116, p.71-72
+     notes). Worth a hint in the admin form ("numbers above 10 must be
+     set manually in P-touch Editor's Transfer Manager") so a manager
+     doesn't create a registry row for a number that was never actually
+     assigned that way.
+4. **Whether printer errors can be cleared programmatically — resolved:
+   no.** Checked all four Brother references now in `brother_docs/`
+   (ptemp, raster, escp command references + this user guide); none
+   documents a network/serial command that clears a latched error. This
+   matches the "Cancelling a held/buffered print job" finding above
+   (`^II`, `ESC @` — both tested, neither worked) — Brother's own
+   troubleshooting table (p.169, "I want to reset an error") gives only
+   a **manual, physical** sequence:
+   1. Open the top cover, then close it.
+   2. If not cleared, press the **Feed & Cut** button.
+   3. If still not cleared, power the printer off and back on.
+   4. If still not cleared, contact Brother support (likely hardware
+      fault).
+   Same page also confirms **cancelling an in-progress job is manual
+   too** — briefly press the **Power** button — consistent with why the
+   two programmatic cancel attempts above never worked; there may simply
+   be no network/serial-reachable command for either action on this
+   model. **Action:** the status component from item 1 should show this
+   4-step sequence verbatim whenever `errors` is non-empty, so a
+   stockroom worker isn't left stuck with no next step.
+5. `CLAUDE.md`'s repo-level line still mentions b-PAC/`pywin32` for the
    printer — worth a follow-up edit now that the actual approach (raw
    socket + SNMP, no Windows/COM dependency) is settled and working.
-3. Label-type DB table (Django) + pre-print media check + post-print
-   status check — the flow discussed this session, minus the cancel
-   step (abandoned, see above). `/print/label` and `/print/status` cover
-   what's needed; the DB model, comparison logic, and user-facing
-   alerting are frontend/backend work for later.
+
+## FYI: barcode-scanned commands directly to the printer (not planned — different architecture)
+
+`cv_ptp950nw_useng_usr_04.pdf` chapter 6 ("Connecting a Barcode Scanner",
+p.70) and chapter 22 ("List of Barcodes for the P-touch Template
+Function", p.185) document a **standalone** P-touch Template workflow:
+a barcode scanner plugged directly into the printer itself (USB host,
+RS-232C serial, or Bluetooth — **not** through a computer/network at
+all) scans a sequence of pre-printed "command" barcodes to select a
+template, fill its fields, and trigger printing, with zero computer
+involvement at print time. Brother even sells a barcode scanner
+pre-configured for this (PA-BR-001, ch. 25).
+
+The command barcodes encode the exact same P-touch Template protocol
+`printer.py` already speaks over the network socket (`^TS`, `^ID`,
+`^ON`/`^OS`, `^FF`, `^NN`, etc. — see ch. 22's table) — scanning a
+barcode just injects those bytes at the printer's serial/USB-host port
+instead of us writing them to a TCP socket. Chapter 6 also documents a
+"Database Lookup Printing" mode (p.76) where a `.csv` transferred onto
+the printer alongside a template lets a scanned keyword barcode look up
+a row and fill the template natively — conceptually similar to what our
+Django backend already does when it builds the `fields` dict for
+`POST /print/label`, just done printer-side instead.
+
+**Not adopting this** — our web app already covers the same ground more
+usefully (real inventory data instead of a static onboard CSV, audit
+logging, no pre-printed command-barcode sheets to keep track of). Noting
+it here because it's a legitimate **offline fallback**: if the bridge or
+network is down, someone could still walk up to the printer with a
+printed sheet of these command barcodes and a scanner plugged directly
+into it and print a label with no computer at all. Worth revisiting only
+if that scenario becomes a real operational pain point — not before.
 
 ## Resolved this session
 - ~~Test `POST /print/label` for real~~ — done, printed successfully

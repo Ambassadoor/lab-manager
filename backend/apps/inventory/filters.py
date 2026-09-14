@@ -1,3 +1,5 @@
+import re
+
 import django_filters as df
 from django.db.models import Q, Subquery
 
@@ -5,7 +7,9 @@ from .models import (
     Chemical,
     CheckoutEvent,
     Container,
+    LabelTemplate,
     Location,
+    SDS,
     most_recent_checkout_event_subquery,
 )
 
@@ -63,6 +67,44 @@ class ChemicalFilter(df.FilterSet):
         fields = ["name", "cas", "formula", "storage_category", "is_organic"]
 
 
+class SDSFilter(df.FilterSet):
+    container = df.NumberFilter(field_name="container_id")
+    chemical = df.NumberFilter(field_name="container__chemical_id")
+    manufacturer = df.CharFilter(field_name="container__manufacturer", lookup_expr="icontains")
+    product_num = df.CharFilter(field_name="container__product_num", lookup_expr="icontains")
+    search = df.CharFilter(method="filter_search")
+
+    class Meta:
+        model = SDS
+        # revision_date/revision_number (exact match) auto-generated from
+        # the model field types — used by the frontend's pre-submit
+        # duplicate check (same chemical + revision date + # already on
+        # file), not just the "existing SDS" suggestion list above.
+        fields = [
+            "container",
+            "chemical",
+            "manufacturer",
+            "product_num",
+            "revision_date",
+            "revision_number",
+        ]
+
+    # One combined search box covers Chemical name, Product name, CAS #,
+    # Product #, and Chem-ID (Container.label, e.g. "CHEM-1143") — matches
+    # the single search-box pattern already used for Containers/Chemicals.
+    def filter_search(self, queryset, name, value):
+        q = (
+            Q(container__chemical__name__icontains=value)
+            | Q(container__name__icontains=value)
+            | Q(container__chemical__cas__icontains=value)
+            | Q(container__product_num__icontains=value)
+        )
+        match = re.fullmatch(r"(?:chem-)?0*(\d+)", value.strip(), re.IGNORECASE)
+        if match:
+            q |= Q(container_id=int(match.group(1)))
+        return queryset.filter(q)
+
+
 class LocationFilter(df.FilterSet):
     name = df.CharFilter(lookup_expr="icontains")
 
@@ -72,3 +114,12 @@ class LocationFilter(df.FilterSet):
         # LocationView.get_queryset() already forces parent=None for the
         # plain list action, so a parent filter would be a silent no-op there.
         fields = ["name", "type"]
+
+
+class LabelTemplateFilter(df.FilterSet):
+    class Meta:
+        model = LabelTemplate
+        # Both choices fields — exact-match filters auto-generated from the
+        # model field type. `kind` is what the print flow's own lookup
+        # (frontend printTemplates.ts) filters by.
+        fields = ["kind", "media_width_mm"]

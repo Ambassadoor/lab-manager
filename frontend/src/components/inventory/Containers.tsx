@@ -14,21 +14,25 @@ import {
 } from '@mui/material';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getContainers, patchContainer, type ContainerListParams } from '../../api/inventory';
-import { containerKeys } from '../../api/queryKeys';
+import { containerKeys, printerKeys } from '../../api/queryKeys';
 import {
   type CellValueChangedEvent,
   type ColDef,
   type GetRowIdParams,
   type RowSelectionOptions,
 } from 'ag-grid-community';
+import { type CustomCellRendererProps } from 'ag-grid-react';
 import { ContainerDetail } from './ContainerDetail';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DataTable } from '../shared/DataTable';
 import type { Container as ContainerType, ContainerPatch, EditableKeys } from '../../types';
-import { AddBox, Search } from '@mui/icons-material';
+import { AddBox, Description, Print, Search, UploadFile } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { hasRoleAtLeast } from '../shared/roles';
+import { SdsUploadDialog } from '../sds/SdsUploadDialog';
+import { PrintResultSnackbar } from '../shared/PrintResultSnackbar';
+import { printContainerLabel } from '../shared/printTemplates';
 
 // The three dashboard-card slices "View More" can land here with, via
 // ?view=. `checked_out` and `recently_added` translate straight to backend
@@ -68,6 +72,78 @@ function filterByView(containers: ContainerType[], view: ContainersViewKey | nul
       return containers;
   }
 }
+
+// The SDS column's cellRenderer — a real component (not a plain render
+// function like formulaCellRenderer in Chemicals.tsx) since it needs its
+// own hooks: per-row upload-dialog state, and its own role check (rows
+// render independently of the table's own canEdit closure).
+const SdsCellRenderer = (params: CustomCellRendererProps<ContainerType>) => {
+  const { user } = useAuth();
+  const canEdit = hasRoleAtLeast(user, 'stockroom');
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
+  const container = params.data;
+  if (!container) return null;
+
+  if (container.latest_sds) {
+    const sdsId = container.latest_sds.id;
+    return (
+      <Tooltip title="View SDS">
+        <IconButton size="small" onClick={() => navigate(`/sds/${sdsId}`)}>
+          <Description fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    );
+  }
+
+  if (!canEdit) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        None on file
+      </Typography>
+    );
+  }
+
+  return (
+    <>
+      <Tooltip title="Upload SDS">
+        <IconButton size="small" onClick={() => setOpen(true)}>
+          <UploadFile fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <SdsUploadDialog
+        open={open}
+        setOpen={setOpen}
+        containerId={container.id}
+        chemicalId={container.chemical}
+        manufacturer={container.manufacturer}
+        productNum={container.product_num}
+      />
+    </>
+  );
+};
+
+// The print column's cellRenderer — unlike SdsCellRenderer, it doesn't own
+// a mutation itself: one print at a time, one snackbar for whichever row
+// triggered it, same reasoning as Locations.tsx's recursive tree. `onPrint`
+// comes from the parent's cellRendererParams instead.
+type PrintCellRendererProps = CustomCellRendererProps<ContainerType> & {
+  onPrint: (container: ContainerType) => void;
+};
+
+const PrintCellRenderer = ({ data, onPrint }: PrintCellRendererProps) => {
+  const { user } = useAuth();
+  if (!data || !hasRoleAtLeast(user, 'stockroom')) return null;
+
+  return (
+    <Tooltip title="Print label">
+      <IconButton size="small" onClick={() => onPrint(data)}>
+        <Print fontSize="small" />
+      </IconButton>
+    </Tooltip>
+  );
+};
 
 // Fetches its own container list rather than receiving it as a prop — this
 // only pays for itself once a second consumer needs the same data (App.tsx
@@ -116,6 +192,22 @@ export const Containers = () => {
   const [open, setOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<ContainerType | undefined>(undefined);
   const [editError, setEditError] = useState<string | null>(null);
+
+  const qc = useQueryClient();
+  // Lifted above the grid (not owned per-row by PrintCellRenderer) — one
+  // print at a time, one snackbar for whichever row triggered it, same
+  // reasoning as Locations.tsx's recursive tree.
+  const printMutation = useMutation({
+    mutationFn: printContainerLabel,
+    // A print attempt is the one place here the printer's own hardware
+    // state (media, errors) is guaranteed to have just changed — refetch
+    // the nav bar's status indicator instead of waiting on its own poll.
+    onSettled: () => qc.invalidateQueries({ queryKey: printerKeys.status() }),
+  });
+  const handlePrint = (container: ContainerType) => {
+    printMutation.mutate(container);
+  };
+
   const [colDefs] = useState<ColDef<ContainerType>[]>([
     { field: 'label', headerName: 'ID', filter: true },
     { field: 'name', filter: true },
@@ -127,7 +219,30 @@ export const Containers = () => {
       headerName: 'Product #',
       editable: canEdit,
     },
-    { field: 'is_opened', headerName: 'Opened?' },
+    // These three all fit comfortably under 130px, but autoSizeStrategy's
+    // fitCellContents (DataTable.tsx) sizes a column to the *widest* thing
+    // rendered in any row — is_opened's "Opened?" header text is wider than
+    // its own checkbox, and SDS mixes a slim icon button with the longer
+    // "None on file" text — so all three need an explicit cap rather than
+    // trusting the auto-fit alone.
+    { field: 'is_opened', headerName: 'Opened?', maxWidth: 110 },
+    {
+      field: 'latest_sds',
+      headerName: 'SDS',
+      cellRenderer: SdsCellRenderer,
+      sortable: false,
+      filter: false,
+      maxWidth: 140,
+    },
+    {
+      colId: 'print',
+      headerName: 'Label',
+      cellRenderer: PrintCellRenderer,
+      cellRendererParams: { onPrint: handlePrint },
+      sortable: false,
+      filter: false,
+      maxWidth: 90,
+    },
   ]);
 
   const rowSelection = useMemo<RowSelectionOptions>(() => {
@@ -138,7 +253,6 @@ export const Containers = () => {
 
   const getRowId = useCallback((params: GetRowIdParams<ContainerType>) => params.data.label, []);
 
-  const qc = useQueryClient();
   const patchMutation = useMutation({
     mutationFn: ({ slug, data }: { slug: string; data: ContainerPatch }) =>
       patchContainer(slug, data),
@@ -245,6 +359,7 @@ export const Containers = () => {
           {editError}
         </Alert>
       </Snackbar>
+      <PrintResultSnackbar mutation={printMutation} label="Container label" />
     </Container>
   );
 };

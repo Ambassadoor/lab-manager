@@ -92,23 +92,8 @@ def client(user):
     return api_client
 
 
-@pytest.fixture
-def client_as(db):
-    """An authenticated APIClient for a fresh user with the given role."""
-
-    def _make(role):
-        api_client = APIClient()
-        api_client.force_authenticate(
-            user=User.objects.create_user(
-                username=f"user-{role}",
-                email=f"{role}@lipscomb.edu",
-                password="pw12345!",
-                role=role,
-            )
-        )
-        return api_client
-
-    return _make
+# client_as now lives in conftest.py, shared with test_inventory_views.py/
+# test_sds.py.
 
 
 @pytest.mark.django_db
