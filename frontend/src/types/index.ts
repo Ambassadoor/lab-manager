@@ -169,7 +169,7 @@ export type BalanceReading = {
 export type PrinterStatus = {
   battery_level: number;
   media_width_mm: number;
-  media_length: number;
+  media_length_mm: number;
   media_type: string;
   errors: string[];
 };

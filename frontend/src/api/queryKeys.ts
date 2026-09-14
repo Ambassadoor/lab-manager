@@ -52,3 +52,12 @@ export const sdsKeys = {
   list: (params?: SdsListParams) => [...sdsKeys.all, 'list', params ?? {}] as const,
   detail: (id: number | string) => [...sdsKeys.all, 'detail', id] as const,
 };
+
+export const printerKeys = {
+  all: ['printer'] as const,
+  // Bridge hardware status, not a Django resource — no `list`/`detail`
+  // shape, just the one live value. Kept as its own key (rather than
+  // inlined at the call site) so a future print mutation can invalidate/
+  // refetch it after printing without duplicating the key array.
+  status: () => [...printerKeys.all, 'status'] as const,
+};

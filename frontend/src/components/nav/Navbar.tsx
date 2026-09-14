@@ -30,6 +30,7 @@ import { useState, type JSX } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Logout } from '@mui/icons-material';
 import { DarkModeToggle } from './DarkModeToggle';
+import { PrinterStatusIndicator } from './PrinterStatusIndicator';
 import { Link, NavLink, Outlet, useNavigate, useNavigation } from 'react-router-dom';
 import { hasRoleAtLeast } from '../shared/roles';
 
@@ -213,6 +214,14 @@ export const Navbar = (): JSX.Element | null => {
                 )}
               </Stack>
             </Box>
+            {/* Stockroom+ only — same gate as Add Container/Actions above,
+                since printing labels is a stockroom-level task and the
+                bridge it reports on only runs on the lab PC anyway. */}
+            {user && hasRoleAtLeast(user, 'stockroom') && (
+              <Box sx={{ display: 'inline-flex', mr: 2 }}>
+                <PrinterStatusIndicator />
+              </Box>
+            )}
             <DarkModeToggle />
             {!user ? (
               <Button color="inherit">Login</Button>
