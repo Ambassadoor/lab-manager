@@ -14,7 +14,6 @@ import {
 } from '@mui/material';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getContainers, patchContainer, type ContainerListParams } from '../../api/inventory';
-import { printLabelChecked } from '../../api/bridge';
 import { containerKeys, printerKeys } from '../../api/queryKeys';
 import {
   type CellValueChangedEvent,
@@ -33,7 +32,7 @@ import { useAuth } from '../../context/AuthContext';
 import { hasRoleAtLeast } from '../shared/roles';
 import { SdsUploadDialog } from '../sds/SdsUploadDialog';
 import { PrintResultSnackbar } from '../shared/PrintResultSnackbar';
-import { containerLabelPrintParams } from '../shared/printTemplates';
+import { printContainerLabel } from '../shared/printTemplates';
 
 // The three dashboard-card slices "View More" can land here with, via
 // ?view=. `checked_out` and `recently_added` translate straight to backend
@@ -199,14 +198,14 @@ export const Containers = () => {
   // print at a time, one snackbar for whichever row triggered it, same
   // reasoning as Locations.tsx's recursive tree.
   const printMutation = useMutation({
-    mutationFn: printLabelChecked,
+    mutationFn: printContainerLabel,
     // A print attempt is the one place here the printer's own hardware
     // state (media, errors) is guaranteed to have just changed — refetch
     // the nav bar's status indicator instead of waiting on its own poll.
     onSettled: () => qc.invalidateQueries({ queryKey: printerKeys.status() }),
   });
   const handlePrint = (container: ContainerType) => {
-    printMutation.mutate(containerLabelPrintParams(container));
+    printMutation.mutate(container);
   };
 
   const [colDefs] = useState<ColDef<ContainerType>[]>([

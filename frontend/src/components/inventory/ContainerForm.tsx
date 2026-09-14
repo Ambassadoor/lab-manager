@@ -37,7 +37,7 @@ import {
   getStorageCategories,
   submitNewContainerForm,
 } from '../../api/inventory';
-import { getBalanceWeight, printLabelChecked } from '../../api/bridge';
+import { getBalanceWeight } from '../../api/bridge';
 import { createSds, type PendingSdsSelection } from '../../api/sds';
 import {
   containerKeys,
@@ -47,7 +47,7 @@ import {
   printerKeys,
 } from '../../api/queryKeys';
 import { setPendingActionResult, type PendingActionResult } from '../shared/pendingActionResult';
-import { containerLabelPrintParams } from '../shared/printTemplates';
+import { printContainerLabel } from '../shared/printTemplates';
 import { type ContainerFormDefaults, type CasCheck, type Location } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { Decimal } from 'decimal.js';
@@ -329,7 +329,7 @@ export const ContainerForm = () => {
   const scaleMutation = useMutation({ mutationFn: getBalanceWeight });
 
   const printMutation = useMutation({
-    mutationFn: printLabelChecked,
+    mutationFn: printContainerLabel,
     // The one place in this form where the printer's own hardware state
     // (media, errors) is guaranteed to have just changed — refetch the nav
     // bar's status indicator instead of waiting on its own poll interval.
@@ -360,7 +360,7 @@ export const ContainerForm = () => {
 
     if (data.print) {
       try {
-        await printMutation.mutateAsync(containerLabelPrintParams(response));
+        await printMutation.mutateAsync(response);
         results.push({ severity: 'success', message: 'Container label sent to printer.' });
       } catch (e) {
         results.push({

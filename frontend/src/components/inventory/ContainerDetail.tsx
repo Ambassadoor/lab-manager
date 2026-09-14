@@ -24,7 +24,6 @@ import {
   updateContainer,
 } from '../../api/inventory';
 import { containerKeys, locationKeys, printerKeys } from '../../api/queryKeys';
-import { printLabelChecked } from '../../api/bridge';
 import type { Container, ContainerDetailDefaults } from '../../types';
 import { Close, Edit, ExpandLess, ExpandMore, Print, UnfoldMore } from '@mui/icons-material';
 import { ToggleField } from '../shared/ToggleField';
@@ -38,7 +37,7 @@ import { SdsUploadDialog } from '../sds/SdsUploadDialog';
 import { useContainerSdsFallback } from '../../hooks/useContainerSdsFallback';
 import { PendingResultSnackbar } from '../shared/PendingResultSnackbar';
 import { PrintResultSnackbar } from '../shared/PrintResultSnackbar';
-import { containerLabelPrintParams } from '../shared/printTemplates';
+import { printContainerLabel } from '../shared/printTemplates';
 
 type ContainerDetailProps = {
   data?: Container;
@@ -114,7 +113,7 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
   const queryClient = useQueryClient();
 
   const printMutation = useMutation({
-    mutationFn: printLabelChecked,
+    mutationFn: printContainerLabel,
     // The one place here the printer's own hardware state (media, errors)
     // is guaranteed to have just changed — refetch the nav bar's status
     // indicator instead of waiting on its own poll interval.
@@ -206,9 +205,7 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
                     )}
                     {canEdit && (
                       <Tooltip title="Print label">
-                        <IconButton
-                          onClick={() => printMutation.mutate(containerLabelPrintParams(container))}
-                        >
+                        <IconButton onClick={() => printMutation.mutate(container)}>
                           <Print />
                         </IconButton>
                       </Tooltip>

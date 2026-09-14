@@ -47,12 +47,11 @@ import { EditLocation } from './EditLocation';
 import { useAuth } from '../../../context/AuthContext';
 import { DataTable } from '../../shared/DataTable';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { printLabelChecked } from '../../../api/bridge';
 import { printerKeys } from '../../../api/queryKeys';
 import { ConfirmDialog } from '../../shared/ConfirmDialog';
 import { useConfirmDialog } from '../../shared/useConfirmDialog';
 import { PrintResultSnackbar } from '../../shared/PrintResultSnackbar';
-import { locationLabelPrintParams } from '../../shared/printTemplates';
+import { printLocationLabel } from '../../shared/printTemplates';
 import { hasRoleAtLeast } from '../../shared/roles';
 
 type LocationProps = {
@@ -205,7 +204,7 @@ export const Locations = () => {
   // of which row in the tree triggered it. See PrintResultSnackbar for why
   // it can watch this mutation directly with no onSuccess/onError here.
   const printMutation = useMutation({
-    mutationFn: printLabelChecked,
+    mutationFn: printLocationLabel,
     // A print attempt is the one place in the app where the printer's own
     // hardware state (media, errors) is guaranteed to have just changed —
     // refetch the nav bar's status indicator instead of waiting up to
@@ -213,7 +212,7 @@ export const Locations = () => {
     onSettled: () => qc.invalidateQueries({ queryKey: printerKeys.status() }),
   });
   const handlePrint = (id: number) => {
-    printMutation.mutate(locationLabelPrintParams({ id }));
+    printMutation.mutate({ id });
   };
 
   //Get's all containers for selected location and any child locations
