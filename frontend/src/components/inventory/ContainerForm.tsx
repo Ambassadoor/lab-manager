@@ -39,7 +39,15 @@ import {
 } from '../../api/inventory';
 import { getBalanceWeight, printLabel } from '../../api/bridge';
 import { createSds, type PendingSdsSelection } from '../../api/sds';
-import { containerKeys, chemicalKeys, dashboardKeys, locationKeys } from '../../api/queryKeys';
+import {
+  containerKeys,
+  chemicalKeys,
+  dashboardKeys,
+  locationKeys,
+  printerKeys,
+} from '../../api/queryKeys';
+import { setPendingActionResult, type PendingActionResult } from '../shared/pendingActionResult';
+import { containerLabelPrintParams } from '../shared/printTemplates';
 import { type ContainerFormDefaults, type CasCheck, type Location } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { Decimal } from 'decimal.js';
@@ -94,7 +102,6 @@ export const ContainerForm = () => {
   const [sdsDialogOpen, setSdsDialogOpen] = useState(false);
   const [pendingSds, setPendingSds] = useState<PendingSdsSelection | null>(null);
   const [pendingSdsLabel, setPendingSdsLabel] = useState('');
-  const [sdsError, setSdsError] = useState<string | null>(null);
 
   const theme = useTheme();
   const navigate = useNavigate();
@@ -321,6 +328,14 @@ export const ContainerForm = () => {
 
   const scaleMutation = useMutation({ mutationFn: getBalanceWeight });
 
+  const printMutation = useMutation({
+    mutationFn: printLabel,
+    // The one place in this form where the printer's own hardware state
+    // (media, errors) is guaranteed to have just changed — refetch the nav
+    // bar's status indicator instead of waiting on its own poll interval.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: printerKeys.status() }),
+  });
+
   //Format date fields, clear session storage, invalidate stale container data and navigate to detail page
   const onSubmit: SubmitHandler<ContainerFormDefaults> = async (data) => {
     if (data.date_received && data.date_received instanceof dayjs) {
@@ -334,23 +349,46 @@ export const ContainerForm = () => {
     sessionStorage.removeItem('container_form_cache');
     queryClient.invalidateQueries({ queryKey: containerKeys.list() });
     queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
+
+    // Both of these used to be fire-and-forget (print) or awaited but only
+    // shown via a Snackbar in *this* component (SDS) — but navigate() below
+    // unmounts this form immediately after, before either async result
+    // could ever actually be seen. Both are awaited now and their outcome
+    // stashed via setPendingActionResult instead, for the destination page
+    // to show once it lands (see that module's comment for why).
+    const results: PendingActionResult[] = [];
+
     if (data.print) {
-      printLabel({
-        template: 1,
-        fields: { Barcode1: JSON.stringify({ id: response.label }), Text1: response.label },
-        copies: 1,
-      }).catch((e) => setBridgeError(e.message));
+      try {
+        await printMutation.mutateAsync(containerLabelPrintParams(response));
+        results.push({ severity: 'success', message: 'Container label sent to printer.' });
+      } catch (e) {
+        results.push({
+          severity: 'error',
+          message: `Container label failed to print: ${e instanceof Error ? e.message : 'Unknown error'}`,
+        });
+      }
     }
-    // Second call, now that the container (and possibly its chemical) is
-    // real — awaited, unlike the label print above, so the detail page
-    // navigated to next already reflects the upload instead of racing it.
     if (pendingSds) {
       try {
         await createSds({ container: response.id, ...pendingSds });
       } catch (e) {
-        setSdsError(e instanceof Error ? e.message : 'Failed to upload SDS.');
+        results.push({
+          severity: 'error',
+          message: e instanceof Error ? e.message : 'Failed to upload SDS.',
+        });
       }
     }
+    // Combined into one message rather than picking a winner — print and
+    // SDS failing independently in the same submit is rare, but dropping
+    // whichever one didn't "win" would hide a real problem either way.
+    if (results.length > 0) {
+      setPendingActionResult({
+        severity: results.some((r) => r.severity === 'error') ? 'error' : 'success',
+        message: results.map((r) => r.message).join(' '),
+      });
+    }
+
     navigate(`/inventory/containers/${response.slug}`);
   };
 
@@ -377,21 +415,6 @@ export const ContainerForm = () => {
           sx={{ width: '100%' }}
         >
           {bridgeError}
-        </Alert>
-      </Snackbar>
-      <Snackbar
-        open={!!sdsError}
-        onClose={() => setSdsError(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        autoHideDuration={6000}
-      >
-        <Alert
-          onClose={() => setSdsError(null)}
-          severity="error"
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {sdsError}
         </Alert>
       </Snackbar>
       <FormProvider {...formMethods}>
