@@ -344,7 +344,10 @@ export const SdsUploadDialog = ({
                 <TextField
                   {...field}
                   label="Revision #"
-                  type="number"
+                  // Not type="number" — real revision labels aren't always
+                  // plain integers (e.g. "6.7" decimal versioning), and
+                  // SDS.revision_number is stored as text for exactly that
+                  // reason.
                   onChange={(e) => {
                     onChange(e);
                     clearErrors(name);

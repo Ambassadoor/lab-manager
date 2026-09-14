@@ -1857,7 +1857,7 @@ paths:
       - in: query
         name: revision_number
         schema:
-          type: integer
+          type: string
       - name: search
         required: false
         in: query
@@ -2988,10 +2988,9 @@ components:
           format: date
           nullable: true
         revision_number:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
+          type: string
           nullable: true
+          maxLength: 20
         ghs_pictograms:
           type: array
           items:
@@ -3041,10 +3040,9 @@ components:
           format: date
           nullable: true
         revision_number:
-          type: integer
-          maximum: 2147483647
-          minimum: -2147483648
+          type: string
           nullable: true
+          maxLength: 20
         ghs_pictograms:
           type: array
           items:

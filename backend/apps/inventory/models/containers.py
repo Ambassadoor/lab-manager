@@ -153,7 +153,11 @@ class SDS(models.Model):
     file_name = models.CharField(max_length=255)
     drive_id = models.CharField(max_length=100)
     revision_date = models.DateField(null=True, blank=True)
-    revision_number = models.IntegerField(null=True, blank=True)
+    # Text, not a number — real-world SDS revision labels aren't always
+    # plain integers (the source data this was reconciled against uses
+    # "6.7", "8.2" style decimal versioning), so this holds whatever the
+    # manufacturer actually calls it rather than lossily coercing it.
+    revision_number = models.CharField(max_length=20, null=True, blank=True)
     ghs_pictograms = ArrayField(
         models.CharField(max_length=20, choices=GHSPictogram.choices),
         default=list,

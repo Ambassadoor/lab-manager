@@ -21,7 +21,7 @@ def sds(make_container):
         file_name="acme-p1.pdf",
         drive_id="drive-abc",
         revision_date=date(2024, 1, 1),
-        revision_number=2,
+        revision_number="2",
     )
 
 
@@ -146,7 +146,7 @@ class TestSDSFilter:
             file_name="other.pdf",
             drive_id="drive-other",
             revision_date=date(2024, 6, 1),
-            revision_number=9,
+            revision_number="9",
         )
 
         assert len(client.get("/inventory/sds/?revision_date=2024-01-01").data) == 1

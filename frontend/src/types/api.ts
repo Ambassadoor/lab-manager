@@ -1076,7 +1076,7 @@ export interface components {
       drive_id: string;
       /** Format: date */
       revision_date?: string | null;
-      revision_number?: number | null;
+      revision_number?: string | null;
       ghs_pictograms?: components['schemas']['GhsPictogramsEnum'][];
       readonly view_url: string;
     };
@@ -1093,7 +1093,7 @@ export interface components {
       existing_sds?: number;
       /** Format: date */
       revision_date?: string | null;
-      revision_number?: number | null;
+      revision_number?: string | null;
       ghs_pictograms?: components['schemas']['GhsPictogramsEnum'][];
     };
     SuccessMessage: {
@@ -2808,7 +2808,7 @@ export interface operations {
         ordering?: string;
         product_num?: string;
         revision_date?: string;
-        revision_number?: number;
+        revision_number?: string;
         /** @description A search term. */
         search?: string;
       };
