@@ -206,9 +206,20 @@ export const Navbar = (): JSX.Element | null => {
                       Chemicals
                     </Button>
                     {hasRoleAtLeast(user, 'lab_manager') && (
-                      <Button component={NavLink} to="/users/" color="inherit" sx={navLinkSx} end>
-                        Users
-                      </Button>
+                      <>
+                        <Button component={NavLink} to="/users/" color="inherit" sx={navLinkSx} end>
+                          Users
+                        </Button>
+                        <Button
+                          component={NavLink}
+                          to="/label-templates/"
+                          color="inherit"
+                          sx={navLinkSx}
+                          end
+                        >
+                          Label Templates
+                        </Button>
+                      </>
                     )}
                   </>
                 )}
@@ -354,15 +365,26 @@ export const Navbar = (): JSX.Element | null => {
                   <ListItemText primary="Chemicals" />
                 </ListItemButton>
                 {hasRoleAtLeast(user, 'lab_manager') && (
-                  <ListItemButton
-                    component={NavLink}
-                    to="/users/"
-                    end
-                    sx={navLinkSx}
-                    onClick={closeMobileMenu}
-                  >
-                    <ListItemText primary="Users" />
-                  </ListItemButton>
+                  <>
+                    <ListItemButton
+                      component={NavLink}
+                      to="/users/"
+                      end
+                      sx={navLinkSx}
+                      onClick={closeMobileMenu}
+                    >
+                      <ListItemText primary="Users" />
+                    </ListItemButton>
+                    <ListItemButton
+                      component={NavLink}
+                      to="/label-templates/"
+                      end
+                      sx={navLinkSx}
+                      onClick={closeMobileMenu}
+                    >
+                      <ListItemText primary="Label Templates" />
+                    </ListItemButton>
+                  </>
                 )}
               </>
             )}

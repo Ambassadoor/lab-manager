@@ -183,3 +183,23 @@ export type PrintParams = {
 export type PrintConfirmation = {
   printed: true;
 };
+
+// A P-touch Template registered in the DB-backed template registry (see
+// bridge/PRINTER_PLAN.md's "template registry" TODO) — replaces the
+// hardcoded template numbers/field names printTemplates.ts used to carry.
+export type LabelTemplateKind = components['schemas']['KindEnum'];
+export type LabelFieldRole = components['schemas']['LabelTemplateFieldRoleEnum'];
+export type LabelMediaWidthMm = components['schemas']['MediaWidthMmEnum'];
+
+export type LabelTemplateField = components['schemas']['LabelTemplateField'];
+export type LabelTemplate = components['schemas']['LabelTemplate'];
+
+// A field row has no `id` yet when constructing a create/update payload —
+// the backend assigns one.
+export type LabelTemplateFieldWrite = Omit<LabelTemplateField, 'id'>;
+export type LabelTemplateWrite = Omit<LabelTemplate, 'id' | 'fields'> & {
+  fields: LabelTemplateFieldWrite[];
+};
+// Matches DRF's partial=True PATCH semantics — same fields as
+// LabelTemplateWrite, all optional.
+export type LabelTemplatePatch = components['schemas']['PatchedLabelTemplate'];

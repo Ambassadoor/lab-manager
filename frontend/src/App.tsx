@@ -16,6 +16,7 @@ import { Register } from './components/accounts/Register';
 import { Profile } from './components/accounts/Profile';
 import { Users } from './components/accounts/Users';
 import { UserDetail } from './components/accounts/UserDetail';
+import { LabelTemplates } from './components/labels/LabelTemplates';
 import { hasRoleAtLeast } from './components/shared/roles';
 import type { Role } from './types';
 import { Containers } from './components/inventory/Containers';
@@ -122,6 +123,11 @@ export default function App() {
                   { index: true, element: <Users /> },
                   { path: ':id', element: <UserDetail /> },
                 ],
+              },
+              {
+                path: 'label-templates',
+                element: <RequireRole role="lab_manager" />,
+                children: [{ index: true, element: <LabelTemplates /> }],
               },
               {
                 path: 'inventory',
