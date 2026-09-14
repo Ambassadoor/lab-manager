@@ -29,3 +29,6 @@ data.json
 
 # --- Playwright MCP ---
 .playwright-mcp/
+
+# --- Claude Code local settings (tool-approval bookkeeping, not shared config) ---
+.claude/settings.json
