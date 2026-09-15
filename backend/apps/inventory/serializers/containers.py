@@ -1,5 +1,3 @@
-from decimal import Decimal, DecimalException, ROUND_HALF_UP
-
 from rest_framework import serializers
 
 from apps.users.serializers import UserCheckoutEventSerializer
@@ -64,30 +62,12 @@ class ContainerSerializer(serializers.ModelSerializer):
         if latest:
             return SDSSerializer(latest).data
 
-    # Calculates the percentage remaining using the most recent reading
+    # Delegates to Container.percent_remaining — the one place this is
+    # computed, so DashboardView's restock_soon can use the exact same
+    # logic instead of a second, independently-drifting implementation
+    # (see that property's docstring for the bug this caused).
     def get_percent_remaining(self, obj):
-        try:
-            if obj.initial_content_mass is not None:
-                mass = Decimal(str(obj.initial_content_mass))
-            else:
-                return None
-            latest_reading = self.get_latest_reading(obj)
-            if latest_reading is not None:
-                current_weight = Decimal(str(latest_reading["weight"]))
-            else:
-                return None
-            # Matches Container.has_estimated_usage: a non-positive
-            # tare_weight isn't a real measurement (see migration
-            # 0026_null_placeholder_zero_tare_weights).
-            if obj.tare_weight is not None and obj.tare_weight > 0:
-                tare_weight = Decimal(str(obj.tare_weight))
-            else:
-                return None
-
-            percent_remaining = ((current_weight - tare_weight) / mass) * 100
-            return percent_remaining.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-        except DecimalException:
-            return None
+        return obj.percent_remaining
 
     # Returns the current checkout status ("in/out")
     def get_checkout_status(self, obj):

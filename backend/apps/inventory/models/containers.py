@@ -1,3 +1,5 @@
+from decimal import Decimal, DecimalException, ROUND_HALF_UP
+
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
@@ -79,6 +81,40 @@ class Container(models.Model):
     @property
     def quantity(self) -> str:
         return f"{self.initial_quantity} {self.quantity_unit}"
+
+    # The one place this is computed — DashboardView's restock_soon query
+    # used to reimplement this as a raw weight/initial_weight SQL division,
+    # silently different from this (no tare-weight subtraction, dividing by
+    # the whole container's initial weight instead of just its content
+    # mass) — badly undercounting how empty a container actually was, since
+    # a container's own tare weight is usually most of its initial_weight.
+    # initial_content_mass's density/unit conditional can't reduce to a
+    # single SQL expression cleanly anyway, which is also why
+    # ?view=restock_soon is re-filtered client-side in Containers.tsx
+    # rather than trusted from a backend annotation.
+    @property
+    def percent_remaining(self):
+        """Percentage of the container's original chemical content still
+        present, based on its most recent weight reading:
+        (current weight - tare weight) / initial content mass * 100. None
+        when there isn't enough data yet to compute a meaningful value (no
+        reading, no real tare weight, or no derivable content mass).
+        """
+        if self.initial_content_mass is None:
+            return None
+        if self.tare_weight is None or self.tare_weight <= 0:
+            return None
+        latest = self.readings.order_by("-recorded_at").first()
+        if latest is None:
+            return None
+        try:
+            mass = Decimal(str(self.initial_content_mass))
+            current_weight = Decimal(str(latest.weight))
+            tare_weight = Decimal(str(self.tare_weight))
+            result = ((current_weight - tare_weight) / mass) * 100
+            return result.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        except DecimalException:
+            return None
 
     def __str__(self):
         return self.name

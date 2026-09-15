@@ -1,10 +1,10 @@
-from django.db.models import ExpressionWrapper, F, FloatField, OuterRef, Subquery
+from django.db.models import Subquery
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from ..models import Container, WeightReading, most_recent_checkout_event_subquery
+from ..models import Container, most_recent_checkout_event_subquery
 from ..serializers import ContainerSerializer
 
 
@@ -13,18 +13,6 @@ class DashboardView(ModelViewSet):
     serializer_class = ContainerSerializer
 
     permission_classes = [IsAuthenticated]
-
-    most_recent_reading_time = (
-        WeightReading.objects.filter(container_id=OuterRef("pk"))
-        .order_by("-recorded_at")
-        .values("recorded_at")[:1]
-    )
-
-    most_recent_reading_weight = (
-        WeightReading.objects.filter(container_id=OuterRef("pk"))
-        .order_by("-recorded_at")
-        .values("weight")[:1]
-    )
 
     most_recent_event = most_recent_checkout_event_subquery("timestamp")
     most_recent_event_action = most_recent_checkout_event_subquery("action")
@@ -39,19 +27,21 @@ class DashboardView(ModelViewSet):
             .filter(most_recent_event_action="out")[:5]
         )
 
-        restock_soon = (
-            Container.objects.annotate(
-                most_recent_reading_time=Subquery(self.most_recent_reading_time)
-            )
-            .annotate(most_recent_reading_weight=Subquery(self.most_recent_reading_weight))
-            .order_by("most_recent_reading_time")
-            .annotate(
-                percent_remaining=ExpressionWrapper(
-                    F("most_recent_reading_weight") / F("initial_weight"), output_field=FloatField()
-                )
-            )
-            .filter(percent_remaining__lte=0.1)[:5]
+        # percent_remaining isn't a plain DB column — see
+        # Container.percent_remaining's docstring for why it can't reduce to
+        # a single SQL expression (this replaced a version that tried
+        # anyway, with a formula quietly different from the real one).
+        # Narrowed to containers that could plausibly qualify before
+        # evaluating the property, so this isn't done for every container
+        # in the database; still one query per candidate container, same
+        # trade-off ContainerSerializer already accepts for this field.
+        candidates = Container.objects.filter(readings__isnull=False, tare_weight__gt=0).distinct()
+        scored = [(c, c.percent_remaining) for c in candidates]
+        low_on_stock = sorted(
+            (pair for pair in scored if pair[1] is not None and pair[1] <= 10),
+            key=lambda pair: pair[1],
         )
+        restock_soon = [c for c, _ in low_on_stock[:5]]
 
         return_dict = {
             "recently_added": ContainerSerializer(recently_added, many=True).data,
