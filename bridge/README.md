@@ -75,6 +75,38 @@ defaults to `public`, the near-universal default for read-only SNMP;
 only change it if the printer's SNMP settings have been customized away
 from that.
 
+## Running as a Windows service
+
+`poetry run uvicorn ...` in a terminal only lasts as long as that terminal
+stays open — for the stockroom computer, the bridge should start on its
+own at boot and keep running (and restart itself if it ever crashes)
+without anyone needing to remember to launch it. The standard way to do
+that for an arbitrary process on Windows is [NSSM](https://nssm.cc/)
+("Non-Sucking Service Manager") — a small free tool that wraps it as a
+real Windows service, manageable via `services.msc` like any other one.
+
+1. `poetry install --no-root` in this directory, if not already done.
+2. Download NSSM from https://nssm.cc/, and either add `nssm.exe` to
+   `PATH` or copy it into `scripts/`.
+3. From an elevated (Run as Administrator) Command Prompt:
+   ```
+   scripts\install_service.bat
+   ```
+   This points the service at this project's own venv (`.venv\Scripts\
+   python.exe`), sets it to start automatically at boot, restart on
+   crash, and log to `service.log` in this directory. Safe to re-run any
+   time to reinstall/reconfigure.
+4. `scripts\uninstall_service.bat` removes it.
+
+No third-party tool preferred? Windows' built-in **Task Scheduler** can do
+the same job without installing anything: a task triggered "At startup"
+(not tied to any particular user login), action = the same
+`.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port
+8200` command with this directory as its working directory, "Run whether
+user is logged on or not" checked, and a restart-on-failure setting under
+the task's Settings tab. It won't show up in `services.msc`, but is
+otherwise equivalent for this purpose.
+
 ## Endpoints
 | Endpoint | Method | Description |
 |----------|--------|-------------|
