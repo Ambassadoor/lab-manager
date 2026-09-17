@@ -38,6 +38,9 @@ import { useContainerSdsFallback } from '../../hooks/useContainerSdsFallback';
 import { PendingResultSnackbar } from '../shared/PendingResultSnackbar';
 import { PrintResultSnackbar } from '../shared/PrintResultSnackbar';
 import { printContainerLabel } from '../shared/printTemplates';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
+import { useStorageConflictConfirm } from '../shared/useStorageConflictConfirm';
+import { StorageConflictWarnings } from '../shared/StorageConflictWarnings';
 
 type ContainerDetailProps = {
   data?: Container;
@@ -120,6 +123,8 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
     onSettled: () => queryClient.invalidateQueries({ queryKey: printerKeys.status() }),
   });
 
+  const storageConflict = useStorageConflictConfirm();
+
   // A 404 (bad :id in the URL) lands in this query's own error state —
   // TanStack Query doesn't propagate query errors to the router's
   // ErrorBoundary on its own (no throwOnError configured) — so it has to be
@@ -127,11 +132,18 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
   if (isError) return <NotFound />;
   if (isPending || !container) return null;
 
-  const onSubmit: SubmitHandler<ContainerDetailDefaults> = async (formData) => {
-    await updateContainer(container.slug, formData);
+  const doSubmit = async (formData: ContainerDetailDefaults, confirmed?: boolean) => {
+    try {
+      await updateContainer(container.slug, formData, confirmed);
+    } catch (e) {
+      if (storageConflict.intercept(e, () => doSubmit(formData, true))) return;
+      throw e;
+    }
     setEditing(false);
     queryClient.invalidateQueries({ queryKey: containerKeys.all });
   };
+
+  const onSubmit: SubmitHandler<ContainerDetailDefaults> = (formData) => doSubmit(formData);
 
   return (
     container && (
@@ -143,6 +155,19 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
             local Snackbar here. */}
         {!onClose && <PendingResultSnackbar />}
         <PrintResultSnackbar mutation={printMutation} label="Container label" />
+        <ConfirmDialog
+          open={storageConflict.isOpen}
+          title="Storage Conflict"
+          message={
+            storageConflict.warnings && (
+              <StorageConflictWarnings warnings={storageConflict.warnings} />
+            )
+          }
+          confirmLabel="Store anyway"
+          confirmColor="warning"
+          onCancel={storageConflict.cancel}
+          onConfirm={storageConflict.confirm}
+        />
         <FormProvider
           {...methods}
           clearErrors={clearErrors}

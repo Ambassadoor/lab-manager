@@ -3,6 +3,7 @@ from rest_framework import serializers
 from apps.users.serializers import UserCheckoutEventSerializer
 
 from ..models import Chemical, CheckoutEvent, Container, Location, WeightReading
+from ..storage_rules import check_storage_conflicts
 from .chemicals import SDSSerializer
 from .locations import LocationSerializer, LocationTypeSerializer
 
@@ -97,6 +98,44 @@ class ContainerWriteSerializer(serializers.ModelSerializer):
             "initial_weight",
             "tare_weight",
         ]
+
+    # Set by validate() below; read by the view afterward to decide whether
+    # to 409 instead of saving. A property (not a plain attribute set in
+    # __init__) so a serializer instance whose validate() never ran (or
+    # ran and found nothing) still reads back an empty list rather than
+    # raising AttributeError.
+    @property
+    def storage_warnings(self) -> list[str]:
+        return getattr(self, "_storage_warnings", [])
+
+    # Advisory, not a hard failure: doesn't raise, just records
+    # storage_warnings for the view to act on. `location` is only in attrs
+    # when this request actually sets/changes it (a PATCH that doesn't
+    # touch location has nothing to check); re-saving the same location a
+    # container is already in isn't a "move" and shouldn't warn about
+    # conflicting with itself.
+    def validate(self, attrs):
+        self._storage_warnings = []
+        location = attrs.get("location")
+        if location is None:
+            return attrs
+        if self.instance is not None and self.instance.location_id == location.id:
+            return attrs
+        # Create always includes `chemical`; update/transfer never do (the
+        # UI has no way to change a container's chemical after creation),
+        # so it falls back to the instance's existing one.
+        chemical = attrs.get("chemical") or (self.instance.chemical if self.instance else None)
+        if chemical is not None:
+            self._storage_warnings = check_storage_conflicts(
+                chemical,
+                location,
+                exclude_container_id=self.instance.id if self.instance else None,
+                # Set by transfer() for a batch's sibling containers being
+                # placed in the same location in the same request — absent
+                # (checks only against what's already there) everywhere else.
+                also_placing=self.context.get("also_placing", ()),
+            )
+        return attrs
 
 
 # Serializer for weight reading writes
