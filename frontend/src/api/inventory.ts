@@ -62,10 +62,20 @@ export const getContainerMetaData = (): Promise<ContainerOptions> => {
   });
 };
 
-export const submitNewContainerForm = (data: ContainerFormDefaults): Promise<Container> => {
+// `confirmStorageConflicts` resubmits the identical request after the user
+// accepts a storage-compatibility warning (see storage_rules.py on the
+// backend, and useStorageConflictConfirm on this one) — a plain boolean
+// param rather than a field on ContainerFormDefaults so that type stays a
+// clean description of the form itself.
+export const submitNewContainerForm = (
+  data: ContainerFormDefaults,
+  confirmStorageConflicts?: boolean
+): Promise<Container> => {
   return apiFetch('/inventory/containers/', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify(
+      confirmStorageConflicts ? { ...data, confirm_storage_conflicts: true } : data
+    ),
   });
 };
 
@@ -73,13 +83,17 @@ export const getContainerDetails = (id: string): Promise<Container> => {
   return apiFetch(`/inventory/containers/${id}/`);
 };
 
+// See submitNewContainerForm's comment on confirmStorageConflicts.
 export const updateContainer = (
   slug: string,
-  data: ContainerDetailDefaults
+  data: ContainerDetailDefaults,
+  confirmStorageConflicts?: boolean
 ): Promise<Container> => {
   return apiFetch(`/inventory/containers/${slug}/`, {
     method: 'PATCH',
-    body: JSON.stringify(data),
+    body: JSON.stringify(
+      confirmStorageConflicts ? { ...data, confirm_storage_conflicts: true } : data
+    ),
   });
 };
 
@@ -193,13 +207,19 @@ export const getDashboard = (): Promise<Dashboard> => {
   return apiFetch('/inventory/dashboard');
 };
 
-export const transferContainers = (data: {
-  containers: { slug: string }[];
-  location: string;
-}): Promise<Container[]> => {
+// See submitNewContainerForm's comment on confirmStorageConflicts.
+export const transferContainers = (
+  data: {
+    containers: { slug: string }[];
+    location: string;
+  },
+  confirmStorageConflicts?: boolean
+): Promise<Container[]> => {
   return apiFetch(`/inventory/containers/transfer/`, {
     method: 'PATCH',
-    body: JSON.stringify(data),
+    body: JSON.stringify(
+      confirmStorageConflicts ? { ...data, confirm_storage_conflicts: true } : data
+    ),
   });
 };
 

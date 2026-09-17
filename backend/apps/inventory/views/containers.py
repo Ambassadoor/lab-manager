@@ -86,6 +86,23 @@ class ContainerView(ModelViewSet):
         else:
             return ContainerSerializer
 
+    # Chemical storage compatibility (see ../storage_rules.py) is advisory,
+    # not enforced at the DB level — a request that sets/changes a
+    # container's location and would trigger a warning gets a 409 instead
+    # of saving, unless it explicitly says to proceed anyway. The frontend
+    # shows the warnings in a confirmation dialog and, if the user
+    # confirms, resubmits the identical request with this flag set.
+    @staticmethod
+    def _confirmed_storage_conflicts(request):
+        return bool(request.data.get("confirm_storage_conflicts"))
+
+    @staticmethod
+    def _storage_conflict_response(warnings):
+        return Response(
+            {"warnings": warnings, "requires_confirmation": True},
+            status=status.HTTP_409_CONFLICT,
+        )
+
     # Validates if a container has been discarded. Also reports
     # has_estimated_usage — checked at exactly the same point a barcode scan
     # already validates the container in WeighIn.tsx, so the frontend can
@@ -170,6 +187,25 @@ class ContainerView(ModelViewSet):
         except Http404:
             return Response({"is_valid": False}, status=status.HTTP_200_OK)
 
+    # Same as UpdateModelMixin.update() (which this would otherwise use
+    # unmodified — covers both PUT and PATCH, since partial_update() just
+    # calls this with partial=True), with one addition: a location
+    # change that trips a storage-compatibility warning 409s instead of
+    # saving, unless the request already confirmed it wants to proceed.
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        if serializer.storage_warnings and not self._confirmed_storage_conflicts(request):
+            return self._storage_conflict_response(serializer.storage_warnings)
+        self.perform_update(serializer)
+
+        if getattr(instance, "_prefetched_objects_cache", None):
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
     # Creates new Mixture, chemicals, and containers
     @transaction.atomic
     def create(self, request):
@@ -237,6 +273,8 @@ class ContainerView(ModelViewSet):
         }
         serializer = ContainerWriteSerializer(data=new_container)
         serializer.is_valid(raise_exception=True)
+        if serializer.storage_warnings and not self._confirmed_storage_conflicts(request):
+            return self._storage_conflict_response(serializer.storage_warnings)
         container = serializer.save()
         container.slug = f"chem-{container.id}"
         container.save()
@@ -294,8 +332,10 @@ class ContainerView(ModelViewSet):
         # match against scanned input would false-negative on every scan.
         slugs = [c["slug"].strip().lower() for c in data["containers"]]
         location = data["location"]
-        containers = Container.objects.annotate(slug_lower=Lower("slug")).filter(
-            slug_lower__in=slugs
+        containers = list(
+            Container.objects.annotate(slug_lower=Lower("slug"))
+            .filter(slug_lower__in=slugs)
+            .select_related("chemical")
         )
         missing = set(slugs) - {c.slug_lower for c in containers}
         if missing:
@@ -303,13 +343,43 @@ class ContainerView(ModelViewSet):
                 {"detail": f"Container(s) not found: {', '.join(sorted(missing))}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        # Validate every container before saving any of them — collecting
+        # all of the batch's storage warnings up front means one combined
+        # confirmation covers the whole transfer, and (since a mid-loop
+        # 409 return wouldn't roll back containers already saved earlier
+        # in the same loop, unlike an exception) nothing gets partially
+        # moved while the rest is still waiting on confirmation.
+        container_serializers = []
         for item in containers:
+            # The batch's *other* containers aren't in the DB at this
+            # location yet, so check_storage_conflicts (which only looks
+            # at what's already saved there) can't see them on its own —
+            # passed explicitly so the batch is also checked against
+            # itself, not just against what's already in the location.
+            # Same chemical as `item` is included harmlessly: no rule
+            # here ever treats a chemical as conflicting with itself.
+            also_placing = [other.chemical for other in containers if other.id != item.id]
             serializer = ContainerWriteSerializer(
-                instance=item, data={"location": location}, partial=True
+                instance=item,
+                data={"location": location},
+                partial=True,
+                context={"also_placing": also_placing},
             )
             serializer.is_valid(raise_exception=True)
-            updated = serializer.save()
-            processed.append(updated)
+            container_serializers.append(serializer)
+
+        all_warnings = []
+        for serializer in container_serializers:
+            all_warnings.extend(serializer.storage_warnings)
+        if all_warnings and not self._confirmed_storage_conflicts(request):
+            # dict.fromkeys — dedupes while keeping first-seen order,
+            # since transferring several containers of the same kind to
+            # the same location can otherwise repeat an identical warning
+            # once per container.
+            return self._storage_conflict_response(list(dict.fromkeys(all_warnings)))
+
+        for serializer in container_serializers:
+            processed.append(serializer.save())
         return Response(ContainerSerializer(processed, many=True).data, status=status.HTTP_200_OK)
 
     # Records a weight reading and checks in a batch of containers in one

@@ -48,6 +48,9 @@ import {
 } from '../../api/queryKeys';
 import { setPendingActionResult, type PendingActionResult } from '../shared/pendingActionResult';
 import { printContainerLabel } from '../shared/printTemplates';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
+import { useStorageConflictConfirm } from '../shared/useStorageConflictConfirm';
+import { StorageConflictWarnings } from '../shared/StorageConflictWarnings';
 import { type ContainerFormDefaults, type CasCheck, type Location } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { Decimal } from 'decimal.js';
@@ -336,8 +339,10 @@ export const ContainerForm = () => {
     onSettled: () => queryClient.invalidateQueries({ queryKey: printerKeys.status() }),
   });
 
+  const storageConflict = useStorageConflictConfirm();
+
   //Format date fields, clear session storage, invalidate stale container data and navigate to detail page
-  const onSubmit: SubmitHandler<ContainerFormDefaults> = async (data) => {
+  const doSubmit = async (data: ContainerFormDefaults, confirmed?: boolean) => {
     if (data.date_received && data.date_received instanceof dayjs) {
       data.date_received = data.date_received?.toISOString().split('T')[0] || null;
     }
@@ -345,7 +350,16 @@ export const ContainerForm = () => {
       data.expiration_date = data.expiration_date?.toISOString().split('T')[0] || null;
     }
 
-    const response = await submitNewContainerForm(data);
+    let response;
+    try {
+      response = await submitNewContainerForm(data, confirmed);
+    } catch (e) {
+      // Storage-conflict 409s are handled here (show the warnings, offer
+      // to proceed anyway) rather than as a normal submit failure — any
+      // other error just propagates like it did before this existed.
+      if (storageConflict.intercept(e, () => doSubmit(data, true))) return;
+      throw e;
+    }
     sessionStorage.removeItem('container_form_cache');
     queryClient.invalidateQueries({ queryKey: containerKeys.list() });
     queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
@@ -392,6 +406,8 @@ export const ContainerForm = () => {
     navigate(`/inventory/containers/${response.slug}`);
   };
 
+  const onSubmit: SubmitHandler<ContainerFormDefaults> = (data) => doSubmit(data);
+
   // Chemical/mixture sub-forms are already split out into ChemicalRow and
   // MixtureFields below; the remaining "wrapper components for Controllers"
   // half of this is the same completed work noted above ContainerForm's
@@ -417,6 +433,19 @@ export const ContainerForm = () => {
           {bridgeError}
         </Alert>
       </Snackbar>
+      <ConfirmDialog
+        open={storageConflict.isOpen}
+        title="Storage Conflict"
+        message={
+          storageConflict.warnings && (
+            <StorageConflictWarnings warnings={storageConflict.warnings} />
+          )
+        }
+        confirmLabel="Store anyway"
+        confirmColor="warning"
+        onCancel={storageConflict.cancel}
+        onConfirm={storageConflict.confirm}
+      />
       <FormProvider {...formMethods}>
         <Card
           sx={{

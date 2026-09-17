@@ -21,6 +21,8 @@ import { ScannableFieldRow } from '../../shared/ScannableFieldRow';
 import { ActionFormCard } from '../../shared/ActionFormCard';
 import { ConfirmDialog } from '../../shared/ConfirmDialog';
 import { useConfirmDialog } from '../../shared/useConfirmDialog';
+import { useStorageConflictConfirm } from '../../shared/useStorageConflictConfirm';
+import { StorageConflictWarnings } from '../../shared/StorageConflictWarnings';
 
 type SnackbarState = { message: string; severity: 'success' | 'error' };
 type TransferTarget = { containers: { slug: string }[]; location: string };
@@ -71,9 +73,15 @@ export const Transfer = () => {
   // fires this on a "double scan" (see onScan below), not just the Transfer
   // button, so both paths funnel through the same confirm gate.
   const transferConfirm = useConfirmDialog<TransferTarget>();
+  // Second, later confirm step — a batch that clears "confirm transfer"
+  // above can still 409 on a storage-compatibility rule (see
+  // backend/apps/inventory/storage_rules.py), which needs its own separate
+  // confirmation on top rather than being silently folded into the first.
+  const storageConflict = useStorageConflictConfirm();
 
   const mutation = useMutation({
-    mutationFn: (data: TransferTarget) => transferContainers(data),
+    mutationFn: ({ data, confirmed }: { data: TransferTarget; confirmed?: boolean }) =>
+      transferContainers(data, confirmed),
     onSuccess: (response) => {
       if (response.length > 0) {
         setSnackbar({ message: 'Containers transferred.', severity: 'success' });
@@ -81,6 +89,15 @@ export const Transfer = () => {
         queryClient.invalidateQueries({ queryKey: containerKeys.list() });
       }
       transferConfirm.cancel();
+    },
+    onError: (error, { data }) => {
+      // Closes the "confirm transfer" dialog once the storage-conflict one
+      // takes over — otherwise both would be open/stacked at once, since
+      // nothing else here closes the first dialog on a failed attempt.
+      const handled = storageConflict.intercept(error, () =>
+        mutation.mutate({ data, confirmed: true })
+      );
+      if (handled) transferConfirm.cancel();
     },
   });
 
@@ -125,8 +142,23 @@ export const Transfer = () => {
           transferConfirm.cancel();
         }}
         onConfirm={() => {
-          if (transferConfirm.target) mutation.mutate(transferConfirm.target);
+          if (transferConfirm.target) {
+            mutation.mutate({ data: transferConfirm.target, confirmed: false });
+          }
         }}
+      />
+      <ConfirmDialog
+        open={storageConflict.isOpen}
+        title="Storage Conflict"
+        message={
+          storageConflict.warnings && (
+            <StorageConflictWarnings warnings={storageConflict.warnings} />
+          )
+        }
+        confirmLabel="Transfer anyway"
+        confirmColor="warning"
+        onCancel={storageConflict.cancel}
+        onConfirm={storageConflict.confirm}
       />
       <Snackbar
         open={!!snackbar}
