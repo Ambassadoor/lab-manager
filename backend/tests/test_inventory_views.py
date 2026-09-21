@@ -644,3 +644,34 @@ class TestRolePermissions:
 
         assert client.delete(f"/inventory/containers/{container.slug}/").status_code == 204
         assert client.delete(f"/inventory/chemicals/{unused_chemical.id}/").status_code == 204
+
+
+@pytest.mark.django_db
+class TestContainerTareWeight:
+    def test_detail_exposes_tare_weight(self, client, make_container):
+        container = make_container("c1", tare_weight=Decimal("12.5000"))
+
+        response = client.get(f"/inventory/containers/{container.slug}/")
+
+        assert response.status_code == 200
+        assert Decimal(response.data["tare_weight"]) == Decimal("12.5")
+
+    def test_patch_sets_and_clears_tare_weight(self, client, make_container):
+        container = make_container("c1")
+
+        set_response = client.patch(
+            f"/inventory/containers/{container.slug}/", {"tare_weight": "8.25"}, format="json"
+        )
+        assert set_response.status_code == 200
+        container.refresh_from_db()
+        assert container.tare_weight == Decimal("8.25")
+        assert container.has_estimated_usage is True
+
+        # The detail page sends null (not "") for a blanked field.
+        clear_response = client.patch(
+            f"/inventory/containers/{container.slug}/", {"tare_weight": None}, format="json"
+        )
+        assert clear_response.status_code == 200
+        container.refresh_from_db()
+        assert container.tare_weight is None
+        assert container.has_estimated_usage is False

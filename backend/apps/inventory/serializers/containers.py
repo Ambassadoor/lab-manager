@@ -41,6 +41,7 @@ class ContainerSerializer(serializers.ModelSerializer):
             "product_num",
             "date_received",
             "is_opened",
+            "tare_weight",
             "has_estimated_usage",
             "latest_reading",
             "percent_remaining",

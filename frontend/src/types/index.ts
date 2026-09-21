@@ -159,6 +159,9 @@ export type ContainerDetailDefaults = {
   product_num: string;
   initial_quantity: string | number;
   quantity_unit: string;
+  // The form holds this as text; blank means "unknown" and is sent as null
+  // (DRF's DecimalField rejects '' but accepts null on this nullable field).
+  tare_weight: string | null;
 };
 
 export type BalanceReading = {

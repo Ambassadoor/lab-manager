@@ -35,6 +35,7 @@ import { useAuth } from '../../context/AuthContext';
 import { hasRoleAtLeast } from '../shared/roles';
 import { SdsUploadDialog } from '../sds/SdsUploadDialog';
 import { useContainerSdsFallback } from '../../hooks/useContainerSdsFallback';
+import { decimalPatternRule } from '../shared/formRules';
 import { PendingResultSnackbar } from '../shared/PendingResultSnackbar';
 import { PrintResultSnackbar } from '../shared/PrintResultSnackbar';
 import { printContainerLabel } from '../shared/printTemplates';
@@ -89,6 +90,12 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
   });
   const options = metaData?.actions.POST.quantity_unit.choices;
 
+  // A tare weight of 0 (or less) is a placeholder, not a real container
+  // weight — the backend treats it the same as missing (see
+  // Container.has_estimated_usage) — so it shows as "Not set" and edits
+  // from a blank field, rather than surfacing a misleading "0 g".
+  const tareWeight = container?.tare_weight ? parseFloat(container.tare_weight) : 0;
+
   const defaultValues = {
     name: container?.name || '',
     location: String(container?.location?.id || ''),
@@ -96,6 +103,7 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
     product_num: container?.product_num || '',
     initial_quantity: container?.initial_quantity || '',
     quantity_unit: container?.quantity_unit || '',
+    tare_weight: tareWeight ? String(tareWeight) : '',
   };
 
   const {
@@ -134,7 +142,11 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
 
   const doSubmit = async (formData: ContainerDetailDefaults, confirmed?: boolean) => {
     try {
-      await updateContainer(container.slug, formData, confirmed);
+      await updateContainer(
+        container.slug,
+        { ...formData, tare_weight: formData.tare_weight?.trim() || null },
+        confirmed
+      );
     } catch (e) {
       if (storageConflict.intercept(e, () => doSubmit(formData, true))) return;
       throw e;
@@ -395,6 +407,39 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
                         }}
                       >
                         {container.quantity}
+                      </ToggleField>
+                    )}
+                  />
+
+                  <Controller
+                    control={control}
+                    name="tare_weight"
+                    rules={{
+                      pattern: decimalPatternRule('Please input an integer or decimal'),
+                      validate: (v) =>
+                        !v || Number(v) > 0 || 'Must be greater than 0 (leave blank if unknown)',
+                    }}
+                    render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
+                      <ToggleField
+                        {...field}
+                        editing={editing}
+                        textProps={{
+                          error: !!error,
+                          helperText: error?.message,
+                          defaultValue: tareWeight ? String(tareWeight) : '',
+                          label: 'Tare Weight',
+                          onChange: (e) => {
+                            onChange(e);
+                            clearErrors(name);
+                          },
+                          slotProps: {
+                            input: {
+                              endAdornment: <InputAdornment position="end">g</InputAdornment>,
+                            },
+                          },
+                        }}
+                      >
+                        {tareWeight ? `${tareWeight} g` : 'Not set'}
                       </ToggleField>
                     )}
                   />
