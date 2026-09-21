@@ -2262,6 +2262,12 @@ components:
           type: boolean
           readOnly: true
           title: Opened?
+        tare_weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,4})?$
+          nullable: true
+          title: Container weight
         has_estimated_usage:
           type: string
           readOnly: true
@@ -2708,6 +2714,12 @@ components:
           type: boolean
           readOnly: true
           title: Opened?
+        tare_weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,4})?$
+          nullable: true
+          title: Container weight
         has_estimated_usage:
           type: string
           readOnly: true

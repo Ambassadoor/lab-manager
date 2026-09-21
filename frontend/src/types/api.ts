@@ -740,6 +740,11 @@ export interface components {
       date_received?: string | null;
       /** Opened? */
       readonly is_opened: boolean;
+      /**
+       * Container weight
+       * Format: decimal
+       */
+      tare_weight?: string | null;
       /** Has Estimated Usage? */
       readonly has_estimated_usage: string;
       readonly latest_reading: string;
@@ -943,6 +948,11 @@ export interface components {
       date_received?: string | null;
       /** Opened? */
       readonly is_opened?: boolean;
+      /**
+       * Container weight
+       * Format: decimal
+       */
+      tare_weight?: string | null;
       /** Has Estimated Usage? */
       readonly has_estimated_usage?: string;
       readonly latest_reading?: string;
