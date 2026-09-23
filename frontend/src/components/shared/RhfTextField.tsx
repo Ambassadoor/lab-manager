@@ -17,6 +17,8 @@ type RhfTextFieldProps<TFieldValues extends FieldValues, TName extends FieldPath
   clearErrors: UseFormClearErrors<TFieldValues>;
   endAdornment?: ReactNode;
   fullWidth?: boolean;
+  // Hint shown while the field has no error (an error message replaces it)
+  helperText?: string;
 };
 
 // Controller-wired TextField for the common case: bare field, its own
@@ -34,6 +36,7 @@ export function RhfTextField<
   clearErrors,
   endAdornment,
   fullWidth,
+  helperText,
 }: RhfTextFieldProps<TFieldValues, TName>) {
   return (
     <Controller
@@ -46,7 +49,7 @@ export function RhfTextField<
           label={label}
           fullWidth={fullWidth}
           error={!!error}
-          helperText={error?.message || ''}
+          helperText={error?.message || helperText || ''}
           onChange={(e) => {
             field.onChange(e);
             clearErrors(name);
