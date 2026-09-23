@@ -84,6 +84,26 @@ class TestContainerComputedFields:
 
         assert container.quantity == "500 mL"
 
+    def test_quantity_blank_when_missing(self, chemical, location_type):
+        location = Location.objects.create(name="Shelf 1", type=location_type)
+        neither = self._make_container(chemical, location, slug="neither")
+        unit_only = self._make_container(chemical, location, slug="unit-only", quantity_unit="g")
+
+        assert neither.quantity == ""
+        assert unit_only.quantity == ""
+
+    def test_quantity_without_unit_is_just_the_amount(self, chemical, location_type):
+        location = Location.objects.create(name="Shelf 1", type=location_type)
+        container = self._make_container(chemical, location, initial_quantity=500)
+
+        assert container.quantity == "500"
+
+    def test_quantity_of_zero_still_displays(self, chemical, location_type):
+        location = Location.objects.create(name="Shelf 1", type=location_type)
+        container = self._make_container(chemical, location, initial_quantity=0, quantity_unit="g")
+
+        assert container.quantity == "0 g"
+
     def test_initial_content_mass_uses_density_for_volume_units(self, chemical, location_type):
         location = Location.objects.create(name="Shelf 1", type=location_type)
         container = self._make_container(
