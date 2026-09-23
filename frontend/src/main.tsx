@@ -25,8 +25,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <CssBaseline enableColorScheme />
         <Theme>
+          {/* Must be inside <Theme> — outside it, CssBaseline only sees MUI's
+              default light theme and pins `color-scheme: light` on <html>,
+              so native scrollbars/controls ignore the dark-mode toggle. */}
+          <CssBaseline enableColorScheme />
           <AgGridProvider modules={modules}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <App />
