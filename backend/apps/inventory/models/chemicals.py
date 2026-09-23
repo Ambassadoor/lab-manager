@@ -1,5 +1,6 @@
 import re
 
+from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -40,9 +41,19 @@ def validate_cas(cas: str):
 
 
 class ChemicalStorageCategories(models.Model):
+    """A Flinn Scientific storage pattern category (O1-O9, I1-I10, plus the
+    miscellaneous O10/I11 — Flinn's OM/IM). See
+    docs/Flinn Scientific Chemical Storage Pattern.md.
+    """
+
     shorthand = models.CharField(max_length=3)
-    description = models.CharField(max_length=50)
+    # The chart's "Chemical Types" list — long enough for the full list
+    # (e.g. I6's), which the old 50-char limit truncated
+    description = models.CharField(max_length=255)
     help_text = models.TextField()
+    # Chemical family names that file under this category (the chart's
+    # family index), so a picker can find "Ketones" -> O4 by search
+    families = ArrayField(models.CharField(max_length=100), default=list, blank=True)
 
     def __str__(self):
         return self.shorthand

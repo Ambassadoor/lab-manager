@@ -21,14 +21,10 @@ import {
   type Path,
   type SubmitHandler,
 } from 'react-hook-form';
-import {
-  getChemicalByCas,
-  getStorageCategories,
-  submitNewContainerForm,
-} from '../../api/inventory';
+import { getChemicalByCas, submitNewContainerForm } from '../../api/inventory';
 import { getBalanceWeight } from '../../api/bridge';
 import { createSds, type PendingSdsSelection } from '../../api/sds';
-import { containerKeys, chemicalKeys, dashboardKeys, printerKeys } from '../../api/queryKeys';
+import { containerKeys, dashboardKeys, printerKeys } from '../../api/queryKeys';
 import { setPendingActionResult, type PendingActionResult } from '../shared/pendingActionResult';
 import { printContainerLabel } from '../shared/printTemplates';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
@@ -38,7 +34,7 @@ import { type ContainerFormDefaults, type CasCheck } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { Decimal } from 'decimal.js';
 import dayjs from 'dayjs';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { cas_is_valid } from '../shared/checkCas';
 import { WeightField } from '../shared/WeightField';
 import { RhfTextField } from '../shared/RhfTextField';
@@ -157,12 +153,6 @@ export const ContainerForm = () => {
   useEffect(() => {
     sessionStorage.setItem('container_form_cache', JSON.stringify(formValues));
   }, [formValues]);
-
-  //Get form select options
-  const { data: chemicalStorageCategories = [] } = useQuery({
-    queryKey: chemicalKeys.storageCategories(),
-    queryFn: getStorageCategories,
-  });
 
   const casRef = useRef(cas);
 
@@ -464,10 +454,6 @@ export const ContainerForm = () => {
                   otherCasValues={(formValues.chemicals ?? []).map((c, i) =>
                     i !== index ? c?.cas : undefined
                   )}
-                  storageCategoryOptions={chemicalStorageCategories.map((c) => ({
-                    value: c.id,
-                    label: c.shorthand,
-                  }))}
                 />
               ))}
               {formValues.multiple_cas && (
@@ -475,10 +461,6 @@ export const ContainerForm = () => {
                   control={control}
                   clearErrors={clearErrors}
                   mixtures={cas?.mixtures}
-                  storageCategoryOptions={chemicalStorageCategories.map((c) => ({
-                    value: c.id,
-                    label: c.shorthand,
-                  }))}
                 />
               )}
               <LocationSelect

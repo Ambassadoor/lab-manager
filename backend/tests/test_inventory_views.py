@@ -1,3 +1,4 @@
+import importlib
 from datetime import date
 from decimal import Decimal
 
@@ -675,3 +676,28 @@ class TestContainerTareWeight:
         container.refresh_from_db()
         assert container.tare_weight is None
         assert container.has_estimated_usage is False
+
+
+@pytest.mark.django_db
+class TestStorageCategories:
+    # Rows come from migration 0032 (the Flinn storage pattern), which the
+    # test database runs like any other migration.
+
+    def test_migration_covers_every_flinn_code(self):
+        migration = importlib.import_module(
+            "apps.inventory.migrations.0032_flinn_storage_categories"
+        )
+        expected = {f"O{n}" for n in range(1, 11)} | {f"I{n}" for n in range(1, 12)}
+
+        assert set(migration.FLINN_CATEGORIES) == expected
+
+    def test_list_includes_full_description_and_families(self, client):
+        response = client.get("/inventory/chemical_storage_categories/")
+
+        assert response.status_code == 200
+        by_code = {c["shorthand"]: c for c in response.json()}
+        assert "Ketones" in by_code["O4"]["families"]
+        assert "Nitric Acid" in by_code["I9"]["families"]
+        # Longer than the old 50-char limit allowed
+        assert by_code["I6"]["description"].endswith("Peroxides, Hydrogen Peroxide")
+        assert by_code["I11"]["description"] == "Inorganic Miscellaneous"
