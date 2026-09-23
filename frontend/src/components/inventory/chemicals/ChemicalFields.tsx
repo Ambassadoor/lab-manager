@@ -1,12 +1,10 @@
 import { Stack } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
 import type { Control, UseFormClearErrors } from 'react-hook-form';
-import { getChemicalByCas, getStorageCategories } from '../../../api/inventory';
-import { chemicalKeys } from '../../../api/queryKeys';
+import { getChemicalByCas } from '../../../api/inventory';
 import type { ChemicalDefaults } from '../../../types';
 import { casRules, decimalPatternRule, requiredRule } from '../../shared/formRules';
-import { RhfSelect } from '../../shared/RhfSelect';
 import { RhfTextField } from '../../shared/RhfTextField';
+import { StorageCategorySelect } from '../../shared/StorageCategorySelect';
 
 type ChemicalFieldsProps = {
   control: Control<ChemicalDefaults>;
@@ -19,11 +17,6 @@ type ChemicalFieldsProps = {
 // The chemical fields shared by AddChemical (create) and ChemicalEditForm
 // (edit) — same fields, same rules, so the two can't drift apart.
 export const ChemicalFields = ({ control, clearErrors, currentCas }: ChemicalFieldsProps) => {
-  const { data: storageCategories = [] } = useQuery({
-    queryKey: chemicalKeys.storageCategories(),
-    queryFn: getStorageCategories,
-  });
-
   return (
     <Stack spacing={2}>
       <RhfTextField
@@ -72,13 +65,7 @@ export const ChemicalFields = ({ control, clearErrors, currentCas }: ChemicalFie
         clearErrors={clearErrors}
         fullWidth
       />
-      <RhfSelect
-        control={control}
-        name="storage_category"
-        label="Storage Category"
-        clearErrors={clearErrors}
-        options={storageCategories.map((c) => ({ value: c.id, label: c.shorthand }))}
-      />
+      <StorageCategorySelect control={control} name="storage_category" clearErrors={clearErrors} />
     </Stack>
   );
 };

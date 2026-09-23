@@ -2168,9 +2168,14 @@ components:
           maxLength: 3
         description:
           type: string
-          maxLength: 50
+          maxLength: 255
         help_text:
           type: string
+        families:
+          type: array
+          items:
+            type: string
+            maxLength: 100
       required:
       - description
       - help_text
@@ -2561,9 +2566,14 @@ components:
           maxLength: 3
         description:
           type: string
-          maxLength: 50
+          maxLength: 255
         help_text:
           type: string
+        families:
+          type: array
+          items:
+            type: string
+            maxLength: 100
       required:
       - description
       - help_text
@@ -2649,9 +2659,14 @@ components:
           maxLength: 3
         description:
           type: string
-          maxLength: 50
+          maxLength: 255
         help_text:
           type: string
+        families:
+          type: array
+          items:
+            type: string
+            maxLength: 100
     PatchedContainer:
       type: object
       properties:

@@ -13,7 +13,7 @@ import {
 import { Controller, type Control, type UseFormClearErrors } from 'react-hook-form';
 import type { ContainerFormDefaults } from '../../types';
 import { RhfTextField } from '../shared/RhfTextField';
-import { RhfSelect } from '../shared/RhfSelect';
+import { StorageCategorySelect } from '../shared/StorageCategorySelect';
 import { requiredRule, decimalPatternRule, casRules } from '../shared/formRules';
 
 type ChemicalRowProps = {
@@ -26,7 +26,6 @@ type ChemicalRowProps = {
   onAdd: () => void;
   onRemove: () => void;
   otherCasValues: (string | undefined)[];
-  storageCategoryOptions: { value: number; label: string }[];
 };
 
 // One row of ContainerForm's `chemicals` field array: the CAS input (with
@@ -42,7 +41,6 @@ export function ChemicalRow({
   onAdd,
   onRemove,
   otherCasValues,
-  storageCategoryOptions,
 }: ChemicalRowProps) {
   return (
     <Stack spacing={2}>
@@ -112,12 +110,10 @@ export function ChemicalRow({
                         clearErrors={clearErrors}
                         endAdornment="g/mol"
                       />
-                      <RhfSelect
+                      <StorageCategorySelect
                         control={control}
                         name={`chemicals.${index}.storage_category`}
-                        label="Storage Category"
                         clearErrors={clearErrors}
-                        options={storageCategoryOptions}
                       />
                     </Stack>
                   </AccordionDetails>

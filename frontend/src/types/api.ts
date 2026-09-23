@@ -697,6 +697,7 @@ export interface components {
       shorthand: string;
       description: string;
       help_text: string;
+      families?: string[];
     };
     ChemicalWrite: {
       name: string;
@@ -883,6 +884,7 @@ export interface components {
       shorthand: string;
       description: string;
       help_text: string;
+      families?: string[];
     };
     NewUser: {
       /** Format: email */
@@ -913,6 +915,7 @@ export interface components {
       shorthand?: string;
       description?: string;
       help_text?: string;
+      families?: string[];
     };
     PatchedContainer: {
       readonly id?: number;

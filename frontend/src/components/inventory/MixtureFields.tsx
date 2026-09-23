@@ -3,24 +3,19 @@ import type { Control, UseFormClearErrors } from 'react-hook-form';
 import type { Chemical, ContainerFormDefaults } from '../../types';
 import { RhfTextField } from '../shared/RhfTextField';
 import { RhfSelect } from '../shared/RhfSelect';
+import { StorageCategorySelect } from '../shared/StorageCategorySelect';
 import { requiredRule, required, decimalPatternRule } from '../shared/formRules';
 
 type MixtureFieldsProps = {
   control: Control<ContainerFormDefaults>;
   clearErrors: UseFormClearErrors<ContainerFormDefaults>;
   mixtures: Chemical[] | undefined;
-  storageCategoryOptions: { value: number; label: string }[];
 };
 
 // The "multiple CAS numbers" section of ContainerForm: a picker for an
 // existing mixture (when the looked-up CAS numbers match one) plus the
 // name/storage category/molecular weight fields for the mixture itself.
-export function MixtureFields({
-  control,
-  clearErrors,
-  mixtures,
-  storageCategoryOptions,
-}: MixtureFieldsProps) {
+export function MixtureFields({ control, clearErrors, mixtures }: MixtureFieldsProps) {
   return (
     <>
       {mixtures && mixtures.length > 0 && (
@@ -46,13 +41,11 @@ export function MixtureFields({
             rules={{ required: requiredRule }}
             clearErrors={clearErrors}
           />
-          <RhfSelect
+          <StorageCategorySelect
             control={control}
             name="mixture_storage_category"
-            label="Storage Category"
             clearErrors={clearErrors}
             rules={{ required: requiredRule }}
-            options={storageCategoryOptions}
           />
           <RhfTextField
             control={control}
