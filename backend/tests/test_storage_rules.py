@@ -65,16 +65,19 @@ class TestOrganicInorganicRule:
         assert len(warnings) == 1
         assert "Ethanol" in warnings[0]
 
-    def test_same_category_type_does_not_conflict(
+    def test_same_group_does_not_trigger_organic_inorganic_rule(
         self, make_chemical, make_storage_category, make_location, make_container
     ):
-        # Two different organic categories (O1 vs O2) — both organic, no rule broken.
+        # Two different organic categories (O1 vs O2) — both organic, so not
+        # this rule (rule 4, same-category, covers the O1 vs O2 mismatch).
         acid = make_chemical("Acetic Acid", storage_category=make_storage_category("O1"))
         location = make_location("shelf")
         make_container("existing", location=location, chemical=acid)
         alcohol = make_chemical("Ethanol", storage_category=make_storage_category("O2"))
 
-        assert check_storage_conflicts(alcohol, location) == []
+        warnings = check_storage_conflicts(alcohol, location)
+
+        assert not any("Organic and Inorganic" in w for w in warnings)
 
     def test_no_conflict_when_category_unset(self, make_chemical, make_location, make_container):
         unknown = make_chemical("Mystery Compound")
@@ -83,6 +86,83 @@ class TestOrganicInorganicRule:
         other_unknown = make_chemical("Another Mystery")
 
         assert check_storage_conflicts(other_unknown, location) == []
+
+
+@pytest.mark.django_db
+class TestSameCategoryRule:
+    def test_different_category_in_same_group_conflicts(
+        self, make_chemical, make_storage_category, make_location, make_container
+    ):
+        acid = make_chemical("Acetic Acid", storage_category=make_storage_category("O1"))
+        location = make_location("shelf")
+        make_container("existing", location=location, chemical=acid)
+        alcohol = make_chemical("Ethanol", storage_category=make_storage_category("O2"))
+
+        warnings = check_storage_conflicts(alcohol, location)
+
+        assert len(warnings) == 1
+        assert "Only O2 chemicals" in warnings[0]
+        assert "O1: Acetic Acid" in warnings[0]
+
+    def test_same_category_does_not_conflict(
+        self, make_chemical, make_storage_category, make_location, make_container
+    ):
+        o2 = make_storage_category("O2")
+        glycol = make_chemical("Ethylene Glycol", storage_category=o2)
+        location = make_location("shelf")
+        make_container("existing", location=location, chemical=glycol)
+        alcohol = make_chemical("Ethanol", storage_category=o2)
+
+        assert check_storage_conflicts(alcohol, location) == []
+
+    def test_same_code_on_separate_category_rows_does_not_conflict(
+        self, make_chemical, make_storage_category, make_location, make_container
+    ):
+        # Compared by shorthand, not row id — two "O2" rows are one category
+        glycol = make_chemical("Ethylene Glycol", storage_category=make_storage_category("O2"))
+        location = make_location("shelf")
+        make_container("existing", location=location, chemical=glycol)
+        alcohol = make_chemical("Ethanol", storage_category=make_storage_category("O2"))
+
+        assert check_storage_conflicts(alcohol, location) == []
+
+    def test_cross_group_mismatch_is_left_to_organic_inorganic_rule(
+        self, make_chemical, make_storage_category, make_location, make_container
+    ):
+        salt = make_chemical("Sodium Chloride", storage_category=make_storage_category("I2"))
+        location = make_location("shelf")
+        make_container("existing", location=location, chemical=salt)
+        alcohol = make_chemical("Ethanol", storage_category=make_storage_category("O2"))
+
+        warnings = check_storage_conflicts(alcohol, location)
+
+        # Only rule 1's warning — not a second, same-category one
+        assert len(warnings) == 1
+        assert "Organic and Inorganic" in warnings[0]
+
+    def test_unset_categories_are_skipped(
+        self, make_chemical, make_storage_category, make_location, make_container
+    ):
+        location = make_location("shelf")
+        make_container("unknown", location=location, chemical=make_chemical("Mystery"))
+        alcohol = make_chemical("Ethanol", storage_category=make_storage_category("O2"))
+
+        assert check_storage_conflicts(alcohol, location) == []
+        assert check_storage_conflicts(make_chemical("Unlabelled"), location) == []
+
+    def test_lists_each_other_category_in_code_order(
+        self, make_chemical, make_storage_category, make_location, make_container
+    ):
+        location = make_location("shelf")
+        misc = make_chemical("Misc Organic", storage_category=make_storage_category("O10"))
+        dye = make_chemical("Methylene Blue", storage_category=make_storage_category("O9"))
+        make_container("misc", location=location, chemical=misc)
+        make_container("dye", location=location, chemical=dye)
+        alcohol = make_chemical("Ethanol", storage_category=make_storage_category("O2"))
+
+        warnings = check_storage_conflicts(alcohol, location)
+
+        assert "O9: Methylene Blue; O10: Misc Organic" in warnings[0]
 
 
 @pytest.mark.django_db

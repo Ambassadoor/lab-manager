@@ -9,6 +9,10 @@ rules themselves:
 2. Flammable and Oxidizing (GHS pictograms) chemicals shouldn't share an
    immediate parent location.
 3. Nitric Acid must be stored separately from every other chemical.
+4. Only chemicals of the same storage category (e.g. O2 with O2) should
+   share an immediate parent location. A mix across the Organic/Inorganic
+   divide is left to rule 1's more specific warning rather than repeated
+   here.
 
 "Immediate parent location" means Container.location directly — this does
 not look at a location's ancestor/descendant chain, only what else has the
@@ -16,6 +20,8 @@ exact same `location` FK value.
 """
 
 from collections import defaultdict
+
+from natsort import natsorted
 
 from .models import SDS, Container, GHSPictogram
 
@@ -110,6 +116,28 @@ def check_storage_conflicts(chemical, location, *, exclude_container_id=None, al
                 f"{this_kind} and {other_kind} chemicals should not be stored together — "
                 f"this location already has {other_kind.lower()} chemical(s): "
                 f"{', '.join(sorted(conflicting))}."
+            )
+
+    # Rule 4: only the same storage category shares a location. Compared by
+    # shorthand rather than id (the code is what's on the shelf label).
+    # Categories on the other side of the Organic/Inorganic divide are
+    # skipped — rule 1 already warned about those, more specifically — as
+    # are chemicals with no category set (unknown, not a mismatch).
+    if shorthand:
+        other_categories: dict[str, set[str]] = defaultdict(set)
+        for c in others:
+            other = c.storage_category.shorthand if c.storage_category else ""
+            if other and other != shorthand and other[:1] == shorthand[:1]:
+                other_categories[other].add(c.name)
+        if other_categories:
+            listed = "; ".join(
+                f"{code}: {', '.join(sorted(names))}"
+                # natsorted so O10 lists after O9, not after O1
+                for code, names in natsorted(other_categories.items())
+            )
+            warnings.append(
+                f"Only {shorthand} chemicals should be stored together here — this location "
+                f"already has chemical(s) from other storage categories: {listed}."
             )
 
     # Rule 2: Flammable and Oxidizing GHS hazards shouldn't share a
