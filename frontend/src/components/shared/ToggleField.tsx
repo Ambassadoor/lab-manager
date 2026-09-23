@@ -8,6 +8,7 @@ import {
   type TypographyProps,
 } from '@mui/material';
 import type { ReactNode } from 'react';
+import { DetailRow } from './DetailRow';
 
 type ToggleFieldProps = {
   editing: boolean;
@@ -19,6 +20,9 @@ type ToggleFieldProps = {
     value: string | number;
     text: string;
   }[];
+  // Read-only presentation: 'inline' is "**Label:** value"; 'row' is a
+  // two-column DetailRow (see DetailRow.tsx). Edit mode is unaffected.
+  layout?: 'inline' | 'row';
 };
 export const ToggleField = ({
   editing = false,
@@ -26,6 +30,7 @@ export const ToggleField = ({
   typeProps,
   children,
   options,
+  layout = 'inline',
 }: ToggleFieldProps) => {
   return editing ? (
     <TextField
@@ -55,6 +60,8 @@ export const ToggleField = ({
           </MenuItem>
         ))}
     </TextField>
+  ) : layout === 'row' ? (
+    <DetailRow label={textProps?.label}>{children}</DetailRow>
   ) : (
     <Typography {...typeProps}>
       {textProps?.label && <strong>{textProps.label}: </strong>}

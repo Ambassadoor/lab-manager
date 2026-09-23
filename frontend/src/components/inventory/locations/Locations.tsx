@@ -42,6 +42,7 @@ import {
   Stack,
   Tooltip,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
 import type { Container as ContainerType, Location } from '../../../types';
 import { useState } from 'react';
@@ -255,6 +256,10 @@ export const Locations = () => {
   // Slug rather than the row object, so the preview re-derives from the
   // latest list data after a refetch (e.g. after editing in the panel).
   const [previewSlug, setPreviewSlug] = useState<string | null>(null);
+  // Tree (360px) + grid + a 25dvw preview only fit comfortably from xl up;
+  // below that the preview is dropped so the tree and grid keep the room
+  // (double-click still opens a container's full page).
+  const showPreview = useMediaQuery((theme) => theme.breakpoints.up('xl'));
   const {
     data: locations,
     isPending: isLocationsPending,
@@ -426,40 +431,42 @@ export const Locations = () => {
             columnDefs={colDefs}
             height="75dvh"
             onRowClicked={(e) => {
-              if (e.data) setPreviewSlug(e.data.slug);
+              if (showPreview && e.data) setPreviewSlug(e.data.slug);
             }}
             onCellDoubleClicked={(e) => {
               navigate(`/inventory/containers/${e.data?.slug}`, { state: e.data });
             }}
           />
         </Box>
-        <Box sx={{ flexShrink: 0, width: '25dvw' }}>
-          {previewContainer ? (
-            // key: remount per container so an in-progress edit on one
-            // doesn't carry over to the next
-            <ContainerDetail
-              key={previewContainer.slug}
-              data={previewContainer}
-              elevation={4}
-              onClose={() => setPreviewSlug(null)}
-            />
-          ) : (
-            <Paper
-              elevation={4}
-              sx={{
-                height: '75dvh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                p: 3,
-              }}
-            >
-              <Typography color="text.secondary" align="center">
-                Select a container to preview it here. Double-click to open its full page.
-              </Typography>
-            </Paper>
-          )}
-        </Box>
+        {showPreview && (
+          <Box sx={{ flexShrink: 0, width: '25dvw' }}>
+            {previewContainer ? (
+              // key: remount per container so an in-progress edit on one
+              // doesn't carry over to the next
+              <ContainerDetail
+                key={previewContainer.slug}
+                data={previewContainer}
+                elevation={4}
+                onClose={() => setPreviewSlug(null)}
+              />
+            ) : (
+              <Paper
+                elevation={4}
+                sx={{
+                  height: '75dvh',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  p: 3,
+                }}
+              >
+                <Typography color="text.secondary" align="center">
+                  Select a container to preview it here. Double-click to open its full page.
+                </Typography>
+              </Paper>
+            )}
+          </Box>
+        )}
       </Stack>
     </Container>
   );
