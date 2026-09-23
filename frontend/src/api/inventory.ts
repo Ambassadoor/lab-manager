@@ -14,11 +14,11 @@ import type {
   WeightReading,
   LocationType,
   Chemical,
+  ChemicalDefaults,
   Dashboard,
 } from '../types';
 import type { NewLocationDefaults } from '../components/inventory/locations/AddLocation';
 import type { EditLocationDefaults } from '../components/inventory/locations/EditLocation';
-import type { ChemicalDefaults } from '../components/inventory/chemicals/AddChemical';
 
 // Server-side equivalents of what ContainerFilter exposes on the backend
 // (see backend/apps/inventory/filters.py) — only the subset Containers.tsx

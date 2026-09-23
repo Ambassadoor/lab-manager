@@ -152,6 +152,16 @@ export interface ContainerOptions {
   };
 }
 
+// Add/edit chemical form values (AddChemical, ChemicalEditForm)
+export type ChemicalDefaults = {
+  name: string;
+  cas: string;
+  molecular_weight?: string;
+  formula?: string;
+  // Category id, or '' for none (DRF reads '' as null for a relation)
+  storage_category?: number | '';
+};
+
 export type ContainerDetailDefaults = {
   name: string;
   location: string | number;

@@ -1,48 +1,34 @@
 import {
   Alert,
+  Box,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  MenuItem,
-  Stack,
-  TextField,
 } from '@mui/material';
-import { Controller, useForm } from 'react-hook-form';
-import { addChemical, getChemicalByCas, getStorageCategories } from '../../../api/inventory';
+import { useForm } from 'react-hook-form';
+import { addChemical } from '../../../api/inventory';
 import { chemicalKeys } from '../../../api/queryKeys';
-import { cas_is_valid } from '../../shared/checkCas';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import type { ChemicalDefaults } from '../../../types';
+import { ChemicalFields } from './ChemicalFields';
 
 type AddChemicalProps = {
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-export type ChemicalDefaults = {
-  name: string;
-  cas: string;
-  molecular_weight?: string;
-  formula?: string;
-  storage_category?: string;
-};
-
 //Modal for in page addition of new chemicals
 export const AddChemical = ({ open, setOpen }: AddChemicalProps) => {
-  const { data: storageCategory } = useQuery({
-    queryKey: chemicalKeys.storageCategories(),
-    queryFn: getStorageCategories,
-  });
-
   const {
     handleSubmit,
     control,
     reset,
     clearErrors,
     formState: { isValidating },
-  } = useForm({
+  } = useForm<ChemicalDefaults>({
     mode: 'onBlur',
     reValidateMode: 'onBlur',
     defaultValues: {
@@ -97,150 +83,14 @@ export const AddChemical = ({ open, setOpen }: AddChemicalProps) => {
             {mutation.error.message}
           </Alert>
         )}
-        <Stack
-          spacing={2}
-          sx={{
-            mt: 2,
-          }}
-        >
-          <Controller
-            control={control}
-            name="name"
-            rules={{
-              required: {
-                value: true,
-                message: 'Required',
-              },
-            }}
-            render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
-              <TextField
-                {...field}
-                label="Name"
-                error={!!error}
-                helperText={error?.message}
-                onChange={(e) => {
-                  onChange(e);
-                  clearErrors(name);
-                }}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="cas"
-            rules={{
-              required: {
-                value: true,
-                message: 'Required',
-              },
-              pattern: {
-                value: /^[0-9]{2,7}-[0-9]{2}-[0-9]{1}$/,
-                message: 'Invalid CAS format',
-              },
-              validate: {
-                check_digit: (value) => {
-                  if (!cas_is_valid(value)) return 'Invalid CAS number';
-                },
-                duplicate: async (value) => {
-                  try {
-                    const chem = await getChemicalByCas(value);
-                    if (chem.chemicals.length > 0)
-                      return 'A chemical with this CAS # already exists';
-                  } catch {
-                    return 'Unable to verify CAS number. Please try again.';
-                  }
-                },
-              },
-            }}
-            render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
-              <TextField
-                {...field}
-                label="CAS #"
-                error={!!error}
-                helperText={error?.message}
-                onChange={(e) => {
-                  onChange(e);
-                  clearErrors(name);
-                }}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="molecular_weight"
-            rules={{
-              pattern: {
-                value: /^\d+(\.\d+)?$/,
-                message: 'Please input integer or decimal value.',
-              },
-            }}
-            render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
-              <TextField
-                {...field}
-                label="Molecular Weight"
-                error={!!error}
-                helperText={error?.message}
-                onChange={(e) => {
-                  onChange(e);
-                  clearErrors(name);
-                }}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="formula"
-            render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
-              <TextField
-                {...field}
-                label="Chemical Formula"
-                error={!!error}
-                helperText={error?.message}
-                onChange={(e) => {
-                  onChange(e);
-                  clearErrors(name);
-                }}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="storage_category"
-            render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
-              <TextField
-                {...field}
-                select
-                label="Storage Category"
-                error={!!error}
-                helperText={error?.message}
-                onChange={(e) => {
-                  onChange(e);
-                  clearErrors(name);
-                }}
-                slotProps={{
-                  select: {
-                    MenuProps: {
-                      sx: {
-                        maxHeight: '400px',
-                      },
-                    },
-                  },
-                }}
-              >
-                {storageCategory?.map((s) => (
-                  <MenuItem key={s.id} value={s.id}>
-                    {s.shorthand}
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
-          />
-        </Stack>
+        {/* pt, not mt — DialogContent clips the first field's floating label */}
+        <Box sx={{ pt: 1 }}>
+          <ChemicalFields control={control} clearErrors={clearErrors} />
+        </Box>
       </DialogContent>
+      {/* Same order as the detail pages' FormActions: Cancel, then the
+          primary action */}
       <DialogActions>
-        <Button type="submit" variant="contained" loading={mutation.isPending || isValidating}>
-          Submit
-        </Button>
         <Button
           onClick={() => {
             reset();
@@ -248,6 +98,9 @@ export const AddChemical = ({ open, setOpen }: AddChemicalProps) => {
           }}
         >
           Cancel
+        </Button>
+        <Button type="submit" variant="contained" loading={mutation.isPending || isValidating}>
+          Add
         </Button>
       </DialogActions>
     </Dialog>
