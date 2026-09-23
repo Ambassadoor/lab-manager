@@ -80,6 +80,13 @@ class Container(models.Model):
 
     @property
     def quantity(self) -> str:
+        # Both fields are nullable — without these checks an f-string renders
+        # a missing value as the literal "None" (e.g. "None None" in the grid).
+        # `is None`, not falsiness, so a real quantity of 0 still displays.
+        if self.initial_quantity is None:
+            return ""
+        if not self.quantity_unit:
+            return str(self.initial_quantity)
         return f"{self.initial_quantity} {self.quantity_unit}"
 
     # The one place this is computed — DashboardView's restock_soon query
