@@ -61,6 +61,10 @@ export type DataTableProps<TData> = {
   // cell editor inputs) need that same color directly, not just the outer
   // wrapper.
   elevation?: number;
+  // Where the grid sits when its columns are narrower than the space it's
+  // given (it shrinks to its content width — see onFirstDataRendered).
+  // 'start' keeps it next to a sibling panel instead of floating in the middle.
+  align?: 'center' | 'start';
 };
 
 export function DataTable<TData>({
@@ -79,6 +83,7 @@ export function DataTable<TData>({
   pageSize = 25,
   pageSizeOptions = [10, 25, 50],
   elevation = 4,
+  align = 'center',
 }: DataTableProps<TData>) {
   const theme = useTheme();
   const { mode } = useColorScheme();
@@ -141,7 +146,7 @@ export function DataTable<TData>({
         height,
         width: contentWidth ? `${contentWidth}px` : '100%',
         maxWidth: '100%',
-        mx: 'auto',
+        mx: align === 'center' ? 'auto' : 0,
         boxShadow: theme.shadows[elevation],
         // Matches wrapperBorderRadius above, so the shadow follows the same
         // rounded shape ag-grid's own wrapper already renders.

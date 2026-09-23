@@ -46,10 +46,13 @@ import { StorageConflictWarnings } from '../shared/StorageConflictWarnings';
 type ContainerDetailProps = {
   data?: Container;
   onClose?: () => void;
+  // Overrides the card's default look (outlined when given `data`, as in the
+  // Containers drawer) — e.g. to match elevated sibling panels on Locations.
+  elevation?: number;
 };
 
 //A convertible detail/edit component for containers
-export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
+export const ContainerDetail = ({ data, onClose, elevation }: ContainerDetailProps) => {
   const { user } = useAuth();
   const canEdit = hasRoleAtLeast(user, 'stockroom');
 
@@ -61,15 +64,19 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
 
   const seed: Container | undefined = data ?? location.state ?? undefined;
 
-  // enabled only for the routed (:id) view — the drawer/expand views already have full data via `seed`
+  // `seed` (drawer/preview row data, or router state) renders immediately as
+  // initialData; the query stays enabled for those views too so an edit's
+  // invalidation actually refetches, instead of leaving the panel showing
+  // the pre-edit values.
+  const slug = params.id ?? seed?.slug;
   const {
     data: container,
     isPending,
     isError,
   } = useQuery({
-    queryKey: containerKeys.detail(params.id ?? seed?.slug ?? ''),
-    queryFn: () => getContainerDetails(params.id!),
-    enabled: !!params.id,
+    queryKey: containerKeys.detail(slug ?? ''),
+    queryFn: () => getContainerDetails(slug!),
+    enabled: !!slug,
     initialData: seed,
   });
 
@@ -153,6 +160,9 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
     }
     setEditing(false);
     queryClient.invalidateQueries({ queryKey: containerKeys.all });
+    // Locations' per-location container lists live under locationKeys, and
+    // an edit can move the container to a different location.
+    queryClient.invalidateQueries({ queryKey: locationKeys.all });
   };
 
   const onSubmit: SubmitHandler<ContainerDetailDefaults> = (formData) => doSubmit(formData);
@@ -197,8 +207,8 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
           >
             <Card
               sx={{ width: `${data ? '25dvw' : '50dvw'}`, alignSelf: 'center' }}
-              variant={data ? 'outlined' : 'elevation'}
-              elevation={data ? 0 : 4}
+              variant={data && elevation === undefined ? 'outlined' : 'elevation'}
+              elevation={elevation ?? (data ? 0 : 4)}
             >
               <CardHeader
                 title={
@@ -232,13 +242,17 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
                 action={
                   <Box>
                     {data && (
-                      <IconButton
-                        onClick={() => {
-                          navigate(`${data.slug}`, { state: data });
-                        }}
-                      >
-                        <UnfoldMore />
-                      </IconButton>
+                      <Tooltip title="Open full page">
+                        {/* Absolute — this panel is also embedded on the
+                            Locations page, where a relative path breaks */}
+                        <IconButton
+                          onClick={() => {
+                            navigate(`/inventory/containers/${data.slug}`, { state: data });
+                          }}
+                        >
+                          <UnfoldMore />
+                        </IconButton>
+                      </Tooltip>
                     )}
                     {canEdit && (
                       <Tooltip title="Print label">

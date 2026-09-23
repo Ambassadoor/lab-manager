@@ -57,6 +57,7 @@ import { useConfirmDialog } from '../../shared/useConfirmDialog';
 import { PrintResultSnackbar } from '../../shared/PrintResultSnackbar';
 import { printLocationLabel } from '../../shared/printTemplates';
 import { hasRoleAtLeast } from '../../shared/roles';
+import { ContainerDetail } from '../ContainerDetail';
 
 type LocationProps = {
   location: Location;
@@ -213,7 +214,8 @@ const Location = ({
       </Menu>
       {hasChildren && (
         <Collapse in={expanded} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
+          {/* dense must be repeated — each List resets it for its own children */}
+          <List component="div" disablePadding dense>
             {location.children.map((l) => (
               <Location
                 key={l.id}
@@ -247,7 +249,12 @@ export const Locations = () => {
   const selectedLocation = searchParams.get('location') ?? '';
   const setSelectedLocation = (id: string) => {
     setSearchParams(id ? { location: id } : {});
+    // The previewed container likely isn't in the new location's list
+    setPreviewSlug(null);
   };
+  // Slug rather than the row object, so the preview re-derives from the
+  // latest list data after a refetch (e.g. after editing in the panel).
+  const [previewSlug, setPreviewSlug] = useState<string | null>(null);
   const {
     data: locations,
     isPending: isLocationsPending,
@@ -288,6 +295,10 @@ export const Locations = () => {
       }
     },
   });
+
+  const previewContainer = previewSlug
+    ? locationContainers?.find((c) => c.slug === previewSlug)
+    : undefined;
 
   // Tracks which location (if any) is pending a delete confirmation, shared
   // by every row in the recursive tree below.
@@ -373,8 +384,10 @@ export const Locations = () => {
         </Box>
       </Stack>
       <Stack direction={'row'} spacing={2}>
+        {/* Same elevation as DataTable's default, so both panels share a
+            surface color in dark mode */}
         <Paper
-          variant="outlined"
+          elevation={4}
           sx={{ flexShrink: 0, width: 360, maxWidth: 500, height: '75dvh', overflowY: 'auto' }}
         >
           {isLocationsPending ? (
@@ -405,16 +418,47 @@ export const Locations = () => {
             </List>
           )}
         </Paper>
-        <Box sx={{ flexGrow: 1 }}>
+        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
           <DataTable<ContainerType>
+            align="start"
             isLoading={isPending}
             rowData={locationContainers}
             columnDefs={colDefs}
             height="75dvh"
+            onRowClicked={(e) => {
+              if (e.data) setPreviewSlug(e.data.slug);
+            }}
             onCellDoubleClicked={(e) => {
               navigate(`/inventory/containers/${e.data?.slug}`, { state: e.data });
             }}
           />
+        </Box>
+        <Box sx={{ flexShrink: 0, width: '25dvw' }}>
+          {previewContainer ? (
+            // key: remount per container so an in-progress edit on one
+            // doesn't carry over to the next
+            <ContainerDetail
+              key={previewContainer.slug}
+              data={previewContainer}
+              elevation={4}
+              onClose={() => setPreviewSlug(null)}
+            />
+          ) : (
+            <Paper
+              elevation={4}
+              sx={{
+                height: '75dvh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                p: 3,
+              }}
+            >
+              <Typography color="text.secondary" align="center">
+                Select a container to preview it here. Double-click to open its full page.
+              </Typography>
+            </Paper>
+          )}
         </Box>
       </Stack>
     </Container>
