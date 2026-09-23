@@ -351,7 +351,14 @@ export const Containers = () => {
           onCellValueChanged={onCellValueChanged}
         />
       </Box>
-      <Drawer open={open} onClose={() => setOpen((prev) => !prev)} anchor="right">
+      <Drawer
+        open={open}
+        onClose={() => setOpen((prev) => !prev)}
+        anchor="right"
+        // Drop dark mode's elevation overlay so the drawer matches the flat
+        // outlined card inside it, instead of showing a lighter band below it
+        slotProps={{ paper: { sx: { backgroundImage: 'none' } } }}
+      >
         <ContainerDetail data={selectedRow} onClose={() => setOpen(false)} />
       </Drawer>
       <Snackbar open={!!editError} autoHideDuration={6000} onClose={() => setEditError(null)}>

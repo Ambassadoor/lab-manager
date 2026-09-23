@@ -1,23 +1,24 @@
 import { Close } from '@mui/icons-material';
 import {
   Alert,
+  Box,
   Button,
   IconButton,
   List,
   ListItem,
   ListItemText,
-  MenuItem,
   Snackbar,
   Stack,
-  TextField,
   Typography,
 } from '@mui/material';
-import { Controller, useFieldArray, useForm } from 'react-hook-form';
+import { useFieldArray, useForm } from 'react-hook-form';
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { containerKeys, locationKeys } from '../../../api/queryKeys';
 import { getLocationMenu, transferContainers } from '../../../api/inventory';
 import { ScannableFieldRow } from '../../shared/ScannableFieldRow';
+import { LocationSelect } from '../../shared/LocationSelect';
+import { requiredRule } from '../../shared/formRules';
 import { ActionFormCard } from '../../shared/ActionFormCard';
 import { ConfirmDialog } from '../../shared/ConfirmDialog';
 import { useConfirmDialog } from '../../shared/useConfirmDialog';
@@ -235,43 +236,16 @@ export const Transfer = () => {
             />
           ))}
         </Stack>
-        <Controller
-          control={control}
-          name="location"
-          rules={{
-            required: {
-              value: true,
-              message: 'Required',
-            },
-          }}
-          render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
-            <TextField
-              {...field}
-              fullWidth
-              error={!!error}
-              helperText={error?.message}
-              label="New Location"
-              onChange={(e) => {
-                onChange(e);
-                clearErrors(name);
-              }}
-              select
-              sx={{
-                mt: 2,
-              }}
-            >
-              {locationMenu ? (
-                locationMenu.map((l) => (
-                  <MenuItem key={l.id} value={l.id}>
-                    {l.full_path}
-                  </MenuItem>
-                ))
-              ) : (
-                <MenuItem>Loading</MenuItem>
-              )}
-            </TextField>
-          )}
-        />
+        <Box sx={{ mt: 2 }}>
+          <LocationSelect
+            control={control}
+            name="location"
+            label="New Location"
+            rules={{ required: requiredRule }}
+            clearErrors={clearErrors}
+            fullWidth
+          />
+        </Box>
       </ActionFormCard>
     </>
   );

@@ -22,22 +22,27 @@ import {
   Edit,
   Delete,
   Print,
+  MoreVert,
 } from '@mui/icons-material';
 import {
   Alert,
   Box,
-  Button,
-  ButtonGroup,
   CircularProgress,
   Collapse,
   Container,
-  FormControlLabel,
-  Icon,
+  Divider,
   IconButton,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Paper,
   Stack,
-  Switch,
   Tooltip,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
 import type { Container as ContainerType, Location } from '../../../types';
 import { useState } from 'react';
@@ -53,12 +58,17 @@ import { useConfirmDialog } from '../../shared/useConfirmDialog';
 import { PrintResultSnackbar } from '../../shared/PrintResultSnackbar';
 import { printLocationLabel } from '../../shared/printTemplates';
 import { hasRoleAtLeast } from '../../shared/roles';
+import { ContainerDetail } from '../ContainerDetail';
 
 type LocationProps = {
   location: Location;
   parent?: Location;
+  // Nesting level, used to indent the row
+  depth?: number;
+  selectedLocation: string;
   setSelectedLocation: (id: string) => void;
-  editing?: boolean;
+  // Stockroom+ — shows the row actions menu
+  canEdit: boolean;
   onRequestDelete: (target: { id: string; name: string }) => void;
   // Lifted to the top-level Locations component (see its own comment) —
   // every row in this recursively-rendered tree calls the same one, so
@@ -79,96 +89,151 @@ const iconMap = new Map([
   ['BusinessTwoTone', <BusinessTwoTone />],
 ]);
 
+const containsLocation = (location: Location, id: string): boolean =>
+  String(location.id) === id || location.children.some((c) => containsLocation(c, id));
+
 //Self referencing location component to allow for tiered location listing
 const Location = ({
   location,
   parent,
+  depth = 0,
+  selectedLocation,
   setSelectedLocation,
-  editing,
+  canEdit,
   onRequestDelete,
   onPrint,
 }: LocationProps) => {
-  const [expanded, setExpanded] = useState(false);
+  // Start expanded when the selection (e.g. from a bookmarked ?location= link)
+  // is somewhere below this row, so the selected row is actually visible.
+  const [expanded, setExpanded] = useState(() =>
+    location.children.some((c) => containsLocation(c, selectedLocation))
+  );
   const [open, setOpen] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
+  const hasChildren = location.children.length > 0;
+
+  // Row actions live inside the ListItemButton, so they must not also
+  // trigger its select handler or its ripple.
+  const rowAction = (fn: () => void) => ({
+    onClick: (e: React.MouseEvent) => {
+      e.stopPropagation();
+      fn();
+    },
+    onMouseDown: (e: React.MouseEvent) => e.stopPropagation(),
+  });
+
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  // Close the menu before running the action so focus returns to the row
+  // and the dialog it opens isn't stacked on top of the menu.
+  const menuAction = (fn: () => void) => () => {
+    setMenuAnchor(null);
+    fn();
+  };
 
   return (
-    <Container>
+    <>
       <AddLocation id={String(location.id)} open={open} setOpen={setOpen} />
-      <EditLocation
-        location={location}
-        parent={parent && parent}
-        open={openEdit}
-        setOpen={setOpenEdit}
-      />
-      <Stack direction={'row'}>
-        {location.children.length > 0 ? (
-          <IconButton onClick={() => setExpanded((prev) => !prev)}>
-            {expanded ? <ExpandMore /> : <ExpandLess />}
-          </IconButton>
-        ) : (
-          <IconButton disabled>
-            <Icon />
-          </IconButton>
-        )}
-        <Stack direction={'row'} spacing={1} sx={{ alignItems: 'center' }}>
-          <Stack
-            direction={'row'}
-            spacing={1}
-            component={Button}
-            color="inherit"
-            variant="outlined"
-            onClick={() => setSelectedLocation(String(location.id))}
-          >
-            <Typography>{location.name}</Typography>
-            {location.type.icon && iconMap.get(location.type.icon)}
-            {location.children.length > 0 && <Typography>({location.children.length})</Typography>}
-          </Stack>
-          <ButtonGroup
-            variant="contained"
-            sx={{
-              visibility: editing ? 'visible' : 'hidden',
-              pointerEvents: editing ? 'auto' : 'none',
+      <EditLocation location={location} parent={parent} open={openEdit} setOpen={setOpenEdit} />
+      <ListItemButton
+        selected={selectedLocation === String(location.id)}
+        onClick={() => setSelectedLocation(String(location.id))}
+        sx={{ pl: 2 + depth * 2 }}
+      >
+        <ListItemIcon sx={{ minWidth: 40 }}>
+          {location.type.icon && iconMap.get(location.type.icon)}
+        </ListItemIcon>
+        <ListItemText primary={location.name} />
+        {/* Location add/edit/print/delete are all Stockroom+, so one
+            role check covers the whole menu. */}
+        {canEdit && (
+          <IconButton
+            size="small"
+            aria-label={`Actions for ${location.name}`}
+            aria-haspopup="menu"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuAnchor(e.currentTarget);
             }}
           >
-            <Button onClick={() => setOpen(true)} size="small">
-              <AddBox />
-            </Button>
-            <Button size="small" color="info" onClick={() => setOpenEdit(true)}>
-              <Edit />
-            </Button>
-            <Button size="small" color="success" onClick={() => onPrint(location.id)}>
-              <Print />
-            </Button>
-            {/* No separate role check here — reaching this row's ButtonGroup
-                at all already requires Stockroom+ (the "Editing" toggle
-                above is itself gated), and Location delete is Stockroom+
-                same as Add/Edit, so there's nothing stricter to layer on
-                top for just this one button. */}
-            <Button
-              size="small"
-              color="error"
-              onClick={() => onRequestDelete({ id: String(location.id), name: location.name })}
-            >
-              <Delete />
-            </Button>
-          </ButtonGroup>
-        </Stack>
-      </Stack>
-      <Collapse in={expanded}>
-        {location.children.map((l) => (
-          <Location
-            key={l.id}
-            location={l}
-            parent={location}
-            setSelectedLocation={setSelectedLocation}
-            editing={editing}
-            onRequestDelete={onRequestDelete}
-            onPrint={onPrint}
-          />
-        ))}
-      </Collapse>
-    </Container>
+            <MoreVert fontSize="small" />
+          </IconButton>
+        )}
+        {hasChildren ? (
+          <IconButton
+            size="small"
+            aria-label={expanded ? 'Collapse' : 'Expand'}
+            {...rowAction(() => setExpanded((prev) => !prev))}
+          >
+            {expanded ? <ExpandLess /> : <ExpandMore />}
+          </IconButton>
+        ) : (
+          // Keeps names/actions aligned between rows with and without children
+          <Box sx={{ width: 34, flexShrink: 0 }} />
+        )}
+      </ListItemButton>
+      {/* Rendered outside the ListItemButton: React events bubble through
+          portals along the component tree, so menu clicks placed inside it
+          would also select the row. */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={menuAnchor !== null}
+        onClose={() => setMenuAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <MenuItem onClick={menuAction(() => setOpen(true))}>
+          <ListItemIcon>
+            <AddBox fontSize="small" color="primary" />
+          </ListItemIcon>
+          <ListItemText>Add child location</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={menuAction(() => setOpenEdit(true))}>
+          <ListItemIcon>
+            <Edit fontSize="small" color="info" />
+          </ListItemIcon>
+          <ListItemText>Edit</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={menuAction(() => onPrint(location.id))}>
+          <ListItemIcon>
+            <Print fontSize="small" color="success" />
+          </ListItemIcon>
+          <ListItemText>Print label</ListItemText>
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          onClick={menuAction(() =>
+            onRequestDelete({ id: String(location.id), name: location.name })
+          )}
+          sx={{ color: 'error.main' }}
+        >
+          <ListItemIcon>
+            <Delete fontSize="small" color="error" />
+          </ListItemIcon>
+          <ListItemText>Delete</ListItemText>
+        </MenuItem>
+      </Menu>
+      {hasChildren && (
+        <Collapse in={expanded} timeout="auto" unmountOnExit>
+          {/* dense must be repeated — each List resets it for its own children */}
+          <List component="div" disablePadding dense>
+            {location.children.map((l) => (
+              <Location
+                key={l.id}
+                location={l}
+                parent={location}
+                depth={depth + 1}
+                selectedLocation={selectedLocation}
+                setSelectedLocation={setSelectedLocation}
+                canEdit={canEdit}
+                onRequestDelete={onRequestDelete}
+                onPrint={onPrint}
+              />
+            ))}
+          </List>
+        </Collapse>
+      )}
+    </>
   );
 };
 
@@ -185,8 +250,16 @@ export const Locations = () => {
   const selectedLocation = searchParams.get('location') ?? '';
   const setSelectedLocation = (id: string) => {
     setSearchParams(id ? { location: id } : {});
+    // The previewed container likely isn't in the new location's list
+    setPreviewSlug(null);
   };
-  const [editing, setEditing] = useState(false);
+  // Slug rather than the row object, so the preview re-derives from the
+  // latest list data after a refetch (e.g. after editing in the panel).
+  const [previewSlug, setPreviewSlug] = useState<string | null>(null);
+  // Tree (360px) + grid + a 25dvw preview only fit comfortably from xl up;
+  // below that the preview is dropped so the tree and grid keep the room
+  // (double-click still opens a container's full page).
+  const showPreview = useMediaQuery((theme) => theme.breakpoints.up('xl'));
   const {
     data: locations,
     isPending: isLocationsPending,
@@ -227,6 +300,10 @@ export const Locations = () => {
       }
     },
   });
+
+  const previewContainer = previewSlug
+    ? locationContainers?.find((c) => c.slug === previewSlug)
+    : undefined;
 
   // Tracks which location (if any) is pending a delete confirmation, shared
   // by every row in the recursive tree below.
@@ -299,21 +376,11 @@ export const Locations = () => {
             <Typography variant="h4">Locations</Typography>
             <AddLocation id={''} open={open} setOpen={setOpen} />
             {canEdit && (
-              <>
-                <FormControlLabel
-                  control={
-                    <Switch checked={editing} onChange={() => setEditing((prev) => !prev)} />
-                  }
-                  label="Editing"
-                />
-                {editing && (
-                  <Tooltip title="Add root location">
-                    <IconButton onClick={() => setOpen(true)}>
-                      <AddBox />
-                    </IconButton>
-                  </Tooltip>
-                )}
-              </>
+              <Tooltip title="Add root location">
+                <IconButton onClick={() => setOpen(true)}>
+                  <AddBox />
+                </IconButton>
+              </Tooltip>
             )}
           </Stack>
           <Typography variant="body2" color="text.secondary">
@@ -322,34 +389,84 @@ export const Locations = () => {
         </Box>
       </Stack>
       <Stack direction={'row'} spacing={2}>
-        <Box sx={{ flexShrink: 0, maxWidth: 500 }}>
+        {/* Same elevation as DataTable's default, so both panels share a
+            surface color in dark mode */}
+        <Paper
+          elevation={4}
+          sx={{ flexShrink: 0, width: 360, maxWidth: 500, height: '75dvh', overflowY: 'auto' }}
+        >
           {isLocationsPending ? (
-            <CircularProgress size={24} />
+            <CircularProgress size={24} sx={{ m: 2 }} />
           ) : (
-            locations &&
-            locations.map((l) => (
-              <Location
-                location={l}
-                key={l.id}
-                setSelectedLocation={setSelectedLocation}
-                editing={editing}
-                onRequestDelete={deleteConfirm.request}
-                onPrint={handlePrint}
-              />
-            ))
+            <List component="nav" dense>
+              {/* Explicit way back to the unfiltered container list */}
+              <ListItemButton
+                selected={selectedLocation === ''}
+                onClick={() => setSelectedLocation('')}
+              >
+                <ListItemIcon sx={{ minWidth: 40 }}>
+                  <Inventory />
+                </ListItemIcon>
+                <ListItemText primary="All locations" />
+              </ListItemButton>
+              {locations?.map((l) => (
+                <Location
+                  location={l}
+                  key={l.id}
+                  selectedLocation={selectedLocation}
+                  setSelectedLocation={setSelectedLocation}
+                  canEdit={canEdit}
+                  onRequestDelete={deleteConfirm.request}
+                  onPrint={handlePrint}
+                />
+              ))}
+            </List>
           )}
-        </Box>
-        <Box sx={{ flexGrow: 1 }}>
+        </Paper>
+        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
           <DataTable<ContainerType>
+            align="start"
             isLoading={isPending}
             rowData={locationContainers}
             columnDefs={colDefs}
             height="75dvh"
+            onRowClicked={(e) => {
+              if (showPreview && e.data) setPreviewSlug(e.data.slug);
+            }}
             onCellDoubleClicked={(e) => {
               navigate(`/inventory/containers/${e.data?.slug}`, { state: e.data });
             }}
           />
         </Box>
+        {showPreview && (
+          <Box sx={{ flexShrink: 0, width: '25dvw' }}>
+            {previewContainer ? (
+              // key: remount per container so an in-progress edit on one
+              // doesn't carry over to the next
+              <ContainerDetail
+                key={previewContainer.slug}
+                data={previewContainer}
+                elevation={4}
+                onClose={() => setPreviewSlug(null)}
+              />
+            ) : (
+              <Paper
+                elevation={4}
+                sx={{
+                  height: '75dvh',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  p: 3,
+                }}
+              >
+                <Typography color="text.secondary" align="center">
+                  Select a container to preview it here. Double-click to open its full page.
+                </Typography>
+              </Paper>
+            )}
+          </Box>
+        )}
       </Stack>
     </Container>
   );

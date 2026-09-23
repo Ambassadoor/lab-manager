@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../api/client';
+import { LIPSCOMB_EMAIL_PATTERN, LIPSCOMB_ID_PATTERN } from '../shared/formRules';
 
 type Inputs = {
   username: string;
@@ -219,8 +220,8 @@ export const Register = () => {
                   validate: async (value) => {
                     if (!dirtyFields.email && !submittedRef.current) return true;
                     if (!value) return 'Email is required';
-                    const pattern = /^[a-zA-Z0-9._%+-]+@(mail\.)?lipscomb\.edu$/;
-                    if (!pattern.test(value)) return 'Please use your Lipscomb email address';
+                    if (!LIPSCOMB_EMAIL_PATTERN.test(value))
+                      return 'Please use your Lipscomb email address';
                     const taken = await preValidate('email', value);
                     return taken?.errors.email ? taken.errors.email : true;
                   },
@@ -328,8 +329,7 @@ export const Register = () => {
                   validate: (value) => {
                     if (!dirtyFields.lipscomb_id && !submittedRef.current) return true;
                     if (!value) return 'Please provide your Lipscomb ID';
-                    const pattern = /^L[0-9]{8}$/;
-                    if (!pattern.test(value)) return 'Please match L12345678 format';
+                    if (!LIPSCOMB_ID_PATTERN.test(value)) return 'Please match L12345678 format';
                   },
                 }}
                 render={({ field }) => (

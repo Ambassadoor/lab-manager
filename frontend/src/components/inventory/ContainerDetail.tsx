@@ -1,124 +1,81 @@
 import {
   Box,
-  Button,
   Card,
-  CardActions,
   CardContent,
   CardHeader,
   Chip,
-  Collapse,
   Divider,
   IconButton,
-  InputAdornment,
-  Link,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
   Stack,
   Tooltip,
   Typography,
 } from '@mui/material';
 import { useState } from 'react';
-import { Link as RouterLink, useLocation, useNavigate, useParams } from 'react-router-dom';
-import {
-  getContainerDetails,
-  getContainerMetaData,
-  getLocationMenu,
-  updateContainer,
-} from '../../api/inventory';
-import { containerKeys, locationKeys, printerKeys } from '../../api/queryKeys';
-import type { Container, ContainerDetailDefaults } from '../../types';
-import { Close, Edit, ExpandLess, ExpandMore, Print, UnfoldMore } from '@mui/icons-material';
-import { ToggleField } from '../shared/ToggleField';
-import { Controller, FormProvider, useForm, type SubmitHandler } from 'react-hook-form';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { getContainerDetails } from '../../api/inventory';
+import { containerKeys, printerKeys } from '../../api/queryKeys';
+import type { Container } from '../../types';
+import { Close, Edit, MoreVert, Print, UnfoldMore, UploadFile } from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { WeighInTable } from './WeighinTable';
 import { NotFound } from '../shared/NotFound';
 import { useAuth } from '../../context/AuthContext';
 import { hasRoleAtLeast } from '../shared/roles';
 import { SdsUploadDialog } from '../sds/SdsUploadDialog';
-import { useContainerSdsFallback } from '../../hooks/useContainerSdsFallback';
-import { decimalPatternRule } from '../shared/formRules';
 import { PendingResultSnackbar } from '../shared/PendingResultSnackbar';
 import { PrintResultSnackbar } from '../shared/PrintResultSnackbar';
 import { printContainerLabel } from '../shared/printTemplates';
-import { ConfirmDialog } from '../shared/ConfirmDialog';
-import { useStorageConflictConfirm } from '../shared/useStorageConflictConfirm';
-import { StorageConflictWarnings } from '../shared/StorageConflictWarnings';
+import { ContainerView } from './ContainerView';
+import { ContainerEditForm } from './ContainerEditForm';
 
 type ContainerDetailProps = {
   data?: Container;
   onClose?: () => void;
+  // Overrides the card's default look (outlined when given `data`, as in the
+  // Containers drawer) — e.g. to match elevated sibling panels on Locations.
+  elevation?: number;
 };
 
-//A convertible detail/edit component for containers
-export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
+// Container detail card: the routed full page (/inventory/containers/:id),
+// or — given `data` — the Containers drawer / Locations preview. Owns the
+// data, header and actions menu; the body is ContainerView or, while
+// editing, ContainerEditForm.
+export const ContainerDetail = ({ data, onClose, elevation }: ContainerDetailProps) => {
   const { user } = useAuth();
   const canEdit = hasRoleAtLeast(user, 'stockroom');
 
   const location = useLocation();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [sdsDialogOpen, setSdsDialogOpen] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  // Close the menu before running the action, same as Locations.tsx's row menu
+  const menuAction = (fn: () => void) => () => {
+    setMenuAnchor(null);
+    fn();
+  };
   const params = useParams();
 
   const seed: Container | undefined = data ?? location.state ?? undefined;
 
-  // enabled only for the routed (:id) view — the drawer/expand views already have full data via `seed`
+  // `seed` (drawer/preview row data, or router state) renders immediately as
+  // initialData; the query stays enabled for those views too so an edit's
+  // invalidation actually refetches, instead of leaving the panel showing
+  // the pre-edit values.
+  const slug = params.id ?? seed?.slug;
   const {
     data: container,
     isPending,
     isError,
   } = useQuery({
-    queryKey: containerKeys.detail(params.id ?? seed?.slug ?? ''),
-    queryFn: () => getContainerDetails(params.id!),
-    enabled: !!params.id,
+    queryKey: containerKeys.detail(slug ?? ''),
+    queryFn: () => getContainerDetails(slug!),
+    enabled: !!slug,
     initialData: seed,
-  });
-
-  const [sdsDialogOpen, setSdsDialogOpen] = useState(false);
-  const sdsFallback = useContainerSdsFallback(container);
-
-  //Get select field options
-  const { data: locations } = useQuery({
-    queryKey: locationKeys.menu(),
-    queryFn: getLocationMenu,
-    enabled: editing,
-  });
-
-  const { data: metaData } = useQuery({
-    queryKey: containerKeys.metaData(),
-    queryFn: getContainerMetaData,
-    enabled: editing,
-  });
-  const options = metaData?.actions.POST.quantity_unit.choices;
-
-  // A tare weight of 0 (or less) is a placeholder, not a real container
-  // weight — the backend treats it the same as missing (see
-  // Container.has_estimated_usage) — so it shows as "Not set" and edits
-  // from a blank field, rather than surfacing a misleading "0 g".
-  const tareWeight = container?.tare_weight ? parseFloat(container.tare_weight) : 0;
-
-  const defaultValues = {
-    name: container?.name || '',
-    location: String(container?.location?.id || ''),
-    manufacturer: container?.manufacturer || '',
-    product_num: container?.product_num || '',
-    initial_quantity: container?.initial_quantity || '',
-    quantity_unit: container?.quantity_unit || '',
-    tare_weight: tareWeight ? String(tareWeight) : '',
-  };
-
-  const {
-    control,
-    clearErrors,
-    formState,
-    setValue,
-    trigger,
-    resetField,
-    handleSubmit,
-    ...methods
-  } = useForm({
-    mode: 'onBlur',
-    values: defaultValues,
-    defaultValues: defaultValues,
   });
 
   const queryClient = useQueryClient();
@@ -131,8 +88,6 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
     onSettled: () => queryClient.invalidateQueries({ queryKey: printerKeys.status() }),
   });
 
-  const storageConflict = useStorageConflictConfirm();
-
   // A 404 (bad :id in the URL) lands in this query's own error state —
   // TanStack Query doesn't propagate query errors to the router's
   // ErrorBoundary on its own (no throwOnError configured) — so it has to be
@@ -140,420 +95,147 @@ export const ContainerDetail = ({ data, onClose }: ContainerDetailProps) => {
   if (isError) return <NotFound />;
   if (isPending || !container) return null;
 
-  const doSubmit = async (formData: ContainerDetailDefaults, confirmed?: boolean) => {
-    try {
-      await updateContainer(
-        container.slug,
-        { ...formData, tare_weight: formData.tare_weight?.trim() || null },
-        confirmed
-      );
-    } catch (e) {
-      if (storageConflict.intercept(e, () => doSubmit(formData, true))) return;
-      throw e;
-    }
-    setEditing(false);
-    queryClient.invalidateQueries({ queryKey: containerKeys.all });
-  };
-
-  const onSubmit: SubmitHandler<ContainerDetailDefaults> = (formData) => doSubmit(formData);
+  const checkedOut = container.checkout_status?.action === 'out';
 
   return (
-    container && (
-      <>
-        {/* Only the routed (:id) view, not the Containers.tsx drawer — an
-            already-open drawer for an unrelated container shouldn't show a
-            toast meant for whichever container ContainerForm just created.
-            See pendingActionResult.ts for why this can't just be a normal
-            local Snackbar here. */}
-        {!onClose && <PendingResultSnackbar />}
-        <PrintResultSnackbar mutation={printMutation} label="Container label" />
-        <ConfirmDialog
-          open={storageConflict.isOpen}
-          title="Storage Conflict"
-          message={
-            storageConflict.warnings && (
-              <StorageConflictWarnings warnings={storageConflict.warnings} />
-            )
-          }
-          confirmLabel="Store anyway"
-          confirmColor="warning"
-          onCancel={storageConflict.cancel}
-          onConfirm={storageConflict.confirm}
+    <>
+      {/* Only the routed (:id) view, not the Containers.tsx drawer — an
+          already-open drawer for an unrelated container shouldn't show a
+          toast meant for whichever container ContainerForm just created.
+          See pendingActionResult.ts for why this can't just be a normal
+          local Snackbar here. */}
+      {!onClose && <PendingResultSnackbar />}
+      <PrintResultSnackbar mutation={printMutation} label="Container label" />
+      {canEdit && (
+        <SdsUploadDialog
+          open={sdsDialogOpen}
+          setOpen={setSdsDialogOpen}
+          containerId={container.id}
+          chemicalId={container.chemical}
+          manufacturer={container.manufacturer}
+          productNum={container.product_num}
         />
-        <FormProvider
-          {...methods}
-          clearErrors={clearErrors}
-          setValue={setValue}
-          control={control}
-          trigger={trigger}
-          resetField={resetField}
-          handleSubmit={handleSubmit}
-          formState={formState}
+      )}
+      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+        <Card
+          sx={{ width: `${data ? '25dvw' : '50dvw'}`, alignSelf: 'center' }}
+          variant={data && elevation === undefined ? 'outlined' : 'elevation'}
+          elevation={elevation ?? (data ? 0 : 4)}
         >
-          <Box
-            onSubmit={handleSubmit(onSubmit)}
-            sx={{ display: 'flex', justifyContent: 'center' }}
-            component={'form'}
-          >
-            <Card
-              sx={{ width: `${data ? '25dvw' : '50dvw'}`, alignSelf: 'center' }}
-              variant={data ? 'outlined' : 'elevation'}
-              elevation={data ? 0 : 4}
-            >
-              <CardHeader
-                title={
-                  !editing ? (
-                    container.name
-                  ) : (
-                    <Controller
-                      control={control}
-                      name="name"
-                      render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
-                        <ToggleField
-                          {...field}
-                          textProps={{
-                            fullWidth: true,
-                            defaultValue: container.name,
-                            label: 'Name',
-                            error: !!error,
-                            helperText: error?.message,
-                            onChange: (e) => {
-                              onChange(e);
-                              clearErrors(name);
-                            },
-                          }}
-                          editing={editing}
-                        ></ToggleField>
+          {/* Header stays the same in view and edit mode (the Name field
+              lives in the edit form) so the card doesn't jump on toggle */}
+          <CardHeader
+            title={container.name}
+            subheader={
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{ alignItems: 'center', flexWrap: 'wrap', mt: 0.5 }}
+              >
+                <span>{container.label}</span>
+                <Chip
+                  size="small"
+                  color={checkedOut ? 'warning' : 'success'}
+                  label={
+                    checkedOut
+                      ? `Checked out by ${container.checkout_status?.user.full_name}`
+                      : 'Available'
+                  }
+                />
+              </Stack>
+            }
+            action={
+              <Box>
+                {(data || canEdit) && (
+                  <Tooltip title="Actions">
+                    <IconButton
+                      aria-haspopup="menu"
+                      onClick={(e) => setMenuAnchor(e.currentTarget)}
+                    >
+                      <MoreVert />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                <Menu
+                  anchorEl={menuAnchor}
+                  open={menuAnchor !== null}
+                  onClose={() => setMenuAnchor(null)}
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                >
+                  {data && (
+                    <MenuItem
+                      // Absolute — this panel is also embedded on the
+                      // Locations page, where a relative path breaks
+                      onClick={menuAction(() =>
+                        navigate(`/inventory/containers/${data.slug}`, { state: data })
                       )}
-                    />
-                  )
-                }
-                subheader={!editing && container.label}
-                action={
-                  <Box>
-                    {data && (
-                      <IconButton
-                        onClick={() => {
-                          navigate(`${data.slug}`, { state: data });
-                        }}
-                      >
-                        <UnfoldMore />
-                      </IconButton>
-                    )}
-                    {canEdit && (
-                      <Tooltip title="Print label">
-                        <IconButton onClick={() => printMutation.mutate(container)}>
-                          <Print />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                    {canEdit && (
-                      <IconButton onClick={() => setEditing((prev) => !prev)}>
-                        <Edit />
-                      </IconButton>
-                    )}
-                    {onClose && (
-                      <Tooltip title="Close">
-                        <IconButton onClick={onClose}>
-                          <Close />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                  </Box>
-                }
-              />
+                    >
+                      <ListItemIcon>
+                        <UnfoldMore fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>Open full page</ListItemText>
+                    </MenuItem>
+                  )}
+                  {/* Hidden while editing — the form's own Cancel covers leaving */}
+                  {canEdit && !editing && (
+                    <MenuItem onClick={menuAction(() => setEditing(true))}>
+                      <ListItemIcon>
+                        <Edit fontSize="small" color="info" />
+                      </ListItemIcon>
+                      <ListItemText>Edit</ListItemText>
+                    </MenuItem>
+                  )}
+                  {canEdit && (
+                    <MenuItem onClick={menuAction(() => printMutation.mutate(container))}>
+                      <ListItemIcon>
+                        <Print fontSize="small" color="success" />
+                      </ListItemIcon>
+                      <ListItemText>Print label</ListItemText>
+                    </MenuItem>
+                  )}
+                  {canEdit && (
+                    <MenuItem onClick={menuAction(() => setSdsDialogOpen(true))}>
+                      <ListItemIcon>
+                        <UploadFile fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>
+                        {container.latest_sds ? 'Upload new SDS revision' : 'Upload SDS'}
+                      </ListItemText>
+                    </MenuItem>
+                  )}
+                </Menu>
+                {onClose && (
+                  <Tooltip title="Close">
+                    <IconButton onClick={onClose}>
+                      <Close />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
+            }
+          />
+          <Divider />
+          {editing ? (
+            <ContainerEditForm container={container} onDone={() => setEditing(false)} />
+          ) : (
+            <ContainerView container={container} showCurrentWeight={!!data} />
+          )}
+          {/* Full page only — always shown rather than behind an expander,
+              since the page has the room for it */}
+          {!data && !editing && (
+            <>
               <Divider />
               <CardContent>
-                <Stack spacing={2}>
-                  <Controller
-                    control={control}
-                    name="location"
-                    render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
-                      <ToggleField
-                        {...field}
-                        editing={editing}
-                        textProps={{
-                          defaultValue: container.location?.id,
-                          label: 'Location',
-                          error: !!error,
-                          helperText: error?.message,
-                          onChange: (e) => {
-                            onChange(e);
-                            clearErrors(name);
-                          },
-                        }}
-                        options={
-                          locations &&
-                          locations?.map((l) => {
-                            return {
-                              key: l.id,
-                              value: l.id,
-                              text: l.full_path,
-                            };
-                          })
-                        }
-                      >
-                        {container.location?.full_path}
-                      </ToggleField>
-                    )}
-                  />
-                  <Controller
-                    control={control}
-                    name="manufacturer"
-                    render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
-                      <ToggleField
-                        {...field}
-                        editing={editing}
-                        textProps={{
-                          error: !!error,
-                          helperText: error?.message,
-                          defaultValue: container.manufacturer,
-                          label: 'Manufacturer',
-                          onChange: (e) => {
-                            onChange(e);
-                            clearErrors(name);
-                          },
-                        }}
-                      >
-                        {container.manufacturer}
-                      </ToggleField>
-                    )}
-                  />
-                  <Controller
-                    control={control}
-                    name="product_num"
-                    render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
-                      <ToggleField
-                        {...field}
-                        editing={editing}
-                        textProps={{
-                          error: !!error,
-                          helperText: error?.message,
-                          defaultValue: container.product_num,
-                          label: 'Product #',
-                          onChange: (e) => {
-                            onChange(e);
-                            clearErrors(name);
-                          },
-                        }}
-                      >
-                        {container.product_num}
-                      </ToggleField>
-                    )}
-                  />
-                  <Controller
-                    control={control}
-                    name="initial_quantity"
-                    render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
-                      <ToggleField
-                        {...field}
-                        editing={editing}
-                        textProps={{
-                          error: !!error,
-                          helperText: error?.message,
-                          defaultValue: container.initial_quantity,
-                          label: 'Quantity',
-                          onChange: (e) => {
-                            onChange(e);
-                            clearErrors(name);
-                          },
-                          slotProps: {
-                            input: {
-                              endAdornment: (
-                                <InputAdornment position="end">
-                                  <Controller
-                                    control={control}
-                                    name="quantity_unit"
-                                    render={({
-                                      field: { name, onChange, ...field },
-                                      fieldState: { error },
-                                    }) => (
-                                      <ToggleField
-                                        {...field}
-                                        editing={editing}
-                                        textProps={{
-                                          error: !!error,
-                                          helperText: error?.message,
-                                          defaultValue: container.quantity_unit,
-                                          variant: 'standard',
-                                          label: 'Unit',
-                                          onChange: (e) => {
-                                            onChange(e);
-                                            clearErrors(name);
-                                          },
-                                          slotProps: {
-                                            select: {
-                                              variant: 'standard',
-                                            },
-                                          },
-                                        }}
-                                        options={
-                                          options &&
-                                          options.map((o) => {
-                                            return {
-                                              key: o.value,
-                                              value: o.value,
-                                              text: o.display_name,
-                                            };
-                                          })
-                                        }
-                                      ></ToggleField>
-                                    )}
-                                  />
-                                </InputAdornment>
-                              ),
-                            },
-                          },
-                        }}
-                      >
-                        {container.quantity}
-                      </ToggleField>
-                    )}
-                  />
-
-                  <Controller
-                    control={control}
-                    name="tare_weight"
-                    rules={{
-                      pattern: decimalPatternRule('Please input an integer or decimal'),
-                      validate: (v) =>
-                        !v || Number(v) > 0 || 'Must be greater than 0 (leave blank if unknown)',
-                    }}
-                    render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
-                      <ToggleField
-                        {...field}
-                        editing={editing}
-                        textProps={{
-                          error: !!error,
-                          helperText: error?.message,
-                          defaultValue: tareWeight ? String(tareWeight) : '',
-                          label: 'Tare Weight',
-                          onChange: (e) => {
-                            onChange(e);
-                            clearErrors(name);
-                          },
-                          slotProps: {
-                            input: {
-                              endAdornment: <InputAdornment position="end">g</InputAdornment>,
-                            },
-                          },
-                        }}
-                      >
-                        {tareWeight ? `${tareWeight} g` : 'Not set'}
-                      </ToggleField>
-                    )}
-                  />
-
-                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                    <Typography>
-                      <strong>Status:</strong>
-                    </Typography>
-                    <Chip
-                      size="small"
-                      color={container.checkout_status?.action === 'out' ? 'warning' : 'success'}
-                      label={
-                        container.checkout_status?.action === 'out'
-                          ? `Checked out by ${container.checkout_status?.user.full_name}`
-                          : 'Available'
-                      }
-                    />
-                  </Stack>
-                  {container.latest_reading && (
-                    <Typography>
-                      <strong>Current Weight:</strong> {parseFloat(container.latest_reading.weight)}{' '}
-                      g
-                    </Typography>
-                  )}
-                  {container.percent_remaining && (
-                    <Typography>
-                      <strong>Percent Remaining:</strong> {container.percent_remaining}%
-                    </Typography>
-                  )}
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{ alignItems: 'center', flexWrap: 'wrap' }}
-                  >
-                    <Typography>
-                      <strong>SDS:</strong>
-                    </Typography>
-                    {container.latest_sds ? (
-                      <Button
-                        size="small"
-                        component={RouterLink}
-                        to={`/sds/${container.latest_sds.id}`}
-                      >
-                        View SDS
-                      </Button>
-                    ) : sdsFallback.sds.length > 0 ? (
-                      <Typography variant="body2" color="text.secondary">
-                        None on file for this container — see{' '}
-                        {sdsFallback.sds.map((s, i) => (
-                          <span key={s.id}>
-                            {i > 0 && ', '}
-                            <Link component={RouterLink} to={`/sds/${s.id}`}>
-                              {s.file_name}
-                            </Link>
-                          </span>
-                        ))}{' '}
-                        for this chemical.
-                      </Typography>
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">
-                        None on file.
-                      </Typography>
-                    )}
-                    {canEdit && (
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => setSdsDialogOpen(true)}
-                      >
-                        {container.latest_sds ? 'Upload New Revision' : 'Upload SDS'}
-                      </Button>
-                    )}
-                  </Stack>
-                </Stack>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Weigh-in history
+                </Typography>
+                <WeighInTable slug={container.slug} />
               </CardContent>
-              {canEdit && (
-                <SdsUploadDialog
-                  open={sdsDialogOpen}
-                  setOpen={setSdsDialogOpen}
-                  containerId={container.id}
-                  chemicalId={container.chemical}
-                  manufacturer={container.manufacturer}
-                  productNum={container.product_num}
-                />
-              )}
-              {editing && (
-                <CardActions sx={{ ml: 'auto' }}>
-                  <Button type="submit" variant="contained" loading={formState.isSubmitting}>
-                    Submit
-                  </Button>
-                  <Button variant="outlined" onClick={() => setEditing(false)}>
-                    Cancel
-                  </Button>
-                </CardActions>
-              )}
-              {!data && !editing && (
-                <>
-                  <CardActions disableSpacing>
-                    <Box sx={{ display: 'flex', flexDirection: 'row', ml: 'auto' }}>
-                      <Typography sx={{ alignSelf: 'center' }}>Weigh In History</Typography>
-                      <IconButton onClick={() => setExpanded((prev) => !prev)}>
-                        {expanded ? <ExpandLess /> : <ExpandMore />}
-                      </IconButton>
-                    </Box>
-                  </CardActions>
-                  <Collapse in={expanded} timeout={'auto'} unmountOnExit sx={{ pb: 3 }}>
-                    <WeighInTable slug={container.slug} />
-                  </Collapse>
-                </>
-              )}
-            </Card>
-          </Box>
-        </FormProvider>
-      </>
-    )
+            </>
+          )}
+        </Card>
+      </Box>
+    </>
   );
 };

@@ -12,10 +12,9 @@ import {
 } from '@mui/material';
 import { Controller, type Control, type UseFormClearErrors } from 'react-hook-form';
 import type { ContainerFormDefaults } from '../../types';
-import { cas_is_valid } from '../shared/checkCas';
 import { RhfTextField } from '../shared/RhfTextField';
 import { RhfSelect } from '../shared/RhfSelect';
-import { requiredRule, decimalPatternRule } from '../shared/formRules';
+import { requiredRule, decimalPatternRule, casRules } from '../shared/formRules';
 
 type ChemicalRowProps = {
   control: Control<ContainerFormDefaults>;
@@ -51,18 +50,12 @@ export function ChemicalRow({
         control={control}
         name={`chemicals.${index}.cas`}
         rules={{
-          pattern: {
-            value: /^[0-9]{2,7}-[0-9]{2}-[0-9]{1}$/,
-            message: 'Invalid CAS format',
-          },
-          required: requiredRule,
+          ...casRules,
           validate: {
-            check_digit: (value) => {
-              if (!cas_is_valid(value)) return 'Invalid CAS number';
-            },
-            duplicate: (value) => {
-              if (otherCasValues.includes(value)) return 'Duplicate CAS #';
-            },
+            ...casRules.validate,
+            // Duplicate within this form's own rows — unlike ChemicalFields,
+            // an existing chemical's CAS # is expected here (it's reused)
+            duplicate: (value) => !otherCasValues.includes(value) || 'Duplicate CAS #',
           },
         }}
         render={({ field, fieldState: { error } }) => (

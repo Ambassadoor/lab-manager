@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { editLocation, getLocationMenu, getLocationTypes } from '../../../api/inventory';
+import { editLocation, getLocationTypes } from '../../../api/inventory';
+import { LocationSelect } from '../../shared/LocationSelect';
 import { locationKeys } from '../../../api/queryKeys';
 import { Controller, useForm } from 'react-hook-form';
 import type { Location } from '../../../types';
@@ -34,11 +35,6 @@ export const EditLocation = ({ location, parent, open, setOpen }: EditLocationPr
   const { data: types } = useQuery({
     queryKey: locationKeys.types(),
     queryFn: getLocationTypes,
-  });
-
-  const { data: locations } = useQuery({
-    queryKey: locationKeys.menu(),
-    queryFn: getLocationMenu,
   });
 
   const { control, clearErrors, handleSubmit, reset } = useForm({
@@ -144,46 +140,14 @@ export const EditLocation = ({ location, parent, open, setOpen }: EditLocationPr
               </TextField>
             )}
           />
-          <Controller
+          {/* Cleared = no parent (a root location) */}
+          <LocationSelect
             control={control}
             name="parent"
-            render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
-              <TextField
-                {...field}
-                label="Parent"
-                error={!!error}
-                helperText={error?.message}
-                onChange={(e) => {
-                  onChange(e);
-                  clearErrors(name);
-                }}
-                select
-                slotProps={{
-                  select: {
-                    MenuProps: {
-                      slotProps: {
-                        paper: {
-                          sx: {
-                            maxHeight: 200,
-                          },
-                        },
-                      },
-                    },
-                  },
-                }}
-              >
-                <MenuItem value={''}>No parent</MenuItem>
-                {locations
-                  ?.filter((l) => {
-                    return String(l.id) !== String(location.id);
-                  })
-                  .map((l) => (
-                    <MenuItem key={l.id} value={l.id}>
-                      {l.full_path}
-                    </MenuItem>
-                  ))}
-              </TextField>
-            )}
+            label="Parent"
+            placeholder="No parent"
+            clearErrors={clearErrors}
+            excludeIds={[location.id]}
           />
         </Stack>
       </DialogContent>

@@ -61,6 +61,16 @@ export type DataTableProps<TData> = {
   // cell editor inputs) need that same color directly, not just the outer
   // wrapper.
   elevation?: number;
+  // Where the grid sits when its columns are narrower than the space it's
+  // given (it shrinks to its content width — see onFirstDataRendered).
+  // 'start' keeps it next to a sibling panel instead of floating in the middle.
+  align?: 'center' | 'start';
+  // Stretch columns to fill the full available width instead of shrinking
+  // the grid to its content — for small tables embedded in a wider card.
+  fillWidth?: boolean;
+  // Drop the shadow but keep `elevation`'s background shade — for a table
+  // sitting flush inside a Paper/Card of that same elevation.
+  flat?: boolean;
 };
 
 export function DataTable<TData>({
@@ -79,6 +89,9 @@ export function DataTable<TData>({
   pageSize = 25,
   pageSizeOptions = [10, 25, 50],
   elevation = 4,
+  align = 'center',
+  fillWidth = false,
+  flat = false,
 }: DataTableProps<TData>) {
   const theme = useTheme();
   const { mode } = useColorScheme();
@@ -139,10 +152,10 @@ export function DataTable<TData>({
     <Box
       sx={{
         height,
-        width: contentWidth ? `${contentWidth}px` : '100%',
+        width: contentWidth && !fillWidth ? `${contentWidth}px` : '100%',
         maxWidth: '100%',
-        mx: 'auto',
-        boxShadow: theme.shadows[elevation],
+        mx: align === 'center' ? 'auto' : 0,
+        boxShadow: flat ? 'none' : theme.shadows[elevation],
         // Matches wrapperBorderRadius above, so the shadow follows the same
         // rounded shape ag-grid's own wrapper already renders.
         borderRadius: `${theme.shape.borderRadius}px`,
@@ -162,7 +175,7 @@ export function DataTable<TData>({
         pagination
         paginationPageSize={pageSize}
         paginationPageSizeSelector={pageSizeOptions}
-        autoSizeStrategy={{ type: 'fitCellContents' }}
+        autoSizeStrategy={fillWidth ? { type: 'fitGridWidth' } : { type: 'fitCellContents' }}
         onFirstDataRendered={onFirstDataRendered}
         noRowsOverlayComponent={NoRowsOverlay}
         activeOverlay={isError ? ErrorOverlay : undefined}
