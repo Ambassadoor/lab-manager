@@ -7,20 +7,11 @@ import {
   Chip,
   Container,
   Divider,
-  FormControl,
-  FormHelperText,
-  InputAdornment,
-  InputLabel,
-  ListSubheader,
-  MenuItem,
-  Select,
   Snackbar,
   Stack,
-  TextField,
   Typography,
-  useTheme,
 } from '@mui/material';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Controller,
   FormProvider,
@@ -32,26 +23,18 @@ import {
 } from 'react-hook-form';
 import {
   getChemicalByCas,
-  getContainerMetaData,
-  getLocationMenu,
   getStorageCategories,
   submitNewContainerForm,
 } from '../../api/inventory';
 import { getBalanceWeight } from '../../api/bridge';
 import { createSds, type PendingSdsSelection } from '../../api/sds';
-import {
-  containerKeys,
-  chemicalKeys,
-  dashboardKeys,
-  locationKeys,
-  printerKeys,
-} from '../../api/queryKeys';
+import { containerKeys, chemicalKeys, dashboardKeys, printerKeys } from '../../api/queryKeys';
 import { setPendingActionResult, type PendingActionResult } from '../shared/pendingActionResult';
 import { printContainerLabel } from '../shared/printTemplates';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { useStorageConflictConfirm } from '../shared/useStorageConflictConfirm';
 import { StorageConflictWarnings } from '../shared/StorageConflictWarnings';
-import { type ContainerFormDefaults, type CasCheck, type Location } from '../../types';
+import { type ContainerFormDefaults, type CasCheck } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { Decimal } from 'decimal.js';
 import dayjs from 'dayjs';
@@ -64,6 +47,8 @@ import { SdsUploadDialog } from '../sds/SdsUploadDialog';
 import { ChemicalRow } from './ChemicalRow';
 import { MixtureFields } from './MixtureFields';
 import { requiredRule, required, decimalPatternRule } from '../shared/formRules';
+import { LocationSelect } from '../shared/LocationSelect';
+import { QuantityUnitField } from '../shared/QuantityUnitField';
 
 // Converts a quantity from currentUnit to defaultUnit's unit family (mass or volume).
 const convertUnits = (defaultUnit: string, currentUnit: string, quantity: string | number) => {
@@ -82,13 +67,9 @@ const convertUnits = (defaultUnit: string, currentUnit: string, quantity: string
   return parseFloat(String(quantity));
 };
 
-// Every field below that can use a shared wrapper does: RhfTextField,
-// RhfDateField, and RhfSelect cover the plain-text/date/select cases, and
-// quantity_unit's Select is driven by the container OPTIONS metaData query
-// below. The two fields still hand-written here (location's grouped
-// ListSubheader options, quantity_unit living inside another field's
-// InputAdornment) are intentionally excluded — see the comment on
-// RhfSelect.tsx explaining why neither fits that wrapper's shape.
+// Every field below uses a shared wrapper where one fits: RhfTextField,
+// RhfDateField, and RhfSelect for plain text/date/select, LocationSelect for
+// the grouped location picker, and QuantityUnitField for quantity + unit.
 export const ContainerForm = () => {
   const [cas, setCas] = useState<CasCheck | undefined>();
   const [bridgeError, setBridgeError] = useState<string | null>(null);
@@ -106,7 +87,6 @@ export const ContainerForm = () => {
   const [pendingSds, setPendingSds] = useState<PendingSdsSelection | null>(null);
   const [pendingSdsLabel, setPendingSdsLabel] = useState('');
 
-  const theme = useTheme();
   const navigate = useNavigate();
 
   const defaultValues = {
@@ -178,45 +158,10 @@ export const ContainerForm = () => {
     sessionStorage.setItem('container_form_cache', JSON.stringify(formValues));
   }, [formValues]);
 
-  type GroupedLocations = Record<string, Location[]>;
-
-  //Format locations to group them by room number in select drop down
-  const formatLocations = useCallback((locations: Location[]) => {
-    const groups: GroupedLocations = {};
-    locations.forEach((l) => {
-      const pattern = /(?<=\d\S*)\s/;
-      const category = l.full_path.replace(pattern, '|').split('|')[0];
-      if (Object.keys(groups).includes(category)) {
-        if (Array.isArray(groups[category])) {
-          groups[category].push(l);
-        } else {
-          groups[category] = [l];
-        }
-      } else {
-        groups[category] = [l];
-      }
-    });
-    return Object.fromEntries(Object.entries(groups).sort(([a], [b]) => a.localeCompare(b)));
-  }, []);
-
   //Get form select options
   const { data: chemicalStorageCategories = [] } = useQuery({
     queryKey: chemicalKeys.storageCategories(),
     queryFn: getStorageCategories,
-  });
-
-  const { data: locationMenu } = useQuery({
-    queryKey: locationKeys.menu(),
-    queryFn: getLocationMenu,
-  });
-  const locations = useMemo(
-    () => formatLocations(locationMenu ?? []),
-    [locationMenu, formatLocations]
-  );
-
-  const { data: metaData, isPending: isMetaDataPending } = useQuery({
-    queryKey: containerKeys.metaData(),
-    queryFn: getContainerMetaData,
   });
 
   const casRef = useRef(cas);
@@ -536,59 +481,12 @@ export const ContainerForm = () => {
                   }))}
                 />
               )}
-              <Controller
+              <LocationSelect
                 control={control}
                 name="location"
-                rules={{
-                  required: {
-                    value: true,
-                    message: 'Required',
-                  },
-                }}
-                render={({ field, fieldState: { error } }) => (
-                  <FormControl>
-                    <InputLabel id="location">Location</InputLabel>
-                    <Select
-                      {...field}
-                      value={formValues[field.name]}
-                      error={!!error}
-                      labelId="location"
-                      label="Location"
-                      onChange={(e) => {
-                        field.onChange(e);
-                        clearErrors(field.name);
-                      }}
-                      MenuProps={{
-                        slotProps: {
-                          paper: {
-                            sx: {
-                              maxHeight: 200,
-                            },
-                          },
-                        },
-                      }}
-                    >
-                      {Object.keys(locations).flatMap((g, i) => [
-                        <ListSubheader
-                          key={i}
-                          sx={{
-                            fontWeight: 'bold',
-                            fontSize: 16,
-                            backgroundColor: theme.palette.info.main,
-                          }}
-                        >
-                          {g}
-                        </ListSubheader>,
-                        locations[g].map((l) => (
-                          <MenuItem key={l.id} value={l.id}>
-                            {l.full_path}
-                          </MenuItem>
-                        )),
-                      ])}
-                    </Select>
-                    {error && <FormHelperText error>{error.message}</FormHelperText>}
-                  </FormControl>
-                )}
+                label="Location"
+                rules={{ required: requiredRule }}
+                clearErrors={clearErrors}
               />
               <RhfTextField
                 control={control}
@@ -597,77 +495,15 @@ export const ContainerForm = () => {
                 rules={{ required: requiredRule }}
                 clearErrors={clearErrors}
               />
-              <Stack spacing={2}>
-                <Controller
-                  control={control}
-                  name="initial_quantity"
-                  rules={{
-                    required: {
-                      value: true,
-                      message: 'Required',
-                    },
-                  }}
-                  render={({ field, fieldState: { error } }) => (
-                    <TextField
-                      label="Initial Quantity"
-                      {...field}
-                      error={!!error || !!errors.quantity_unit}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        clearErrors(field.name);
-                      }}
-                      helperText={
-                        (error?.message || errors.quantity_unit?.message) &&
-                        [error?.message, errors.quantity_unit?.message].join('. ')
-                      }
-                      slotProps={{
-                        input: {
-                          endAdornment: (
-                            <Controller
-                              control={control}
-                              name="quantity_unit"
-                              rules={{
-                                required: {
-                                  value: true,
-                                  message: 'Please select a unit',
-                                },
-                              }}
-                              render={({ field, fieldState: { error } }) => (
-                                <InputAdornment position="end">
-                                  <Select
-                                    {...field}
-                                    error={!!error}
-                                    label="Unit"
-                                    value={formValues?.quantity_unit}
-                                    autoWidth
-                                    variant="standard"
-                                    disabled={isMetaDataPending}
-                                    MenuProps={{
-                                      slotProps: {
-                                        paper: {
-                                          sx: {
-                                            maxHeight: 200,
-                                          },
-                                        },
-                                      },
-                                    }}
-                                  >
-                                    {metaData?.actions?.POST.quantity_unit.choices.map((c, i) => (
-                                      <MenuItem key={i} value={c.value}>
-                                        {c.display_name}
-                                      </MenuItem>
-                                    ))}
-                                  </Select>
-                                </InputAdornment>
-                              )}
-                            />
-                          ),
-                        },
-                      }}
-                    />
-                  )}
-                />
-              </Stack>
+              <QuantityUnitField
+                control={control}
+                quantityName="initial_quantity"
+                unitName="quantity_unit"
+                label="Initial Quantity"
+                quantityRules={{ required: requiredRule }}
+                unitRules={{ required: required('Please select a unit') }}
+                clearErrors={clearErrors}
+              />
               <RhfTextField
                 control={control}
                 name="product_num"
