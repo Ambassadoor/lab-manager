@@ -19,6 +19,8 @@ type RhfTextFieldProps<TFieldValues extends FieldValues, TName extends FieldPath
   fullWidth?: boolean;
   // Hint shown while the field has no error (an error message replaces it)
   helperText?: string;
+  // Browser autofill hint, e.g. "given-name", "email"
+  autoComplete?: string;
 };
 
 // Controller-wired TextField for the common case: bare field, its own
@@ -37,6 +39,7 @@ export function RhfTextField<
   endAdornment,
   fullWidth,
   helperText,
+  autoComplete,
 }: RhfTextFieldProps<TFieldValues, TName>) {
   return (
     <Controller
@@ -48,6 +51,7 @@ export function RhfTextField<
           {...field}
           label={label}
           fullWidth={fullWidth}
+          autoComplete={autoComplete}
           error={!!error}
           helperText={error?.message || helperText || ''}
           onChange={(e) => {

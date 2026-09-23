@@ -18,6 +18,10 @@ export const casRules = {
   },
 };
 
+// Lipscomb account formats — shared by Register, Profile, and UserEditForm
+export const LIPSCOMB_EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@(mail\.)?lipscomb\.edu$/;
+export const LIPSCOMB_ID_PATTERN = /^L[0-9]{8}$/;
+
 export const decimalPatternRule = (message = 'Please input integer or decimal value.') => ({
   value: /^\d+(\.\d+)?$/,
   message,
