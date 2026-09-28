@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     # Local
     "apps.users",
     "apps.inventory",
+    "apps.feedback",
     "drf_spectacular",
 ]
 
@@ -126,6 +127,12 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_METADATA_CLASS": "rest_framework.metadata.SimpleMetadata",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # Scoped to the bug-report/feedback create actions only (see
+    # apps/feedback/throttles.py) — no global throttling.
+    "DEFAULT_THROTTLE_RATES": {
+        "reports_anon": "5/hour",
+        "reports_user": "30/hour",
+    },
 }
 
 SPECTACULAR_SETTINGS = {
@@ -149,3 +156,12 @@ SPECTACULAR_SETTINGS = {
 # uploads fail with a clear error until then rather than at import time.
 GOOGLE_SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE")
 SDS_DRIVE_FOLDER_ID = os.getenv("SDS_DRIVE_FOLDER_ID")
+
+# --- GitHub App (user bug reports -> issues) ---------------------------------
+# A GitHub App installed on GITHUB_REPO with Issues: read & write. All unset in
+# dev until the app exists; reports still save, with github_status="failed",
+# and `manage.py retry_github_issues` sends them later. See apps/feedback/github.py.
+GITHUB_APP_ID = os.getenv("GITHUB_APP_ID")
+GITHUB_APP_INSTALLATION_ID = os.getenv("GITHUB_APP_INSTALLATION_ID")
+GITHUB_APP_PRIVATE_KEY_FILE = os.getenv("GITHUB_APP_PRIVATE_KEY_FILE")
+GITHUB_REPO = os.getenv("GITHUB_REPO", "Ambassadoor/lab-manager")
