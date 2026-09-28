@@ -2,19 +2,33 @@
 // Runs on localhost with no auth — the session/CSRF handling in client.ts
 // doesn't apply here, so this is a separate, simpler wrapper rather than a
 // reuse of apiFetch.
+import { describe, markRecorded, record } from '../diagnostics';
 import type { BalanceReading, PrintConfirmation, PrinterStatus, PrintParams } from '../types';
 
 const BRIDGE_URL = import.meta.env.VITE_BRIDGE_URL ?? 'http://localhost:8200';
 
 async function bridgeFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${BRIDGE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
+  const method = (options.method ?? 'GET').toUpperCase();
+  let res: Response;
+  try {
+    res = await fetch(`${BRIDGE_URL}${path}`, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    });
+  } catch (error) {
+    // Usually "the bridge isn't running on this PC" — worth knowing in a
+    // report about printing/weighing.
+    record('bridge', 'warn', `${method} ${path} → unreachable: ${describe(error)}`);
+    markRecorded(error);
+    throw error;
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    throw new Error(body?.detail || `Bridge error ${res.status}: ${res.statusText}`);
+    const error = new Error(body?.detail || `Bridge error ${res.status}: ${res.statusText}`);
+    record('bridge', 'error', `${method} ${path} → ${res.status}: ${error.message}`);
+    markRecorded(error);
+    throw error;
   }
 
   return (await res.json()) as T;
