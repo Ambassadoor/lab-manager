@@ -3,6 +3,8 @@
 // Uses SESSION authentication: the browser sends the session cookie
 // automatically (credentials: 'include'), and we attach Django's CSRF
 // token on unsafe requests. No tokens are stored in JavaScript.
+import { describe, markRecorded, record } from '../diagnostics';
+
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
 function getCookie(name: string): string | null {
@@ -108,15 +110,23 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   // silently break the upload.
   const isFormData = options.body instanceof FormData;
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    credentials: 'include',
-    ...options,
-    headers: {
-      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-      ...(needsCsrf && csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
-      ...options.headers,
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      credentials: 'include',
+      ...options,
+      headers: {
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(needsCsrf && csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+        ...options.headers,
+      },
+    });
+  } catch (error) {
+    // Network-level failure (backend down, CORS, offline) — no response at all.
+    record('api', 'error', `${method} ${path} → network error: ${describe(error)}`);
+    markRecorded(error);
+    throw error;
+  }
 
   if (!res.ok) {
     // Including 404 — react-router's data() looked like the right way to
@@ -135,7 +145,17 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
       // No JSON body to parse (some 401/403/500 responses have none) —
       // ApiError falls back to a generic status-based message.
     }
-    throw new ApiError(res.status, res.statusText, body);
+    const error = new ApiError(res.status, res.statusText, body);
+    // Method/path/status/message only — never request bodies (passwords,
+    // form contents). 4xx is often expected (a 404 detail page, a 401 before
+    // login), so it's a warning; 5xx is a real server failure.
+    record(
+      'api',
+      res.status >= 500 ? 'error' : 'warn',
+      `${method} ${path} → ${res.status}: ${error.message}`
+    );
+    markRecorded(error);
+    throw error;
   }
 
   // 204 No Content has no body to parse.

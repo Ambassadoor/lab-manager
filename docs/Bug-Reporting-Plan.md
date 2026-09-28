@@ -49,8 +49,11 @@ admin action.
 (pretty-printed diagnostics, "Create / retry GitHub issue" action), retry
 command, tests.
 
-### 2. Capture layer (frontend `src/diagnostics/`)
-Installed in `main.tsx` before `render()`.
+### 2. Capture layer (frontend `src/diagnostics/`) — done
+Installed in `main.tsx` before `render()`. Identical consecutive events are
+collapsed with a `repeats` count (the printer-status poller would otherwise
+flood the buffer when the bridge is down). In dev, `__diagnostics()` in the
+browser console shows what a report would send.
 - Ring buffer (~100 entries, ~50 KB): `console.error`/`warn` (pass-through),
   `window` `error` + `unhandledrejection`, `apiFetch` failures (method, path,
   status, message — never request bodies), `bridgeFetch` failures, global

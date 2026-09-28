@@ -33,6 +33,7 @@ import { DarkModeToggle } from './DarkModeToggle';
 import { PrinterStatusIndicator } from './PrinterStatusIndicator';
 import { Link, NavLink, Outlet, useNavigate, useNavigation } from 'react-router-dom';
 import { hasRoleAtLeast } from '../shared/roles';
+import { useNavigationBreadcrumbs } from '../../diagnostics';
 
 // Shared by every top-level nav link, desktop and mobile — was copy-pasted
 // four times before (once per Button); the theme-callback form here means
@@ -54,6 +55,9 @@ const actionTabs = [
 ];
 
 export const Navbar = (): JSX.Element | null => {
+  // Navbar is the root route's element, mounted for every page — the one
+  // place a route-change hook sees all navigation (for bug-report breadcrumbs).
+  useNavigationBreadcrumbs();
   const { user, loading, logout } = useAuth();
   const [userMenuEl, setUserMenuEl] = useState<null | HTMLElement>(null);
   const userMenuOpen = Boolean(userMenuEl);
