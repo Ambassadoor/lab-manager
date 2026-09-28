@@ -9,6 +9,7 @@ import { AgGridProvider } from 'ag-grid-react';
 import { AllCommunityModule } from 'ag-grid-community';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { FeedbackProvider } from './components/feedback/FeedbackProvider';
 import {
   buildDiagnostics,
   describe,
@@ -66,7 +67,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <CssBaseline enableColorScheme />
           <AgGridProvider modules={modules}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <App />
+              {/* Inside Auth/Query providers — the bug report reads the
+                  user's role and the printer status from them. */}
+              <FeedbackProvider>
+                <App />
+              </FeedbackProvider>
             </LocalizationProvider>
           </AgGridProvider>
         </Theme>

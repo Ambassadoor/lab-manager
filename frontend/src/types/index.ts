@@ -216,3 +216,13 @@ export type LabelTemplateWrite = Omit<LabelTemplate, 'id' | 'fields'> & {
 // Matches DRF's partial=True PATCH semantics — same fields as
 // LabelTemplateWrite, all optional.
 export type LabelTemplatePatch = components['schemas']['PatchedLabelTemplate'];
+
+// In-app bug reports and feedback (apps/feedback on the backend). The
+// *Create types are the responses; the *Input types are what the dialogs
+// send (only the writable fields).
+export type BugImpact = components['schemas']['ImpactEnum'];
+export type FeedbackCategory = components['schemas']['CategoryEnum'];
+export type BugReportCreate = components['schemas']['BugReportCreate'];
+export type BugReportInput = Pick<BugReportCreate, EditableKeys<BugReportCreate>>;
+export type FeedbackCreate = components['schemas']['FeedbackCreate'];
+export type FeedbackInput = Pick<FeedbackCreate, EditableKeys<FeedbackCreate>>;
