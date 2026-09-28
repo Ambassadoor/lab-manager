@@ -65,17 +65,20 @@ browser console shows what a report would send.
 - Scrub before send: never read `document.cookie`; redact `csrftoken`,
   `sessionid`, `password`, email patterns.
 
-### 3. UI
-- Navbar **Help** menu: "Report a problem", "Send feedback".
+### 3. UI — done
+`src/components/feedback/` (`FeedbackProvider` in main.tsx owns both dialogs;
+`useFeedback()` opens them). The diagnostics snapshot is taken when the bug
+dialog *opens*, not on submit.
+- Navbar **Help** menu (`nav/HelpMenu.tsx`): "Report a problem", "Send feedback".
 - `ErrorBoundary` (App.tsx): **"Report this problem"** button pre-filled with the crash.
 - Bug dialog: *What went wrong?* (required) → *Details* → impact as three plain
   buttons ("I can't continue" / "Annoying but I can work around it" / "Minor")
   → "Include technical details" (on, with a "see what's sent" preview) →
   thanks screen with reference number. Note under the text fields that the
   description may be posted publicly.
-- Feedback dialog: category chips, page (auto-filled, editable), text,
-  "OK to follow up with me?".
-- Regenerate `backend/openapi.json` + frontend types for the new endpoints.
+- Feedback dialog: category chips, text, "This is about the page I'm on"
+  (sends the current path; a raw URL is meaningless to most users, so it's a
+  checkbox rather than an editable field), "OK to contact me" (logged in only).
 
 ### 4. Polish
 Optional screenshot (`modern-screenshot`) + user-attached image; error

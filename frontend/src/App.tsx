@@ -30,6 +30,7 @@ import { Dashboard } from './components/inventory/Dashboard';
 import { NotFound, StatusPage } from './components/shared/NotFound';
 import { SdsSearch } from './components/sds/SdsSearch';
 import { SdsViewer } from './components/sds/SdsViewer';
+import { useFeedback } from './components/feedback/FeedbackContext';
 
 // Component to show when an error is thrown. In practice this only ever
 // sees plain unexpected exceptions today — this app has no React Router
@@ -40,6 +41,10 @@ import { SdsViewer } from './components/sds/SdsViewer';
 // only way a real route error response reaches this boundary.
 function ErrorBoundary() {
   const error = useRouteError();
+  const { openBugReport } = useFeedback();
+  // Rendered inside Navbar's <Outlet />, so FeedbackProvider (main.tsx) and
+  // the Help menu are both still mounted — the report opens over this page.
+  const reportCrash = () => openBugReport({ crash: error });
 
   if (isRouteErrorResponse(error)) {
     return (
@@ -48,6 +53,7 @@ function ErrorBoundary() {
         title={`${error.status} ${error.statusText}`}
         message={error.data?.message || 'Something went wrong.'}
         onRetry={() => window.location.reload()}
+        onReport={reportCrash}
       />
     );
   }
@@ -62,6 +68,7 @@ function ErrorBoundary() {
       title="Something went wrong"
       message={error instanceof Error ? error.message : 'An unexpected error occurred.'}
       onRetry={() => window.location.reload()}
+      onReport={reportCrash}
     />
   );
 }

@@ -31,6 +31,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Logout } from '@mui/icons-material';
 import { DarkModeToggle } from './DarkModeToggle';
 import { PrinterStatusIndicator } from './PrinterStatusIndicator';
+import { HelpMenu } from './HelpMenu';
 import { Link, NavLink, Outlet, useNavigate, useNavigation } from 'react-router-dom';
 import { hasRoleAtLeast } from '../shared/roles';
 import { useNavigationBreadcrumbs } from '../../diagnostics';
@@ -237,6 +238,7 @@ export const Navbar = (): JSX.Element | null => {
                 <PrinterStatusIndicator />
               </Box>
             )}
+            <HelpMenu />
             <DarkModeToggle />
             {!user ? (
               <Button color="inherit">Login</Button>

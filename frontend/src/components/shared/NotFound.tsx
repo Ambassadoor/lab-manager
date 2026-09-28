@@ -1,5 +1,5 @@
 import { Box, Button, Stack, Typography } from '@mui/material';
-import { Home, Refresh, SearchOff } from '@mui/icons-material';
+import { BugReportOutlined, Home, Refresh, SearchOff } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 
 type StatusPageProps = {
@@ -9,11 +9,13 @@ type StatusPageProps = {
   // Only real unexpected errors get a retry action — a 404 isn't going to
   // resolve itself on reload, so NotFound never passes this.
   onRetry?: () => void;
+  // Same for "Report this problem" — opens the bug report with the crash attached.
+  onReport?: () => void;
 };
 
 // Shared layout for the 404 page and App.tsx's generic route-error page —
 // same "what happened / where can I go" shape either way.
-export function StatusPage({ icon, title, message, onRetry }: StatusPageProps) {
+export function StatusPage({ icon, title, message, onRetry, onReport }: StatusPageProps) {
   return (
     <Box
       sx={{
@@ -30,13 +32,18 @@ export function StatusPage({ icon, title, message, onRetry }: StatusPageProps) {
       {icon}
       <Typography variant="h4">{title}</Typography>
       <Typography color="text.secondary">{message}</Typography>
-      <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+      <Stack direction="row" sx={{ mt: 1, flexWrap: 'wrap', gap: 2, justifyContent: 'center' }}>
         <Button variant="contained" component={Link} to="/" startIcon={<Home />}>
           Go Home
         </Button>
         {onRetry && (
           <Button variant="outlined" onClick={onRetry} startIcon={<Refresh />}>
             Try Again
+          </Button>
+        )}
+        {onReport && (
+          <Button variant="outlined" onClick={onReport} startIcon={<BugReportOutlined />}>
+            Report this problem
           </Button>
         )}
       </Stack>
