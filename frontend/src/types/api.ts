@@ -180,6 +180,153 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/feedback/general/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * @description Create is open to anyone (throttled); everything else is lab-manager only.
+     *
+     *     Same shape as SDSView: default authenticators stay in place so a logged-in
+     *     reporter is still attached to their report, while AllowAny lets anonymous
+     *     visitors on the public pages (login, SDS) submit too.
+     */
+    get: operations['api_feedback_general_list'];
+    put?: never;
+    /**
+     * @description Create is open to anyone (throttled); everything else is lab-manager only.
+     *
+     *     Same shape as SDSView: default authenticators stay in place so a logged-in
+     *     reporter is still attached to their report, while AllowAny lets anonymous
+     *     visitors on the public pages (login, SDS) submit too.
+     */
+    post: operations['api_feedback_general_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/feedback/general/{id}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * @description Create is open to anyone (throttled); everything else is lab-manager only.
+     *
+     *     Same shape as SDSView: default authenticators stay in place so a logged-in
+     *     reporter is still attached to their report, while AllowAny lets anonymous
+     *     visitors on the public pages (login, SDS) submit too.
+     */
+    get: operations['api_feedback_general_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * @description Create is open to anyone (throttled); everything else is lab-manager only.
+     *
+     *     Same shape as SDSView: default authenticators stay in place so a logged-in
+     *     reporter is still attached to their report, while AllowAny lets anonymous
+     *     visitors on the public pages (login, SDS) submit too.
+     */
+    patch: operations['api_feedback_general_partial_update'];
+    trace?: never;
+  };
+  '/api/feedback/general/{id}/promote/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Create (or retry) the GitHub issue for this row. */
+    post: operations['api_feedback_general_promote_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/feedback/reports/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * @description Create is open to anyone (throttled); everything else is lab-manager only.
+     *
+     *     Same shape as SDSView: default authenticators stay in place so a logged-in
+     *     reporter is still attached to their report, while AllowAny lets anonymous
+     *     visitors on the public pages (login, SDS) submit too.
+     */
+    get: operations['api_feedback_reports_list'];
+    put?: never;
+    /**
+     * @description Create is open to anyone (throttled); everything else is lab-manager only.
+     *
+     *     Same shape as SDSView: default authenticators stay in place so a logged-in
+     *     reporter is still attached to their report, while AllowAny lets anonymous
+     *     visitors on the public pages (login, SDS) submit too.
+     */
+    post: operations['api_feedback_reports_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/feedback/reports/{id}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * @description Create is open to anyone (throttled); everything else is lab-manager only.
+     *
+     *     Same shape as SDSView: default authenticators stay in place so a logged-in
+     *     reporter is still attached to their report, while AllowAny lets anonymous
+     *     visitors on the public pages (login, SDS) submit too.
+     */
+    get: operations['api_feedback_reports_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/feedback/reports/{id}/promote/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** @description Create (or retry) the GitHub issue for this row. */
+    post: operations['api_feedback_reports_promote_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/inventory/chemical_storage_categories/': {
     parameters: {
       query?: never;
@@ -672,6 +819,45 @@ export interface components {
     ActionEnum: 'in' | 'out';
     /** @enum {unknown} */
     BlankEnum: '';
+    BugReport: {
+      readonly id: number;
+      readonly user: number | null;
+      readonly username: string;
+      readonly summary: string;
+      readonly description: string;
+      readonly impact: components['schemas']['ImpactEnum'];
+      readonly route: string;
+      readonly app_version: string;
+      readonly diagnostics: unknown;
+      /** Format: date-time */
+      readonly created_at: string;
+      readonly github_status: components['schemas']['GithubStatusEnum'];
+      readonly github_issue_number: number | null;
+      /** Format: uri */
+      readonly github_issue_url: string;
+      readonly github_error: string;
+    };
+    BugReportCreate: {
+      readonly id: number;
+      summary: string;
+      description?: string;
+      impact?: components['schemas']['ImpactEnum'];
+      route?: string;
+      app_version?: string;
+      diagnostics?: unknown;
+      readonly github_status: components['schemas']['GithubStatusEnum'];
+      readonly github_issue_number: number | null;
+      /** Format: uri */
+      readonly github_issue_url: string;
+    };
+    /**
+     * @description * `confusing` - Something was confusing
+     *     * `tedious` - Something is slow or tedious
+     *     * `idea` - I have an idea
+     *     * `other` - Other
+     * @enum {string}
+     */
+    CategoryEnum: 'confusing' | 'tedious' | 'idea' | 'other';
     CheckoutEvent: {
       readonly id: number;
       readonly user: components['schemas']['UserCheckoutEvent'];
@@ -792,6 +978,30 @@ export interface components {
        */
       tare_weight?: string | null;
     };
+    Feedback: {
+      readonly id: number;
+      readonly user: number | null;
+      readonly username: string;
+      readonly category: components['schemas']['CategoryEnum'];
+      readonly route: string;
+      readonly body: string;
+      readonly may_contact: boolean;
+      status?: components['schemas']['StatusEnum'];
+      /** Format: date-time */
+      readonly created_at: string;
+      readonly github_status: components['schemas']['GithubStatusEnum'];
+      readonly github_issue_number: number | null;
+      /** Format: uri */
+      readonly github_issue_url: string;
+      readonly github_error: string;
+    };
+    FeedbackCreate: {
+      readonly id: number;
+      category: components['schemas']['CategoryEnum'];
+      route?: string;
+      body: string;
+      may_contact?: boolean;
+    };
     /**
      * @description * `flammable` - Flammable
      *     * `oxidizing` - Oxidizing
@@ -814,6 +1024,21 @@ export interface components {
       | 'health_hazard'
       | 'explosive'
       | 'environment';
+    /**
+     * @description * `none` - Not sent
+     *     * `pending` - Pending
+     *     * `created` - Created
+     *     * `failed` - Failed
+     * @enum {string}
+     */
+    GithubStatusEnum: 'none' | 'pending' | 'created' | 'failed';
+    /**
+     * @description * `blocking` - I can't continue
+     *     * `annoying` - It's annoying but I can work around it
+     *     * `minor` - Minor / cosmetic
+     * @enum {string}
+     */
+    ImpactEnum: 'blocking' | 'annoying' | 'minor';
     InvalidRequest: {
       detail: string;
     };
@@ -1002,6 +1227,23 @@ export interface components {
        */
       tare_weight?: string | null;
     };
+    PatchedFeedback: {
+      readonly id?: number;
+      readonly user?: number | null;
+      readonly username?: string;
+      readonly category?: components['schemas']['CategoryEnum'];
+      readonly route?: string;
+      readonly body?: string;
+      readonly may_contact?: boolean;
+      status?: components['schemas']['StatusEnum'];
+      /** Format: date-time */
+      readonly created_at?: string;
+      readonly github_status?: components['schemas']['GithubStatusEnum'];
+      readonly github_issue_number?: number | null;
+      /** Format: uri */
+      readonly github_issue_url?: string;
+      readonly github_error?: string;
+    };
     PatchedLabelTemplate: {
       readonly id?: number;
       /** @description Human-readable, e.g. 'Location label (12mm)'. Not sent to the printer. */
@@ -1109,6 +1351,13 @@ export interface components {
       revision_number?: string | null;
       ghs_pictograms?: components['schemas']['GhsPictogramsEnum'][];
     };
+    /**
+     * @description * `new` - New
+     *     * `triaged` - Triaged
+     *     * `done` - Done
+     * @enum {string}
+     */
+    StatusEnum: 'new' | 'triaged' | 'done';
     SuccessMessage: {
       detail: string;
     };
@@ -1427,6 +1676,265 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  api_feedback_general_list: {
+    parameters: {
+      query?: {
+        /**
+         * @description * `confusing` - Something was confusing
+         *     * `tedious` - Something is slow or tedious
+         *     * `idea` - I have an idea
+         *     * `other` - Other
+         */
+        category?: 'confusing' | 'idea' | 'other' | 'tedious';
+        /**
+         * @description * `none` - Not sent
+         *     * `pending` - Pending
+         *     * `created` - Created
+         *     * `failed` - Failed
+         */
+        github_status?: 'created' | 'failed' | 'none' | 'pending';
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+        /** @description A search term. */
+        search?: string;
+        /**
+         * @description * `new` - New
+         *     * `triaged` - Triaged
+         *     * `done` - Done
+         */
+        status?: 'done' | 'new' | 'triaged';
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Feedback'][];
+        };
+      };
+    };
+  };
+  api_feedback_general_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FeedbackCreate'];
+        'application/x-www-form-urlencoded': components['schemas']['FeedbackCreate'];
+        'multipart/form-data': components['schemas']['FeedbackCreate'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['FeedbackCreate'];
+        };
+      };
+    };
+  };
+  api_feedback_general_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this feedback. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Feedback'];
+        };
+      };
+    };
+  };
+  api_feedback_general_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this feedback. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedFeedback'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedFeedback'];
+        'multipart/form-data': components['schemas']['PatchedFeedback'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Feedback'];
+        };
+      };
+    };
+  };
+  api_feedback_general_promote_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this feedback. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['Feedback'];
+        'application/x-www-form-urlencoded': components['schemas']['Feedback'];
+        'multipart/form-data': components['schemas']['Feedback'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Feedback'];
+        };
+      };
+    };
+  };
+  api_feedback_reports_list: {
+    parameters: {
+      query?: {
+        /**
+         * @description * `none` - Not sent
+         *     * `pending` - Pending
+         *     * `created` - Created
+         *     * `failed` - Failed
+         */
+        github_status?: 'created' | 'failed' | 'none' | 'pending';
+        /**
+         * @description * `blocking` - I can't continue
+         *     * `annoying` - It's annoying but I can work around it
+         *     * `minor` - Minor / cosmetic
+         */
+        impact?: 'annoying' | 'blocking' | 'minor';
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+        /** @description A search term. */
+        search?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BugReport'][];
+        };
+      };
+    };
+  };
+  api_feedback_reports_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BugReportCreate'];
+        'application/x-www-form-urlencoded': components['schemas']['BugReportCreate'];
+        'multipart/form-data': components['schemas']['BugReportCreate'];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BugReportCreate'];
+        };
+      };
+    };
+  };
+  api_feedback_reports_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this bug report. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BugReport'];
+        };
+      };
+    };
+  };
+  api_feedback_reports_promote_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this bug report. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['BugReport'];
+        'application/x-www-form-urlencoded': components['schemas']['BugReport'];
+        'multipart/form-data': components['schemas']['BugReport'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BugReport'];
+        };
       };
     };
   };

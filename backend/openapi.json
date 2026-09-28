@@ -312,6 +312,363 @@ paths:
           description: No response body
         '422':
           description: No response body
+  /api/feedback/general/:
+    get:
+      operationId: api_feedback_general_list
+      description: |-
+        Create is open to anyone (throttled); everything else is lab-manager only.
+
+        Same shape as SDSView: default authenticators stay in place so a logged-in
+        reporter is still attached to their report, while AllowAny lets anonymous
+        visitors on the public pages (login, SDS) submit too.
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+          enum:
+          - confusing
+          - idea
+          - other
+          - tedious
+        description: |-
+          * `confusing` - Something was confusing
+          * `tedious` - Something is slow or tedious
+          * `idea` - I have an idea
+          * `other` - Other
+      - in: query
+        name: github_status
+        schema:
+          type: string
+          enum:
+          - created
+          - failed
+          - none
+          - pending
+        description: |-
+          * `none` - Not sent
+          * `pending` - Pending
+          * `created` - Created
+          * `failed` - Failed
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - done
+          - new
+          - triaged
+        description: |-
+          * `new` - New
+          * `triaged` - Triaged
+          * `done` - Done
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Feedback'
+          description: ''
+    post:
+      operationId: api_feedback_general_create
+      description: |-
+        Create is open to anyone (throttled); everything else is lab-manager only.
+
+        Same shape as SDSView: default authenticators stay in place so a logged-in
+        reporter is still attached to their report, while AllowAny lets anonymous
+        visitors on the public pages (login, SDS) submit too.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FeedbackCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FeedbackCreate'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackCreate'
+          description: ''
+  /api/feedback/general/{id}/:
+    get:
+      operationId: api_feedback_general_retrieve
+      description: |-
+        Create is open to anyone (throttled); everything else is lab-manager only.
+
+        Same shape as SDSView: default authenticators stay in place so a logged-in
+        reporter is still attached to their report, while AllowAny lets anonymous
+        visitors on the public pages (login, SDS) submit too.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this feedback.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+          description: ''
+    patch:
+      operationId: api_feedback_general_partial_update
+      description: |-
+        Create is open to anyone (throttled); everything else is lab-manager only.
+
+        Same shape as SDSView: default authenticators stay in place so a logged-in
+        reporter is still attached to their report, while AllowAny lets anonymous
+        visitors on the public pages (login, SDS) submit too.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this feedback.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedFeedback'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedFeedback'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedFeedback'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+          description: ''
+  /api/feedback/general/{id}/promote/:
+    post:
+      operationId: api_feedback_general_promote_create
+      description: Create (or retry) the GitHub issue for this row.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this feedback.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feedback'
+          description: ''
+  /api/feedback/reports/:
+    get:
+      operationId: api_feedback_reports_list
+      description: |-
+        Create is open to anyone (throttled); everything else is lab-manager only.
+
+        Same shape as SDSView: default authenticators stay in place so a logged-in
+        reporter is still attached to their report, while AllowAny lets anonymous
+        visitors on the public pages (login, SDS) submit too.
+      parameters:
+      - in: query
+        name: github_status
+        schema:
+          type: string
+          enum:
+          - created
+          - failed
+          - none
+          - pending
+        description: |-
+          * `none` - Not sent
+          * `pending` - Pending
+          * `created` - Created
+          * `failed` - Failed
+      - in: query
+        name: impact
+        schema:
+          type: string
+          enum:
+          - annoying
+          - blocking
+          - minor
+        description: |-
+          * `blocking` - I can't continue
+          * `annoying` - It's annoying but I can work around it
+          * `minor` - Minor / cosmetic
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BugReport'
+          description: ''
+    post:
+      operationId: api_feedback_reports_create
+      description: |-
+        Create is open to anyone (throttled); everything else is lab-manager only.
+
+        Same shape as SDSView: default authenticators stay in place so a logged-in
+        reporter is still attached to their report, while AllowAny lets anonymous
+        visitors on the public pages (login, SDS) submit too.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BugReportCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BugReportCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BugReportCreate'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BugReportCreate'
+          description: ''
+  /api/feedback/reports/{id}/:
+    get:
+      operationId: api_feedback_reports_retrieve
+      description: |-
+        Create is open to anyone (throttled); everything else is lab-manager only.
+
+        Same shape as SDSView: default authenticators stay in place so a logged-in
+        reporter is still attached to their report, while AllowAny lets anonymous
+        visitors on the public pages (login, SDS) submit too.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this bug report.
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BugReport'
+          description: ''
+  /api/feedback/reports/{id}/promote/:
+    post:
+      operationId: api_feedback_reports_promote_create
+      description: Create (or retry) the GitHub issue for this row.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this bug report.
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BugReport'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BugReport'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BugReport'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BugReport'
+          description: ''
   /inventory/chemical_storage_categories/:
     get:
       operationId: inventory_chemical_storage_categories_list
@@ -2092,6 +2449,121 @@ components:
     BlankEnum:
       enum:
       - ''
+    BugReport:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          readOnly: true
+          nullable: true
+        username:
+          type: string
+          readOnly: true
+        summary:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        impact:
+          allOf:
+          - $ref: '#/components/schemas/ImpactEnum'
+          readOnly: true
+        route:
+          type: string
+          readOnly: true
+        app_version:
+          type: string
+          readOnly: true
+        diagnostics:
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        github_status:
+          allOf:
+          - $ref: '#/components/schemas/GithubStatusEnum'
+          readOnly: true
+        github_issue_number:
+          type: integer
+          readOnly: true
+          nullable: true
+        github_issue_url:
+          type: string
+          format: uri
+          readOnly: true
+        github_error:
+          type: string
+          readOnly: true
+      required:
+      - app_version
+      - created_at
+      - description
+      - diagnostics
+      - github_error
+      - github_issue_number
+      - github_issue_url
+      - github_status
+      - id
+      - impact
+      - route
+      - summary
+      - user
+      - username
+    BugReportCreate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        summary:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        impact:
+          $ref: '#/components/schemas/ImpactEnum'
+        route:
+          type: string
+          maxLength: 500
+        app_version:
+          type: string
+          maxLength: 64
+        diagnostics: {}
+        github_status:
+          allOf:
+          - $ref: '#/components/schemas/GithubStatusEnum'
+          readOnly: true
+        github_issue_number:
+          type: integer
+          readOnly: true
+          nullable: true
+        github_issue_url:
+          type: string
+          format: uri
+          readOnly: true
+      required:
+      - github_issue_number
+      - github_issue_url
+      - github_status
+      - id
+      - summary
+    CategoryEnum:
+      enum:
+      - confusing
+      - tedious
+      - idea
+      - other
+      type: string
+      description: |-
+        * `confusing` - Something was confusing
+        * `tedious` - Something is slow or tedious
+        * `idea` - I have an idea
+        * `other` - Other
     CheckoutEvent:
       type: object
       properties:
@@ -2364,6 +2836,85 @@ components:
       - initial_quantity
       - location
       - name
+    Feedback:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          readOnly: true
+          nullable: true
+        username:
+          type: string
+          readOnly: true
+        category:
+          allOf:
+          - $ref: '#/components/schemas/CategoryEnum'
+          readOnly: true
+        route:
+          type: string
+          readOnly: true
+        body:
+          type: string
+          readOnly: true
+        may_contact:
+          type: boolean
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        github_status:
+          allOf:
+          - $ref: '#/components/schemas/GithubStatusEnum'
+          readOnly: true
+        github_issue_number:
+          type: integer
+          readOnly: true
+          nullable: true
+        github_issue_url:
+          type: string
+          format: uri
+          readOnly: true
+        github_error:
+          type: string
+          readOnly: true
+      required:
+      - body
+      - category
+      - created_at
+      - github_error
+      - github_issue_number
+      - github_issue_url
+      - github_status
+      - id
+      - may_contact
+      - route
+      - user
+      - username
+    FeedbackCreate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        route:
+          type: string
+          maxLength: 500
+        body:
+          type: string
+        may_contact:
+          type: boolean
+      required:
+      - body
+      - category
+      - id
     GhsPictogramsEnum:
       enum:
       - flammable
@@ -2386,6 +2937,28 @@ components:
         * `health_hazard` - Health Hazard
         * `explosive` - Explosive
         * `environment` - Environmental Hazard
+    GithubStatusEnum:
+      enum:
+      - none
+      - pending
+      - created
+      - failed
+      type: string
+      description: |-
+        * `none` - Not sent
+        * `pending` - Pending
+        * `created` - Created
+        * `failed` - Failed
+    ImpactEnum:
+      enum:
+      - blocking
+      - annoying
+      - minor
+      type: string
+      description: |-
+        * `blocking` - I can't continue
+        * `annoying` - It's annoying but I can work around it
+        * `minor` - Minor / cosmetic
     InvalidRequest:
       type: object
       properties:
@@ -2807,6 +3380,53 @@ components:
           pattern: ^-?\d{0,4}(?:\.\d{0,4})?$
           nullable: true
           title: Container weight
+    PatchedFeedback:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          type: integer
+          readOnly: true
+          nullable: true
+        username:
+          type: string
+          readOnly: true
+        category:
+          allOf:
+          - $ref: '#/components/schemas/CategoryEnum'
+          readOnly: true
+        route:
+          type: string
+          readOnly: true
+        body:
+          type: string
+          readOnly: true
+        may_contact:
+          type: boolean
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        github_status:
+          allOf:
+          - $ref: '#/components/schemas/GithubStatusEnum'
+          readOnly: true
+        github_issue_number:
+          type: integer
+          readOnly: true
+          nullable: true
+        github_issue_url:
+          type: string
+          format: uri
+          readOnly: true
+        github_error:
+          type: string
+          readOnly: true
     PatchedLabelTemplate:
       type: object
       properties:
@@ -3077,6 +3697,16 @@ components:
       required:
       - container
       - id
+    StatusEnum:
+      enum:
+      - new
+      - triaged
+      - done
+      type: string
+      description: |-
+        * `new` - New
+        * `triaged` - Triaged
+        * `done` - Done
     SuccessMessage:
       type: object
       properties:
