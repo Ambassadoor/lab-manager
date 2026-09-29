@@ -3,7 +3,12 @@ export const parseBarcode = (raw: string): string | null => {
   if (jsonStart === -1) return null;
   try {
     const parsed = JSON.parse(raw.slice(jsonStart));
-    return typeof parsed.id === 'string' ? parsed.id : null;
+    if (typeof parsed.id === 'string') return parsed.id;
+    // Location labels printed before the LOC-<id> encoding carry the bare
+    // numeric id; container labels are always CHEM-<id> strings, so a
+    // number can only be a location.
+    if (typeof parsed.id === 'number') return `LOC-${parsed.id}`;
+    return null;
   } catch {
     return null;
   }

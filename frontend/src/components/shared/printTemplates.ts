@@ -40,6 +40,6 @@ export const printContainerLabel = (container: { label: string }): Promise<Print
 
 export const printLocationLabel = (location: { id: number }): Promise<PrintConfirmation> =>
   resolveAndPrint('location', {
-    barcode: JSON.stringify({ id: location.id }),
+    barcode: JSON.stringify({ id: `LOC-${location.id}` }),
     text: `Loc-${location.id}`,
   });

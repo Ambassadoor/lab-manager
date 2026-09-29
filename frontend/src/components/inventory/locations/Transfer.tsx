@@ -210,16 +210,25 @@ export const Transfer = () => {
               label={`Container #${index + 1}`}
               clearErrors={clearErrors}
               onScan={(scannedId, setFieldValue) => {
+                const locationId = /^loc-(\d+)$/i.exec(scannedId)?.[1];
+                if (locationId) {
+                  // The location label was scanned into the trailing blank
+                  // row — drop that row, but keep at least one so there's
+                  // still a field to scan into.
+                  if (fields.length > 1) {
+                    remove(index);
+                  } else {
+                    resetField(`containers.${index}.slug`);
+                  }
+                  setValue('location', locationId);
+                  clearErrors('location');
+                  handleSubmit(onSubmit)();
+                  return;
+                }
                 const isDuplicate = getValues('containers').some(
                   (c) => c.slug.toLocaleLowerCase() === scannedId.toLocaleLowerCase()
                 );
                 if (isDuplicate) {
-                  resetField(`containers.${index}.slug`);
-                  return;
-                } else if (scannedId.toLocaleLowerCase().includes('loc')) {
-                  remove(index);
-                  setValue('location', scannedId.split('-')[1]);
-                  handleSubmit(onSubmit)();
                   resetField(`containers.${index}.slug`);
                   return;
                 }
