@@ -346,7 +346,7 @@ class TestContainerViewStorageConflicts:
         client = client_as(User.Role.STOCKROOM)
 
         response = client.patch(
-            f"/inventory/containers/{container.slug}/",
+            f"/api/inventory/containers/{container.slug}/",
             {"location": target.id},
             format="json",
         )
@@ -368,7 +368,7 @@ class TestContainerViewStorageConflicts:
         client = client_as(User.Role.STOCKROOM)
 
         response = client.patch(
-            f"/inventory/containers/{container.slug}/",
+            f"/api/inventory/containers/{container.slug}/",
             {"location": target.id, "confirm_storage_conflicts": True},
             format="json",
         )
@@ -391,7 +391,7 @@ class TestContainerViewStorageConflicts:
         # unrelated field shouldn't re-trigger a warning about a location
         # that isn't changing.
         response = client.patch(
-            f"/inventory/containers/{container.slug}/",
+            f"/api/inventory/containers/{container.slug}/",
             {"manufacturer": "Acme"},
             format="json",
         )
@@ -409,7 +409,7 @@ class TestContainerViewStorageConflicts:
         client = client_as(User.Role.STOCKROOM)
 
         response = client.patch(
-            "/inventory/containers/transfer/",
+            "/api/inventory/containers/transfer/",
             {"containers": [{"slug": moving.slug}], "location": target.id},
             format="json",
         )
@@ -418,7 +418,7 @@ class TestContainerViewStorageConflicts:
         assert len(response.data["warnings"]) == 1
 
         confirmed = client.patch(
-            "/inventory/containers/transfer/",
+            "/api/inventory/containers/transfer/",
             {
                 "containers": [{"slug": moving.slug}],
                 "location": target.id,
@@ -444,7 +444,7 @@ class TestContainerViewStorageConflicts:
         client = client_as(User.Role.STOCKROOM)
 
         response = client.patch(
-            "/inventory/containers/transfer/",
+            "/api/inventory/containers/transfer/",
             {
                 "containers": [{"slug": moving_organic.slug}, {"slug": moving_inorganic.slug}],
                 "location": target.id,
@@ -467,7 +467,7 @@ class TestContainerViewStorageConflicts:
         client = client_as(User.Role.STOCKROOM)
 
         response = client.patch(
-            "/inventory/containers/transfer/",
+            "/api/inventory/containers/transfer/",
             {
                 "containers": [{"slug": moving_a.slug}, {"slug": moving_b.slug}],
                 "location": target.id,
@@ -502,7 +502,7 @@ class TestContainerViewStorageConflicts:
             "tare_weight": "1",
         }
 
-        response = client.post("/inventory/containers/", payload, format="json")
+        response = client.post("/api/inventory/containers/", payload, format="json")
 
         assert response.status_code == 409
         assert response.data["requires_confirmation"] is True

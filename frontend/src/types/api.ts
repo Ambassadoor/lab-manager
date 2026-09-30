@@ -12,7 +12,7 @@ export interface paths {
       cookie?: never;
     };
     /** @description GET once on app load so Django sets the csrftoken cookie. */
-    get: operations['api_auth_csrf_retrieve'];
+    get: operations['auth_csrf_retrieve'];
     put?: never;
     post?: never;
     delete?: never;
@@ -31,7 +31,7 @@ export interface paths {
     get?: never;
     put?: never;
     /** @description Session login. Expects {username, password}; returns the user. */
-    post: operations['api_auth_login_create'];
+    post: operations['auth_login_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -48,7 +48,7 @@ export interface paths {
     get?: never;
     put?: never;
     /** @description Ends the current session. */
-    post: operations['api_auth_logout_create'];
+    post: operations['auth_logout_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -63,14 +63,14 @@ export interface paths {
       cookie?: never;
     };
     /** @description Returns or updates the currently authenticated user's own profile. */
-    get: operations['api_auth_me_retrieve'];
+    get: operations['auth_me_retrieve'];
     put?: never;
     post?: never;
     delete?: never;
     options?: never;
     head?: never;
     /** @description Returns or updates the currently authenticated user's own profile. */
-    patch: operations['api_auth_me_partial_update'];
+    patch: operations['auth_me_partial_update'];
     trace?: never;
   };
   '/api/auth/register/': {
@@ -88,7 +88,7 @@ export interface paths {
      *     Method arguments:
      *     request -- The full HTTP request object
      */
-    post: operations['api_auth_register_create'];
+    post: operations['auth_register_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -111,7 +111,7 @@ export interface paths {
      *     inventory views, there's no read/write split here — viewing another
      *     user's info is itself the restricted thing, not just editing it.
      */
-    get: operations['api_auth_users_list'];
+    get: operations['auth_users_list'];
     put?: never;
     post?: never;
     delete?: never;
@@ -136,7 +136,7 @@ export interface paths {
      *     inventory views, there's no read/write split here — viewing another
      *     user's info is itself the restricted thing, not just editing it.
      */
-    get: operations['api_auth_users_retrieve'];
+    get: operations['auth_users_retrieve'];
     /**
      * @description Admin/Lab Manager viewing and editing *other* users' accounts.
      *
@@ -146,7 +146,7 @@ export interface paths {
      *     inventory views, there's no read/write split here — viewing another
      *     user's info is itself the restricted thing, not just editing it.
      */
-    put: operations['api_auth_users_update'];
+    put: operations['auth_users_update'];
     post?: never;
     delete?: never;
     options?: never;
@@ -160,7 +160,7 @@ export interface paths {
      *     inventory views, there's no read/write split here — viewing another
      *     user's info is itself the restricted thing, not just editing it.
      */
-    patch: operations['api_auth_users_partial_update'];
+    patch: operations['auth_users_partial_update'];
     trace?: never;
   };
   '/api/auth/validate/': {
@@ -171,7 +171,7 @@ export interface paths {
       cookie?: never;
     };
     /** @description Validates username availability and checks if account for email exists already */
-    get: operations['api_auth_validate_retrieve'];
+    get: operations['auth_validate_retrieve'];
     put?: never;
     post?: never;
     delete?: never;
@@ -194,7 +194,7 @@ export interface paths {
      *     reporter is still attached to their report, while AllowAny lets anonymous
      *     visitors on the public pages (login, SDS) submit too.
      */
-    get: operations['api_feedback_general_list'];
+    get: operations['feedback_general_list'];
     put?: never;
     /**
      * @description Create is open to anyone (throttled); everything else is lab-manager only.
@@ -203,7 +203,7 @@ export interface paths {
      *     reporter is still attached to their report, while AllowAny lets anonymous
      *     visitors on the public pages (login, SDS) submit too.
      */
-    post: operations['api_feedback_general_create'];
+    post: operations['feedback_general_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -224,7 +224,7 @@ export interface paths {
      *     reporter is still attached to their report, while AllowAny lets anonymous
      *     visitors on the public pages (login, SDS) submit too.
      */
-    get: operations['api_feedback_general_retrieve'];
+    get: operations['feedback_general_retrieve'];
     put?: never;
     post?: never;
     delete?: never;
@@ -237,7 +237,7 @@ export interface paths {
      *     reporter is still attached to their report, while AllowAny lets anonymous
      *     visitors on the public pages (login, SDS) submit too.
      */
-    patch: operations['api_feedback_general_partial_update'];
+    patch: operations['feedback_general_partial_update'];
     trace?: never;
   };
   '/api/feedback/general/{id}/promote/': {
@@ -250,7 +250,7 @@ export interface paths {
     get?: never;
     put?: never;
     /** @description Create (or retry) the GitHub issue for this row. */
-    post: operations['api_feedback_general_promote_create'];
+    post: operations['feedback_general_promote_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -271,7 +271,7 @@ export interface paths {
      *     reporter is still attached to their report, while AllowAny lets anonymous
      *     visitors on the public pages (login, SDS) submit too.
      */
-    get: operations['api_feedback_reports_list'];
+    get: operations['feedback_reports_list'];
     put?: never;
     /**
      * @description Create is open to anyone (throttled); everything else is lab-manager only.
@@ -280,7 +280,7 @@ export interface paths {
      *     reporter is still attached to their report, while AllowAny lets anonymous
      *     visitors on the public pages (login, SDS) submit too.
      */
-    post: operations['api_feedback_reports_create'];
+    post: operations['feedback_reports_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -301,7 +301,7 @@ export interface paths {
      *     reporter is still attached to their report, while AllowAny lets anonymous
      *     visitors on the public pages (login, SDS) submit too.
      */
-    get: operations['api_feedback_reports_retrieve'];
+    get: operations['feedback_reports_retrieve'];
     put?: never;
     post?: never;
     delete?: never;
@@ -320,14 +320,14 @@ export interface paths {
     get?: never;
     put?: never;
     /** @description Create (or retry) the GitHub issue for this row. */
-    post: operations['api_feedback_reports_promote_create'];
+    post: operations['feedback_reports_promote_create'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/inventory/chemical_storage_categories/': {
+  '/api/inventory/chemical_storage_categories/': {
     parameters: {
       query?: never;
       header?: never;
@@ -343,7 +343,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/chemical_storage_categories/{id}/': {
+  '/api/inventory/chemical_storage_categories/{id}/': {
     parameters: {
       query?: never;
       header?: never;
@@ -359,7 +359,7 @@ export interface paths {
     patch: operations['inventory_chemical_storage_categories_partial_update'];
     trace?: never;
   };
-  '/inventory/chemicals/': {
+  '/api/inventory/chemicals/': {
     parameters: {
       query?: never;
       header?: never;
@@ -375,7 +375,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/chemicals/{id}/': {
+  '/api/inventory/chemicals/{id}/': {
     parameters: {
       query?: never;
       header?: never;
@@ -391,7 +391,7 @@ export interface paths {
     patch: operations['inventory_chemicals_partial_update'];
     trace?: never;
   };
-  '/inventory/chemicals/check_cas/': {
+  '/api/inventory/chemicals/check_cas/': {
     parameters: {
       query?: never;
       header?: never;
@@ -407,7 +407,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/containers/': {
+  '/api/inventory/containers/': {
     parameters: {
       query?: never;
       header?: never;
@@ -423,7 +423,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/containers/{slug}/': {
+  '/api/inventory/containers/{slug}/': {
     parameters: {
       query?: never;
       header?: never;
@@ -439,7 +439,7 @@ export interface paths {
     patch: operations['inventory_containers_partial_update'];
     trace?: never;
   };
-  '/inventory/containers/{slug}/is_discarded/': {
+  '/api/inventory/containers/{slug}/is_discarded/': {
     parameters: {
       query?: never;
       header?: never;
@@ -455,7 +455,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/containers/{slug}/is_valid/': {
+  '/api/inventory/containers/{slug}/is_valid/': {
     parameters: {
       query?: never;
       header?: never;
@@ -471,7 +471,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/containers/{slug}/weigh_in/': {
+  '/api/inventory/containers/{slug}/weigh_in/': {
     parameters: {
       query?: never;
       header?: never;
@@ -487,7 +487,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/containers/check_in/': {
+  '/api/inventory/containers/check_in/': {
     parameters: {
       query?: never;
       header?: never;
@@ -503,7 +503,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/containers/check_out/': {
+  '/api/inventory/containers/check_out/': {
     parameters: {
       query?: never;
       header?: never;
@@ -519,7 +519,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/containers/transfer/': {
+  '/api/inventory/containers/transfer/': {
     parameters: {
       query?: never;
       header?: never;
@@ -535,7 +535,7 @@ export interface paths {
     patch: operations['inventory_containers_transfer_partial_update'];
     trace?: never;
   };
-  '/inventory/containers/weigh_in_bulk/': {
+  '/api/inventory/containers/weigh_in_bulk/': {
     parameters: {
       query?: never;
       header?: never;
@@ -551,7 +551,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/dashboard/': {
+  '/api/inventory/dashboard/': {
     parameters: {
       query?: never;
       header?: never;
@@ -567,7 +567,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/dashboard/{id}/': {
+  '/api/inventory/dashboard/{id}/': {
     parameters: {
       query?: never;
       header?: never;
@@ -583,7 +583,7 @@ export interface paths {
     patch: operations['inventory_dashboard_partial_update'];
     trace?: never;
   };
-  '/inventory/label_templates/': {
+  '/api/inventory/label_templates/': {
     parameters: {
       query?: never;
       header?: never;
@@ -599,7 +599,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/label_templates/{id}/': {
+  '/api/inventory/label_templates/{id}/': {
     parameters: {
       query?: never;
       header?: never;
@@ -615,7 +615,7 @@ export interface paths {
     patch: operations['inventory_label_templates_partial_update'];
     trace?: never;
   };
-  '/inventory/location_types/': {
+  '/api/inventory/location_types/': {
     parameters: {
       query?: never;
       header?: never;
@@ -631,7 +631,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/location_types/{id}/': {
+  '/api/inventory/location_types/{id}/': {
     parameters: {
       query?: never;
       header?: never;
@@ -647,7 +647,7 @@ export interface paths {
     patch: operations['inventory_location_types_partial_update'];
     trace?: never;
   };
-  '/inventory/locations/': {
+  '/api/inventory/locations/': {
     parameters: {
       query?: never;
       header?: never;
@@ -663,7 +663,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/locations/{id}/': {
+  '/api/inventory/locations/{id}/': {
     parameters: {
       query?: never;
       header?: never;
@@ -679,7 +679,7 @@ export interface paths {
     patch: operations['inventory_locations_partial_update'];
     trace?: never;
   };
-  '/inventory/locations/{id}/add_child/': {
+  '/api/inventory/locations/{id}/add_child/': {
     parameters: {
       query?: never;
       header?: never;
@@ -695,7 +695,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/locations/{id}/containers/': {
+  '/api/inventory/locations/{id}/containers/': {
     parameters: {
       query?: never;
       header?: never;
@@ -711,7 +711,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/locations/menu/': {
+  '/api/inventory/locations/menu/': {
     parameters: {
       query?: never;
       header?: never;
@@ -727,7 +727,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/locations/move/': {
+  '/api/inventory/locations/move/': {
     parameters: {
       query?: never;
       header?: never;
@@ -743,7 +743,7 @@ export interface paths {
     patch: operations['inventory_locations_move_partial_update'];
     trace?: never;
   };
-  '/inventory/sds/': {
+  '/api/inventory/sds/': {
     parameters: {
       query?: never;
       header?: never;
@@ -759,7 +759,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/sds/{id}/': {
+  '/api/inventory/sds/{id}/': {
     parameters: {
       query?: never;
       header?: never;
@@ -775,7 +775,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/weight_readings/': {
+  '/api/inventory/weight_readings/': {
     parameters: {
       query?: never;
       header?: never;
@@ -791,7 +791,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/inventory/weight_readings/{id}/': {
+  '/api/inventory/weight_readings/{id}/': {
     parameters: {
       query?: never;
       header?: never;
@@ -1405,7 +1405,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  api_auth_csrf_retrieve: {
+  auth_csrf_retrieve: {
     parameters: {
       query?: never;
       header?: never;
@@ -1424,7 +1424,7 @@ export interface operations {
       };
     };
   };
-  api_auth_login_create: {
+  auth_login_create: {
     parameters: {
       query?: never;
       header?: never;
@@ -1451,7 +1451,7 @@ export interface operations {
       };
     };
   };
-  api_auth_logout_create: {
+  auth_logout_create: {
     parameters: {
       query?: never;
       header?: never;
@@ -1469,7 +1469,7 @@ export interface operations {
       };
     };
   };
-  api_auth_me_retrieve: {
+  auth_me_retrieve: {
     parameters: {
       query?: never;
       header?: never;
@@ -1488,7 +1488,7 @@ export interface operations {
       };
     };
   };
-  api_auth_me_partial_update: {
+  auth_me_partial_update: {
     parameters: {
       query?: never;
       header?: never;
@@ -1513,7 +1513,7 @@ export interface operations {
       };
     };
   };
-  api_auth_register_create: {
+  auth_register_create: {
     parameters: {
       query?: never;
       header?: never;
@@ -1538,7 +1538,7 @@ export interface operations {
       };
     };
   };
-  api_auth_users_list: {
+  auth_users_list: {
     parameters: {
       query?: {
         /** @description Which field to use when ordering the results. */
@@ -1571,7 +1571,7 @@ export interface operations {
       };
     };
   };
-  api_auth_users_retrieve: {
+  auth_users_retrieve: {
     parameters: {
       query?: never;
       header?: never;
@@ -1593,7 +1593,7 @@ export interface operations {
       };
     };
   };
-  api_auth_users_update: {
+  auth_users_update: {
     parameters: {
       query?: never;
       header?: never;
@@ -1621,7 +1621,7 @@ export interface operations {
       };
     };
   };
-  api_auth_users_partial_update: {
+  auth_users_partial_update: {
     parameters: {
       query?: never;
       header?: never;
@@ -1649,7 +1649,7 @@ export interface operations {
       };
     };
   };
-  api_auth_validate_retrieve: {
+  auth_validate_retrieve: {
     parameters: {
       query?: {
         /** @description Check for existing account */
@@ -1679,7 +1679,7 @@ export interface operations {
       };
     };
   };
-  api_feedback_general_list: {
+  feedback_general_list: {
     parameters: {
       query?: {
         /**
@@ -1723,7 +1723,7 @@ export interface operations {
       };
     };
   };
-  api_feedback_general_create: {
+  feedback_general_create: {
     parameters: {
       query?: never;
       header?: never;
@@ -1748,7 +1748,7 @@ export interface operations {
       };
     };
   };
-  api_feedback_general_retrieve: {
+  feedback_general_retrieve: {
     parameters: {
       query?: never;
       header?: never;
@@ -1770,7 +1770,7 @@ export interface operations {
       };
     };
   };
-  api_feedback_general_partial_update: {
+  feedback_general_partial_update: {
     parameters: {
       query?: never;
       header?: never;
@@ -1798,7 +1798,7 @@ export interface operations {
       };
     };
   };
-  api_feedback_general_promote_create: {
+  feedback_general_promote_create: {
     parameters: {
       query?: never;
       header?: never;
@@ -1826,7 +1826,7 @@ export interface operations {
       };
     };
   };
-  api_feedback_reports_list: {
+  feedback_reports_list: {
     parameters: {
       query?: {
         /**
@@ -1863,7 +1863,7 @@ export interface operations {
       };
     };
   };
-  api_feedback_reports_create: {
+  feedback_reports_create: {
     parameters: {
       query?: never;
       header?: never;
@@ -1888,7 +1888,7 @@ export interface operations {
       };
     };
   };
-  api_feedback_reports_retrieve: {
+  feedback_reports_retrieve: {
     parameters: {
       query?: never;
       header?: never;
@@ -1910,7 +1910,7 @@ export interface operations {
       };
     };
   };
-  api_feedback_reports_promote_create: {
+  feedback_reports_promote_create: {
     parameters: {
       query?: never;
       header?: never;

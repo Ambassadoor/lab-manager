@@ -31,14 +31,16 @@ class TestSDSViewPermissions:
         # No force_authenticate at all — this has to work for an anonymous
         # visitor, matching the "fully public SDS viewing" decision.
         client = APIClient()
-        assert client.get("/inventory/sds/").status_code == 200
-        assert client.get(f"/inventory/sds/{sds.id}/").status_code == 200
+        assert client.get("/api/inventory/sds/").status_code == 200
+        assert client.get(f"/api/inventory/sds/{sds.id}/").status_code == 200
 
     def test_create_denied_below_stockroom(self, client_as, make_container):
         client = client_as(User.Role.LAB_ASSISTANT)
         container = make_container("c1")
 
-        response = client.post("/inventory/sds/", {"container": container.id, "file": make_pdf()})
+        response = client.post(
+            "/api/inventory/sds/", {"container": container.id, "file": make_pdf()}
+        )
 
         assert response.status_code == 403
 
@@ -58,7 +60,9 @@ class TestSDSViewPermissions:
         client = client_as(role)
         container = make_container("c1")
 
-        response = client.post("/inventory/sds/", {"container": container.id, "file": make_pdf()})
+        response = client.post(
+            "/api/inventory/sds/", {"container": container.id, "file": make_pdf()}
+        )
 
         assert response.status_code == 201
 
@@ -83,7 +87,9 @@ class TestSDSViewPermissions:
         assert client.login(username="real-login-manager", password="pw12345!")
         container = make_container("c1")
 
-        response = client.post("/inventory/sds/", {"container": container.id, "file": make_pdf()})
+        response = client.post(
+            "/api/inventory/sds/", {"container": container.id, "file": make_pdf()}
+        )
 
         assert response.status_code == 201
 
@@ -101,9 +107,9 @@ class TestSDSFilter:
             drive_id="drive-other",
         )
 
-        assert len(client.get("/inventory/sds/?search=Water").data) == 1
-        assert len(client.get("/inventory/sds/?search=7732-18-5").data) == 1
-        assert len(client.get("/inventory/sds/?search=P-1").data) == 1
+        assert len(client.get("/api/inventory/sds/?search=Water").data) == 1
+        assert len(client.get("/api/inventory/sds/?search=7732-18-5").data) == 1
+        assert len(client.get("/api/inventory/sds/?search=P-1").data) == 1
 
     def test_search_matches_product_name(self, make_container):
         # Container.name — the "Product Name" field on the Add Container
@@ -113,15 +119,15 @@ class TestSDSFilter:
         container = make_container("c1", name="Sodium Hydroxide Pellets, ACS Grade")
         SDS.objects.create(container=container, file_name="sds.pdf", drive_id="drive-1")
 
-        assert len(client.get("/inventory/sds/?search=Pellets").data) == 1
-        assert len(client.get("/inventory/sds/?search=nonexistent-product").data) == 0
+        assert len(client.get("/api/inventory/sds/?search=Pellets").data) == 1
+        assert len(client.get("/api/inventory/sds/?search=nonexistent-product").data) == 0
 
     def test_search_matches_chem_id_with_and_without_prefix(self, sds):
         client = APIClient()
         label = sds.container.label  # e.g. "CHEM-1"
 
-        assert len(client.get(f"/inventory/sds/?search={label}").data) == 1
-        assert len(client.get(f"/inventory/sds/?search={sds.container.id}").data) == 1
+        assert len(client.get(f"/api/inventory/sds/?search={label}").data) == 1
+        assert len(client.get(f"/api/inventory/sds/?search={sds.container.id}").data) == 1
 
     def test_manufacturer_and_product_num_filters(self, sds, make_container):
         client = APIClient()
@@ -131,9 +137,9 @@ class TestSDSFilter:
             drive_id="drive-other",
         )
 
-        assert len(client.get("/inventory/sds/?manufacturer=Acme").data) == 1
-        assert len(client.get("/inventory/sds/?product_num=P-1").data) == 1
-        assert len(client.get("/inventory/sds/?manufacturer=Other").data) == 1
+        assert len(client.get("/api/inventory/sds/?manufacturer=Acme").data) == 1
+        assert len(client.get("/api/inventory/sds/?product_num=P-1").data) == 1
+        assert len(client.get("/api/inventory/sds/?manufacturer=Other").data) == 1
 
     def test_revision_date_and_number_filters(self, sds, make_container):
         # Used by the frontend's pre-submit duplicate check — same chemical
@@ -149,12 +155,13 @@ class TestSDSFilter:
             revision_number="9",
         )
 
-        assert len(client.get("/inventory/sds/?revision_date=2024-01-01").data) == 1
-        assert len(client.get("/inventory/sds/?revision_number=2").data) == 1
+        assert len(client.get("/api/inventory/sds/?revision_date=2024-01-01").data) == 1
+        assert len(client.get("/api/inventory/sds/?revision_number=2").data) == 1
         assert (
-            len(client.get("/inventory/sds/?revision_date=2024-01-01&revision_number=2").data) == 1
+            len(client.get("/api/inventory/sds/?revision_date=2024-01-01&revision_number=2").data)
+            == 1
         )
-        assert len(client.get("/inventory/sds/?revision_number=9").data) == 1
+        assert len(client.get("/api/inventory/sds/?revision_number=9").data) == 1
 
 
 @pytest.mark.django_db
@@ -166,7 +173,7 @@ class TestSDSWriteSerializerCreatePaths:
         container = make_container("c1", manufacturer="Acme", product_num="P-1")
 
         response = client.post(
-            "/inventory/sds/",
+            "/api/inventory/sds/",
             {
                 "container": container.id,
                 "file": make_pdf("original-name-discarded.pdf"),
@@ -193,7 +200,9 @@ class TestSDSWriteSerializerCreatePaths:
         client = client_as(User.Role.STOCKROOM)
         container = make_container("c1")  # no manufacturer/product_num, no revision info
 
-        response = client.post("/inventory/sds/", {"container": container.id, "file": make_pdf()})
+        response = client.post(
+            "/api/inventory/sds/", {"container": container.id, "file": make_pdf()}
+        )
 
         assert response.status_code == 201
         assert SDS.objects.get(id=response.data["id"]).file_name == "Unknown_NA_Water.pdf"
@@ -206,7 +215,7 @@ class TestSDSWriteSerializerCreatePaths:
         other_container = make_container("c2", manufacturer="Acme", product_num="P-1")
 
         response = client.post(
-            "/inventory/sds/",
+            "/api/inventory/sds/",
             {"container": other_container.id, "existing_sds": sds.id},
             format="json",
         )
@@ -225,9 +234,9 @@ class TestSDSWriteSerializerCreatePaths:
         client = client_as(User.Role.STOCKROOM)
         container = make_container("c2")
 
-        neither = client.post("/inventory/sds/", {"container": container.id}, format="json")
+        neither = client.post("/api/inventory/sds/", {"container": container.id}, format="json")
         both = client.post(
-            "/inventory/sds/",
+            "/api/inventory/sds/",
             {"container": container.id, "existing_sds": sds.id, "file": make_pdf()},
         )
 
@@ -247,7 +256,7 @@ class TestChemicalAndContainerSdsAggregation:
         SDS.objects.create(container=c2, file_name="c2.pdf", drive_id="d2")
 
         client = client_as(User.Role.LAB_ASSISTANT)
-        response = client.get(f"/inventory/chemicals/{chemical.id}/")
+        response = client.get(f"/api/inventory/chemicals/{chemical.id}/")
 
         assert response.status_code == 200
         assert {row["file_name"] for row in response.data["sds"]} == {"c1.pdf", "c2.pdf"}
@@ -262,7 +271,7 @@ class TestChemicalAndContainerSdsAggregation:
         )
 
         client = client_as(User.Role.LAB_ASSISTANT)
-        response = client.get(f"/inventory/containers/{container.slug}/")
+        response = client.get(f"/api/inventory/containers/{container.slug}/")
 
         assert response.status_code == 200
         assert response.data["latest_sds"]["file_name"] == "new.pdf"
@@ -271,7 +280,7 @@ class TestChemicalAndContainerSdsAggregation:
         container = make_container("c1")
 
         client = client_as(User.Role.LAB_ASSISTANT)
-        response = client.get(f"/inventory/containers/{container.slug}/")
+        response = client.get(f"/api/inventory/containers/{container.slug}/")
 
         assert response.data["latest_sds"] is None
 
@@ -282,6 +291,6 @@ class TestChemicalAndContainerSdsAggregation:
         container = make_container("c1")
 
         client = client_as(User.Role.LAB_ASSISTANT)
-        response = client.get(f"/inventory/containers/{container.slug}/")
+        response = client.get(f"/api/inventory/containers/{container.slug}/")
 
         assert response.data["chemical"] == chemical.id

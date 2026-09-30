@@ -5,10 +5,10 @@ info:
 paths:
   /api/auth/csrf/:
     get:
-      operationId: api_auth_csrf_retrieve
+      operationId: auth_csrf_retrieve
       description: GET once on app load so Django sets the csrftoken cookie.
       tags:
-      - api
+      - auth
       security:
       - cookieAuth: []
       - {}
@@ -21,10 +21,10 @@ paths:
           description: ''
   /api/auth/login/:
     post:
-      operationId: api_auth_login_create
+      operationId: auth_login_create
       description: Session login. Expects {username, password}; returns the user.
       tags:
-      - api
+      - auth
       security:
       - cookieAuth: []
       - {}
@@ -43,10 +43,10 @@ paths:
           description: ''
   /api/auth/logout/:
     post:
-      operationId: api_auth_logout_create
+      operationId: auth_logout_create
       description: Ends the current session.
       tags:
-      - api
+      - auth
       security:
       - cookieAuth: []
       responses:
@@ -54,10 +54,10 @@ paths:
           description: No response body
   /api/auth/me/:
     get:
-      operationId: api_auth_me_retrieve
+      operationId: auth_me_retrieve
       description: Returns or updates the currently authenticated user's own profile.
       tags:
-      - api
+      - auth
       security:
       - cookieAuth: []
       responses:
@@ -68,10 +68,10 @@ paths:
                 $ref: '#/components/schemas/User'
           description: ''
     patch:
-      operationId: api_auth_me_partial_update
+      operationId: auth_me_partial_update
       description: Returns or updates the currently authenticated user's own profile.
       tags:
-      - api
+      - auth
       requestBody:
         content:
           application/json:
@@ -94,14 +94,14 @@ paths:
           description: ''
   /api/auth/register/:
     post:
-      operationId: api_auth_register_create
+      operationId: auth_register_create
       description: |-
         Handles the creation of a new user for authentication
 
         Method arguments:
         request -- The full HTTP request object
       tags:
-      - api
+      - auth
       requestBody:
         content:
           application/json:
@@ -125,7 +125,7 @@ paths:
           description: ''
   /api/auth/users/:
     get:
-      operationId: api_auth_users_list
+      operationId: auth_users_list
       description: |-
         Admin/Lab Manager viewing and editing *other* users' accounts.
 
@@ -166,7 +166,7 @@ paths:
         schema:
           type: string
       tags:
-      - api
+      - auth
       security:
       - cookieAuth: []
       responses:
@@ -180,7 +180,7 @@ paths:
           description: ''
   /api/auth/users/{id}/:
     get:
-      operationId: api_auth_users_retrieve
+      operationId: auth_users_retrieve
       description: |-
         Admin/Lab Manager viewing and editing *other* users' accounts.
 
@@ -197,7 +197,7 @@ paths:
         description: A unique integer value identifying this user.
         required: true
       tags:
-      - api
+      - auth
       security:
       - cookieAuth: []
       responses:
@@ -208,7 +208,7 @@ paths:
                 $ref: '#/components/schemas/UserAdmin'
           description: ''
     put:
-      operationId: api_auth_users_update
+      operationId: auth_users_update
       description: |-
         Admin/Lab Manager viewing and editing *other* users' accounts.
 
@@ -225,7 +225,7 @@ paths:
         description: A unique integer value identifying this user.
         required: true
       tags:
-      - api
+      - auth
       requestBody:
         content:
           application/json:
@@ -248,7 +248,7 @@ paths:
                 $ref: '#/components/schemas/UserAdmin'
           description: ''
     patch:
-      operationId: api_auth_users_partial_update
+      operationId: auth_users_partial_update
       description: |-
         Admin/Lab Manager viewing and editing *other* users' accounts.
 
@@ -265,7 +265,7 @@ paths:
         description: A unique integer value identifying this user.
         required: true
       tags:
-      - api
+      - auth
       requestBody:
         content:
           application/json:
@@ -288,7 +288,7 @@ paths:
           description: ''
   /api/auth/validate/:
     get:
-      operationId: api_auth_validate_retrieve
+      operationId: auth_validate_retrieve
       description: Validates username availability and checks if account for email
         exists already
       parameters:
@@ -303,7 +303,7 @@ paths:
           type: string
         description: Check for username availability
       tags:
-      - api
+      - auth
       security:
       - cookieAuth: []
       - {}
@@ -314,7 +314,7 @@ paths:
           description: No response body
   /api/feedback/general/:
     get:
-      operationId: api_feedback_general_list
+      operationId: feedback_general_list
       description: |-
         Create is open to anyone (throttled); everything else is lab-manager only.
 
@@ -375,7 +375,7 @@ paths:
           * `triaged` - Triaged
           * `done` - Done
       tags:
-      - api
+      - feedback
       security:
       - cookieAuth: []
       responses:
@@ -388,7 +388,7 @@ paths:
                   $ref: '#/components/schemas/Feedback'
           description: ''
     post:
-      operationId: api_feedback_general_create
+      operationId: feedback_general_create
       description: |-
         Create is open to anyone (throttled); everything else is lab-manager only.
 
@@ -396,7 +396,7 @@ paths:
         reporter is still attached to their report, while AllowAny lets anonymous
         visitors on the public pages (login, SDS) submit too.
       tags:
-      - api
+      - feedback
       requestBody:
         content:
           application/json:
@@ -421,7 +421,7 @@ paths:
           description: ''
   /api/feedback/general/{id}/:
     get:
-      operationId: api_feedback_general_retrieve
+      operationId: feedback_general_retrieve
       description: |-
         Create is open to anyone (throttled); everything else is lab-manager only.
 
@@ -436,7 +436,7 @@ paths:
         description: A unique integer value identifying this feedback.
         required: true
       tags:
-      - api
+      - feedback
       security:
       - cookieAuth: []
       responses:
@@ -447,7 +447,7 @@ paths:
                 $ref: '#/components/schemas/Feedback'
           description: ''
     patch:
-      operationId: api_feedback_general_partial_update
+      operationId: feedback_general_partial_update
       description: |-
         Create is open to anyone (throttled); everything else is lab-manager only.
 
@@ -462,7 +462,7 @@ paths:
         description: A unique integer value identifying this feedback.
         required: true
       tags:
-      - api
+      - feedback
       requestBody:
         content:
           application/json:
@@ -485,7 +485,7 @@ paths:
           description: ''
   /api/feedback/general/{id}/promote/:
     post:
-      operationId: api_feedback_general_promote_create
+      operationId: feedback_general_promote_create
       description: Create (or retry) the GitHub issue for this row.
       parameters:
       - in: path
@@ -495,7 +495,7 @@ paths:
         description: A unique integer value identifying this feedback.
         required: true
       tags:
-      - api
+      - feedback
       requestBody:
         content:
           application/json:
@@ -518,7 +518,7 @@ paths:
           description: ''
   /api/feedback/reports/:
     get:
-      operationId: api_feedback_reports_list
+      operationId: feedback_reports_list
       description: |-
         Create is open to anyone (throttled); everything else is lab-manager only.
 
@@ -565,7 +565,7 @@ paths:
         schema:
           type: string
       tags:
-      - api
+      - feedback
       security:
       - cookieAuth: []
       responses:
@@ -578,7 +578,7 @@ paths:
                   $ref: '#/components/schemas/BugReport'
           description: ''
     post:
-      operationId: api_feedback_reports_create
+      operationId: feedback_reports_create
       description: |-
         Create is open to anyone (throttled); everything else is lab-manager only.
 
@@ -586,7 +586,7 @@ paths:
         reporter is still attached to their report, while AllowAny lets anonymous
         visitors on the public pages (login, SDS) submit too.
       tags:
-      - api
+      - feedback
       requestBody:
         content:
           application/json:
@@ -611,7 +611,7 @@ paths:
           description: ''
   /api/feedback/reports/{id}/:
     get:
-      operationId: api_feedback_reports_retrieve
+      operationId: feedback_reports_retrieve
       description: |-
         Create is open to anyone (throttled); everything else is lab-manager only.
 
@@ -626,7 +626,7 @@ paths:
         description: A unique integer value identifying this bug report.
         required: true
       tags:
-      - api
+      - feedback
       security:
       - cookieAuth: []
       responses:
@@ -638,7 +638,7 @@ paths:
           description: ''
   /api/feedback/reports/{id}/promote/:
     post:
-      operationId: api_feedback_reports_promote_create
+      operationId: feedback_reports_promote_create
       description: Create (or retry) the GitHub issue for this row.
       parameters:
       - in: path
@@ -648,7 +648,7 @@ paths:
         description: A unique integer value identifying this bug report.
         required: true
       tags:
-      - api
+      - feedback
       requestBody:
         content:
           application/json:
@@ -669,7 +669,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/BugReport'
           description: ''
-  /inventory/chemical_storage_categories/:
+  /api/inventory/chemical_storage_categories/:
     get:
       operationId: inventory_chemical_storage_categories_list
       parameters:
@@ -723,7 +723,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ChemicalStorageCategories'
           description: ''
-  /inventory/chemical_storage_categories/{id}/:
+  /api/inventory/chemical_storage_categories/{id}/:
     get:
       operationId: inventory_chemical_storage_categories_retrieve
       parameters:
@@ -823,7 +823,7 @@ paths:
       responses:
         '204':
           description: No response body
-  /inventory/chemicals/:
+  /api/inventory/chemicals/:
     get:
       operationId: inventory_chemicals_list
       parameters:
@@ -897,7 +897,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ChemicalWrite'
           description: ''
-  /inventory/chemicals/{id}/:
+  /api/inventory/chemicals/{id}/:
     get:
       operationId: inventory_chemicals_retrieve
       parameters:
@@ -997,7 +997,7 @@ paths:
       responses:
         '204':
           description: No response body
-  /inventory/chemicals/check_cas/:
+  /api/inventory/chemicals/check_cas/:
     get:
       operationId: inventory_chemicals_check_cas_retrieve
       tags:
@@ -1011,7 +1011,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Chemical'
           description: ''
-  /inventory/containers/:
+  /api/inventory/containers/:
     get:
       operationId: inventory_containers_list
       parameters:
@@ -1145,7 +1145,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ContainerWrite'
           description: ''
-  /inventory/containers/{slug}/:
+  /api/inventory/containers/{slug}/:
     get:
       operationId: inventory_containers_retrieve
       parameters:
@@ -1241,7 +1241,7 @@ paths:
       responses:
         '204':
           description: No response body
-  /inventory/containers/{slug}/is_discarded/:
+  /api/inventory/containers/{slug}/is_discarded/:
     get:
       operationId: inventory_containers_is_discarded_retrieve
       parameters:
@@ -1261,7 +1261,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Container'
           description: ''
-  /inventory/containers/{slug}/is_valid/:
+  /api/inventory/containers/{slug}/is_valid/:
     get:
       operationId: inventory_containers_is_valid_retrieve
       parameters:
@@ -1281,7 +1281,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Container'
           description: ''
-  /inventory/containers/{slug}/weigh_in/:
+  /api/inventory/containers/{slug}/weigh_in/:
     get:
       operationId: inventory_containers_weigh_in_retrieve
       parameters:
@@ -1332,7 +1332,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Container'
           description: ''
-  /inventory/containers/check_in/:
+  /api/inventory/containers/check_in/:
     post:
       operationId: inventory_containers_check_in_create
       tags:
@@ -1358,7 +1358,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CheckoutEvent'
           description: ''
-  /inventory/containers/check_out/:
+  /api/inventory/containers/check_out/:
     post:
       operationId: inventory_containers_check_out_create
       tags:
@@ -1384,7 +1384,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CheckoutEvent'
           description: ''
-  /inventory/containers/transfer/:
+  /api/inventory/containers/transfer/:
     patch:
       operationId: inventory_containers_transfer_partial_update
       tags:
@@ -1409,7 +1409,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Container'
           description: ''
-  /inventory/containers/weigh_in_bulk/:
+  /api/inventory/containers/weigh_in_bulk/:
     post:
       operationId: inventory_containers_weigh_in_bulk_create
       tags:
@@ -1435,7 +1435,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Container'
           description: ''
-  /inventory/dashboard/:
+  /api/inventory/dashboard/:
     get:
       operationId: inventory_dashboard_list
       parameters:
@@ -1489,7 +1489,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Container'
           description: ''
-  /inventory/dashboard/{id}/:
+  /api/inventory/dashboard/{id}/:
     get:
       operationId: inventory_dashboard_retrieve
       parameters:
@@ -1589,7 +1589,7 @@ paths:
       responses:
         '204':
           description: No response body
-  /inventory/label_templates/:
+  /api/inventory/label_templates/:
     get:
       operationId: inventory_label_templates_list
       parameters:
@@ -1671,7 +1671,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/LabelTemplate'
           description: ''
-  /inventory/label_templates/{id}/:
+  /api/inventory/label_templates/{id}/:
     get:
       operationId: inventory_label_templates_retrieve
       parameters:
@@ -1771,7 +1771,7 @@ paths:
       responses:
         '204':
           description: No response body
-  /inventory/location_types/:
+  /api/inventory/location_types/:
     get:
       operationId: inventory_location_types_list
       parameters:
@@ -1825,7 +1825,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/LocationType'
           description: ''
-  /inventory/location_types/{id}/:
+  /api/inventory/location_types/{id}/:
     get:
       operationId: inventory_location_types_retrieve
       parameters:
@@ -1925,7 +1925,7 @@ paths:
       responses:
         '204':
           description: No response body
-  /inventory/locations/:
+  /api/inventory/locations/:
     get:
       operationId: inventory_locations_list
       parameters:
@@ -1987,7 +1987,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/LocationWrite'
           description: ''
-  /inventory/locations/{id}/:
+  /api/inventory/locations/{id}/:
     get:
       operationId: inventory_locations_retrieve
       parameters:
@@ -2087,7 +2087,7 @@ paths:
       responses:
         '204':
           description: No response body
-  /inventory/locations/{id}/add_child/:
+  /api/inventory/locations/{id}/add_child/:
     post:
       operationId: inventory_locations_add_child_create
       parameters:
@@ -2120,7 +2120,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/LocationWrite'
           description: ''
-  /inventory/locations/{id}/containers/:
+  /api/inventory/locations/{id}/containers/:
     get:
       operationId: inventory_locations_containers_retrieve
       parameters:
@@ -2141,7 +2141,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Location'
           description: ''
-  /inventory/locations/menu/:
+  /api/inventory/locations/menu/:
     get:
       operationId: inventory_locations_menu_retrieve
       tags:
@@ -2155,7 +2155,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/LocationMenu'
           description: ''
-  /inventory/locations/move/:
+  /api/inventory/locations/move/:
     patch:
       operationId: inventory_locations_move_partial_update
       tags:
@@ -2180,7 +2180,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Location'
           description: ''
-  /inventory/sds/:
+  /api/inventory/sds/:
     get:
       operationId: inventory_sds_list
       parameters:
@@ -2260,7 +2260,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/SDSWrite'
           description: ''
-  /inventory/sds/{id}/:
+  /api/inventory/sds/{id}/:
     get:
       operationId: inventory_sds_retrieve
       parameters:
@@ -2282,7 +2282,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/SDS'
           description: ''
-  /inventory/weight_readings/:
+  /api/inventory/weight_readings/:
     get:
       operationId: inventory_weight_readings_list
       parameters:
@@ -2336,7 +2336,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/WeightReading'
           description: ''
-  /inventory/weight_readings/{id}/:
+  /api/inventory/weight_readings/{id}/:
     get:
       operationId: inventory_weight_readings_retrieve
       parameters:

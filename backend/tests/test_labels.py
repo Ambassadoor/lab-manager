@@ -60,7 +60,7 @@ class TestLabelTemplatePermissions:
         make_label_template()
         client = client_as(User.Role.LAB_ASSISTANT)
 
-        assert client.get("/inventory/label_templates/").status_code == 200
+        assert client.get("/api/inventory/label_templates/").status_code == 200
 
     @pytest.mark.parametrize(
         "role", [User.Role.LAB_ASSISTANT, User.Role.STOCKROOM, User.Role.COORDINATOR]
@@ -76,14 +76,17 @@ class TestLabelTemplatePermissions:
             "fields": [],
         }
 
-        assert client.post("/inventory/label_templates/", payload, format="json").status_code == 403
+        assert (
+            client.post("/api/inventory/label_templates/", payload, format="json").status_code
+            == 403
+        )
         assert (
             client.patch(
-                f"/inventory/label_templates/{template.id}/", {"name": "x"}, format="json"
+                f"/api/inventory/label_templates/{template.id}/", {"name": "x"}, format="json"
             ).status_code
             == 403
         )
-        assert client.delete(f"/inventory/label_templates/{template.id}/").status_code == 403
+        assert client.delete(f"/api/inventory/label_templates/{template.id}/").status_code == 403
 
     @pytest.mark.parametrize("role", [User.Role.LAB_MANAGER, User.Role.ADMIN])
     def test_lab_manager_and_admin_can_write(self, client_as, make_label_template, role):
@@ -99,18 +102,18 @@ class TestLabelTemplatePermissions:
             ],
         }
 
-        response = client.post("/inventory/label_templates/", payload, format="json")
+        response = client.post("/api/inventory/label_templates/", payload, format="json")
         assert response.status_code == 201
         assert len(response.data["fields"]) == 2
 
         template_id = response.data["id"]
         assert (
             client.patch(
-                f"/inventory/label_templates/{template_id}/", {"name": "Renamed"}, format="json"
+                f"/api/inventory/label_templates/{template_id}/", {"name": "Renamed"}, format="json"
             ).status_code
             == 200
         )
-        assert client.delete(f"/inventory/label_templates/{template_id}/").status_code == 204
+        assert client.delete(f"/api/inventory/label_templates/{template_id}/").status_code == 204
 
 
 @pytest.mark.django_db
@@ -128,7 +131,7 @@ class TestLabelTemplateSerializer:
             ],
         }
 
-        response = client.post("/inventory/label_templates/", payload, format="json")
+        response = client.post("/api/inventory/label_templates/", payload, format="json")
 
         assert response.status_code == 400
         assert "fields" in response.data
@@ -141,7 +144,7 @@ class TestLabelTemplateSerializer:
         client = client_as(User.Role.LAB_MANAGER)
 
         response = client.put(
-            f"/inventory/label_templates/{template.id}/",
+            f"/api/inventory/label_templates/{template.id}/",
             {
                 "name": template.name,
                 "kind": template.kind,
@@ -161,7 +164,7 @@ class TestLabelTemplateSerializer:
         make_label_template(kind="location", media_width_mm=12, template_number=2)
         client = client_as(User.Role.LAB_ASSISTANT)
 
-        response = client.get("/inventory/label_templates/?kind=location")
+        response = client.get("/api/inventory/label_templates/?kind=location")
 
         assert response.status_code == 200
         assert [t["kind"] for t in response.data] == ["location"]

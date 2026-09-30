@@ -22,11 +22,11 @@ export type SdsListParams = {
 };
 
 export const getSdsList = (params?: SdsListParams): Promise<SDS[]> => {
-  return apiFetch(`/inventory/sds/${toQueryString(params)}`);
+  return apiFetch(`/api/inventory/sds/${toQueryString(params)}`);
 };
 
 export const getSdsById = (id: number | string): Promise<SDS> => {
-  return apiFetch(`/inventory/sds/${id}/`);
+  return apiFetch(`/api/inventory/sds/${id}/`);
 };
 
 // Exactly one of `file` (upload a new document) / `existingSdsId` (attach a
@@ -60,7 +60,7 @@ export const createSds = (input: CreateSdsInput): Promise<SDS> => {
   }
   input.ghsPictograms?.forEach((pictogram) => formData.append('ghs_pictograms', pictogram));
 
-  return apiFetch('/inventory/sds/', {
+  return apiFetch('/api/inventory/sds/', {
     method: 'POST',
     body: formData,
   });
