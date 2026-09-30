@@ -141,6 +141,71 @@ class TestLocationMove:
 
 
 @pytest.mark.django_db
+class TestLocationCreate:
+    def test_single_name_returns_one_location(self, client, location_type):
+        response = client.post(
+            "/api/inventory/locations/",
+            {"name": "Room 101", "type": location_type.id},
+            format="json",
+        )
+
+        assert response.status_code == 201
+        assert response.data["name"] == "Room 101"
+        assert Location.objects.get(id=response.data["id"]).barcode == f"LOC-{response.data['id']}"
+
+    def test_names_list_creates_every_sibling_under_the_parent(
+        self, client, make_location, location_type
+    ):
+        parent = make_location("Cabinet")
+
+        response = client.post(
+            "/api/inventory/locations/",
+            {
+                "names": ["Shelf 1", "Shelf 2", "Shelf 3"],
+                "type": location_type.id,
+                "parent": parent.id,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 201
+        assert [loc["name"] for loc in response.data] == ["Shelf 1", "Shelf 2", "Shelf 3"]
+        children = Location.objects.filter(parent=parent)
+        assert children.count() == 3
+        assert all(child.barcode == f"LOC-{child.id}" for child in children)
+
+    def test_names_list_shares_one_new_type(self, client):
+        response = client.post(
+            "/api/inventory/locations/",
+            {"names": ["Bin A", "Bin B"], "new_type": {"name": "Bin", "icon": "Inventory"}},
+            format="json",
+        )
+
+        assert response.status_code == 201
+        assert LocationTypes.objects.filter(slug="bin").count() == 1
+        assert {loc["type"]["slug"] for loc in response.data} == {"bin"}
+
+    def test_invalid_name_in_batch_creates_nothing(self, client, location_type):
+        response = client.post(
+            "/api/inventory/locations/",
+            {"names": ["Good", ""], "type": location_type.id},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert not Location.objects.filter(name="Good").exists()
+
+    def test_empty_names_list_is_rejected(self, client, location_type):
+        response = client.post(
+            "/api/inventory/locations/",
+            {"names": [], "type": location_type.id},
+            format="json",
+        )
+
+        assert response.status_code == 400
+
+
+@pytest.mark.django_db
 class TestWeighInBulk:
     def test_records_a_reading_and_checks_the_container_in(self, client, make_container):
         container = make_container("c1")

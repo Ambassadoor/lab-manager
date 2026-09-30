@@ -38,8 +38,45 @@ export const printContainerLabel = (container: { label: string }): Promise<Print
     text: container.label,
   });
 
-export const printLocationLabel = (location: { id: number }): Promise<PrintConfirmation> =>
+// `path` is the location's names from the root down, ending with its own.
+export type LocationLabelTarget = { id: number; path: string[] };
+
+// How many trailing path levels go on the label — the full path from the
+// building down rarely fits the tape, and the last few levels are what
+// someone standing at the shelf actually needs to recognize it.
+const LABEL_PATH_LEVELS = 3;
+
+// "\n" becomes a line break on the printed label (the bridge converts it
+// to the printer's own line-break code).
+export const locationLabelText = ({ id, path }: LocationLabelTarget): string => {
+  const shown = path.slice(-LABEL_PATH_LEVELS);
+  const truncated = shown.length < path.length ? '... > ' : '';
+  return `${truncated}${shown.join(' > ')}\nLoc-${id}`;
+};
+
+export const printLocationLabel = (location: LocationLabelTarget): Promise<PrintConfirmation> =>
   resolveAndPrint('location', {
     barcode: JSON.stringify({ id: `LOC-${location.id}` }),
-    text: `Loc-${location.id}`,
+    text: locationLabelText(location),
   });
+
+// One at a time, in order — the printer processes one job at a time
+// anyway, and stopping at the first failure means a problem like running
+// out of tape doesn't turn into a pile of failed jobs.
+export const printLocationLabels = async (
+  locations: LocationLabelTarget[]
+): Promise<PrintConfirmation> => {
+  let result: PrintConfirmation = { printed: true };
+  for (const [i, location] of locations.entries()) {
+    try {
+      result = await printLocationLabel(location);
+    } catch (e) {
+      if (i === 0) throw e;
+      const message = e instanceof Error ? e.message : 'Unknown error';
+      throw new Error(`${message} (${i} of ${locations.length} printed before the failure)`, {
+        cause: e,
+      });
+    }
+  }
+  return result;
+};

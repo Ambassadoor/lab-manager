@@ -56,13 +56,15 @@ import { printerKeys } from '../../../api/queryKeys';
 import { ConfirmDialog } from '../../shared/ConfirmDialog';
 import { useConfirmDialog } from '../../shared/useConfirmDialog';
 import { PrintResultSnackbar } from '../../shared/PrintResultSnackbar';
-import { printLocationLabel } from '../../shared/printTemplates';
+import { printLocationLabels, type LocationLabelTarget } from '../../shared/printTemplates';
 import { hasRoleAtLeast } from '../../shared/roles';
 import { ContainerDetail } from '../ContainerDetail';
 
 type LocationProps = {
   location: Location;
   parent?: Location;
+  // Names from the root down to this location, for its printed label
+  path: string[];
   // Nesting level, used to indent the row
   depth?: number;
   selectedLocation: string;
@@ -74,7 +76,7 @@ type LocationProps = {
   // every row in this recursively-rendered tree calls the same one, so
   // printing two rows in a row doesn't spawn two uncoordinated mutations
   // or snackbars.
-  onPrint: (id: number) => void;
+  onPrint: (targets: LocationLabelTarget[]) => void;
 };
 
 const iconMap = new Map([
@@ -96,6 +98,7 @@ const containsLocation = (location: Location, id: string): boolean =>
 const Location = ({
   location,
   parent,
+  path,
   depth = 0,
   selectedLocation,
   setSelectedLocation,
@@ -132,7 +135,17 @@ const Location = ({
 
   return (
     <>
-      <AddLocation id={String(location.id)} open={open} setOpen={setOpen} />
+      <AddLocation
+        id={String(location.id)}
+        open={open}
+        setOpen={setOpen}
+        onCreated={(created, print) => {
+          // Show the new children right away instead of leaving them
+          // hidden under a collapsed row
+          setExpanded(true);
+          if (print) onPrint(created.map((c) => ({ id: c.id, path: [...path, c.name] })));
+        }}
+      />
       <EditLocation location={location} parent={parent} open={openEdit} setOpen={setOpenEdit} />
       <ListItemButton
         selected={selectedLocation === String(location.id)}
@@ -194,7 +207,7 @@ const Location = ({
           </ListItemIcon>
           <ListItemText>Edit</ListItemText>
         </MenuItem>
-        <MenuItem onClick={menuAction(() => onPrint(location.id))}>
+        <MenuItem onClick={menuAction(() => onPrint([{ id: location.id, path }]))}>
           <ListItemIcon>
             <Print fontSize="small" color="success" />
           </ListItemIcon>
@@ -222,6 +235,7 @@ const Location = ({
                 key={l.id}
                 location={l}
                 parent={location}
+                path={[...path, l.name]}
                 depth={depth + 1}
                 selectedLocation={selectedLocation}
                 setSelectedLocation={setSelectedLocation}
@@ -277,16 +291,17 @@ export const Locations = () => {
   // of which row in the tree triggered it. See PrintResultSnackbar for why
   // it can watch this mutation directly with no onSuccess/onError here.
   const printMutation = useMutation({
-    mutationFn: printLocationLabel,
+    mutationFn: printLocationLabels,
     // A print attempt is the one place in the app where the printer's own
     // hardware state (media, errors) is guaranteed to have just changed —
     // refetch the nav bar's status indicator instead of waiting up to
     // POLL_INTERVAL_MS for it to notice on its own.
     onSettled: () => qc.invalidateQueries({ queryKey: printerKeys.status() }),
   });
-  const handlePrint = (id: number) => {
-    printMutation.mutate({ id });
+  const handlePrint = (targets: LocationLabelTarget[]) => {
+    printMutation.mutate(targets);
   };
+  const printCount = printMutation.variables?.length ?? 1;
 
   //Get's all containers for selected location and any child locations
   const { isPending, data: locationContainers } = useQuery({
@@ -364,7 +379,10 @@ export const Locations = () => {
           if (deleteConfirm.target) mutation.mutate(deleteConfirm.target.id);
         }}
       />
-      <PrintResultSnackbar mutation={printMutation} label="Location label" />
+      <PrintResultSnackbar
+        mutation={printMutation}
+        label={printCount > 1 ? `${printCount} location labels` : 'Location label'}
+      />
       {isLocationsError && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {locationsError instanceof Error ? locationsError.message : 'Failed to load locations.'}
@@ -374,7 +392,14 @@ export const Locations = () => {
         <Box>
           <Stack direction={'row'} spacing={2}>
             <Typography variant="h4">Locations</Typography>
-            <AddLocation id={''} open={open} setOpen={setOpen} />
+            <AddLocation
+              id={''}
+              open={open}
+              setOpen={setOpen}
+              onCreated={(created, print) => {
+                if (print) handlePrint(created.map((c) => ({ id: c.id, path: [c.name] })));
+              }}
+            />
             {canEdit && (
               <Tooltip title="Add root location">
                 <IconButton onClick={() => setOpen(true)}>
@@ -413,6 +438,7 @@ export const Locations = () => {
                 <Location
                   location={l}
                   key={l.id}
+                  path={[l.name]}
                   selectedLocation={selectedLocation}
                   setSelectedLocation={setSelectedLocation}
                   canEdit={canEdit}

@@ -62,7 +62,11 @@ class LocationView(ModelViewSet):
         else:
             return LocationSerializer
 
-    # Handles creating new locations/location types
+    # Handles creating new locations/location types. Accepts either a single
+    # "name" (responds with one location) or a "names" list for adding
+    # several siblings at once (responds with a list) — all sharing the same
+    # parent/type, created in one transaction so a bad name partway through
+    # doesn't leave half the batch (or a new type with no locations) behind.
     @transaction.atomic
     def create(self, request):
         data = request.data
@@ -73,17 +77,31 @@ class LocationView(ModelViewSet):
             serializer.is_valid(raise_exception=True)
             type = serializer.save()
             data["type"] = type.id
-        location_data = {
-            "name": data.get("name"),
-            "parent": data.get("parent"),
-            "type": data.get("type"),
-        }
-        location_serializer = LocationWriteSerializer(data=location_data)
-        location_serializer.is_valid(raise_exception=True)
-        location = location_serializer.save()
-        location.barcode = f"LOC-{location.id}"
-        location.save()
-        return Response(LocationSerializer(location).data, status=status.HTTP_201_CREATED)
+
+        is_batch = "names" in data
+        names = data.get("names") if is_batch else [data.get("name")]
+        if not isinstance(names, list) or not names:
+            return Response(
+                {"names": ["Provide at least one location name."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        locations = []
+        for name in names:
+            location_serializer = LocationWriteSerializer(
+                data={"name": name, "parent": data.get("parent"), "type": data.get("type")}
+            )
+            location_serializer.is_valid(raise_exception=True)
+            location = location_serializer.save()
+            location.barcode = f"LOC-{location.id}"
+            location.save()
+            locations.append(location)
+
+        if is_batch:
+            response_data = LocationSerializer(locations, many=True).data
+        else:
+            response_data = LocationSerializer(locations[0]).data
+        return Response(response_data, status=status.HTTP_201_CREATED)
 
     # Returns the locations in a format easily usable in select menus
     @action(detail=False, methods=["GET"])

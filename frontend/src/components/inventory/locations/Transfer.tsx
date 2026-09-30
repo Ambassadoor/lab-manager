@@ -105,6 +105,11 @@ export const Transfer = () => {
   const onSubmit = (data: TransferTarget) => {
     const containers = data.containers.filter((c) => c.slug.trim().length > 0);
     if (containers.length === 0) return;
+    // A new submit is a new batch — drop the previous attempt's error (e.g.
+    // storage warnings for a container since removed from the list) so
+    // the confirm dialog doesn't open already showing it. The rules are
+    // re-checked server-side when this batch is confirmed.
+    mutation.reset();
     transferConfirm.request({ ...data, containers });
   };
 
@@ -158,7 +163,10 @@ export const Transfer = () => {
         }
         confirmLabel="Transfer anyway"
         confirmColor="warning"
-        onCancel={storageConflict.cancel}
+        onCancel={() => {
+          mutation.reset();
+          storageConflict.cancel();
+        }}
         onConfirm={storageConflict.confirm}
       />
       <Snackbar
