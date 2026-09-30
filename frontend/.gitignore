@@ -10,6 +10,9 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+# deploy/pi/deploy.sh builds beside the live dist/ and keeps the last one
+dist-next
+dist-prev
 *.local
 
 # Editor directories and files

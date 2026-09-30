@@ -265,6 +265,8 @@ A nightly database dump that leaves the Pi is the one non-negotiable. A dead SSD
 3. `manage.py migrate` and `manage.py collectstatic --noinput`.
 4. `sudo systemctl restart labmanager-api labmanager-bridge`.
 
+> **As built:** `deploy/pi/deploy.sh` runs these steps, plus a database backup before `migrate` and health checks after the restart. It builds the frontend beside the live one, so a failed build never takes the site down. Usage and rollback are in `deploy/pi/README.md`.
+
 **Go-live checklist**
 
 - [ ] `http://<pi-ip>/` loads from a lab computer, and refreshing on `/inventory/containers` doesn't 404.
