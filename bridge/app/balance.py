@@ -29,8 +29,13 @@ BALANCE_SERIAL_NUMBER = os.getenv("BALANCE_SERIAL_NUMBER")
 BALANCE_VID = 0x0403
 BALANCE_PID = 0x6001
 
-# Matches a reading like "12.34 g" -> ("12.34", "g")
-WEIGHT_PATTERN = re.compile(r"(-?\d+\.?\d*)\s*([a-zA-Z]+)")
+# Matches the two lines that carry the current (net) weight:
+#   - the "Net Wt.  12.34g" line of the report a "P" command triggers (~0.2 s),
+#   - a bare "    12.34 g " line from the balance's periodic auto-print (~2 s).
+# e.g. -> ("", "12.34", "g"). Anchored so the report's other lines ("Date
+# 09-30-2026", "Tare Wt. ...", "Gross Wt. ...") never match. The sign may be
+# padded away from the digits, so it's captured separately.
+WEIGHT_PATTERN = re.compile(r"^\s*(?:Net Wt\.)?\s*(-?)\s*(\d+\.?\d*)\s*([a-zA-Z]+)\s*$")
 
 
 def find_balance_port() -> str | None:
@@ -64,18 +69,32 @@ def _open_port() -> serial.Serial:
 
 
 def read_weight() -> dict:
-    """Read one weight sample from the balance."""
+    """Read one weight sample from the balance.
+
+    Sends "P" (print) so the balance sends a report with the net weight
+    immediately instead of waiting for its next periodic auto-print (which is
+    still accepted if the report doesn't come). Anything already buffered is
+    dropped first so a stale line isn't returned.
+    """
+    deadline = time.monotonic() + READ_TIMEOUT_SECONDS
+    last_line = ""
     with _open_port() as ser:
-        line = ser.readline().decode(errors="ignore")
+        ser.reset_input_buffer()
+        ser.write(b"P\r\n")
+        while time.monotonic() < deadline:
+            line = ser.readline().decode(errors="ignore")
+            if not line:
+                break  # readline timed out: the balance went quiet
+            match = WEIGHT_PATTERN.match(line)
+            if match:
+                sign, number, unit = match.groups()
+                return {"weight": float(sign + number), "unit": unit}
+            if line.strip():
+                last_line = line
 
-    if not line:
+    if not last_line:
         raise serial.SerialException("Timed out waiting for a reading from the balance")
-
-    match = WEIGHT_PATTERN.search(line)
-    if not match:
-        raise serial.SerialException(f"Could not parse balance output: {line!r}")
-
-    return {"weight": float(match.group(1)), "unit": match.group(2)}
+    raise serial.SerialException(f"Could not parse balance output: {last_line!r}")
 
 
 def tare() -> dict:
