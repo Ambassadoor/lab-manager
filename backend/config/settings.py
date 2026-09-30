@@ -171,6 +171,15 @@ SPECTACULAR_SETTINGS = {
 GOOGLE_SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE")
 SDS_DRIVE_FOLDER_ID = os.getenv("SDS_DRIVE_FOLDER_ID")
 
+# --- Database backups (`manage.py backup_db`) --------------------------------
+# Nightly pg_dump into BACKUP_DIR, keeping BACKUP_KEEP_DAYS of files. When
+# BACKUP_DRIVE_FOLDER_ID is set, each dump is also uploaded there (privately,
+# unlike SDS files) with the same retention — a dead SSD takes local copies
+# with it. Uses the same service account as SDS uploads.
+BACKUP_DIR = os.getenv("BACKUP_DIR") or "/var/backups/labmanager"
+BACKUP_KEEP_DAYS = int(os.getenv("BACKUP_KEEP_DAYS") or "14")
+BACKUP_DRIVE_FOLDER_ID = os.getenv("BACKUP_DRIVE_FOLDER_ID")
+
 # --- GitHub App (user bug reports -> issues) ---------------------------------
 # A GitHub App installed on GITHUB_REPO with Issues: read & write. All unset in
 # dev until the app exists; reports still save, with github_status="failed",

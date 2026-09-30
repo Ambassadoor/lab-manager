@@ -19,6 +19,8 @@ media/
 .env.*.local
 # Private keys (e.g. the GitHub App key for bug reports)
 *.pem
+# Deployed key files (Google service account JSON, GitHub App .pem)
+secrets/
 
 # --- Editors / OS ---
 .vscode/
