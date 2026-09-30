@@ -1,0 +1,13 @@
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    client_max_body_size 25m;   # SDS PDF uploads
+    root /opt/lab-manager/frontend/dist;
+
+    location /api/    { proxy_pass http://127.0.0.1:8000; include proxy_params; }
+    location /admin/  { proxy_pass http://127.0.0.1:8000; include proxy_params; }
+    location /static/ { alias /opt/lab-manager/backend/staticfiles/; }
+    # Trailing slash strips /bridge, so the bridge still sees /health, /print/label, ...
+    location /bridge/ { proxy_pass http://127.0.0.1:8200/; include proxy_params; }
+    location /        { try_files $uri /index.html; }   # SPA routes
+}

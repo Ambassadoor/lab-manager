@@ -1,0 +1,10 @@
+[Unit]
+Description=Lab Manager nightly database backup
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ambassadoor
+WorkingDirectory=/opt/lab-manager/backend
+ExecStart=/opt/lab-manager/backend/.venv/bin/python manage.py backup_db
