@@ -154,7 +154,8 @@ export const getContainerWeighIns = (slug: string): Promise<WeightReading[]> => 
   });
 };
 
-export const addLocation = (data: NewLocationDefaults): Promise<Location> => {
+// Sends `names` (not `name`), so the backend responds with a list.
+export const addLocation = (data: NewLocationDefaults): Promise<Location[]> => {
   return apiFetch(`/api/inventory/locations/`, {
     method: 'POST',
     body: JSON.stringify(data),

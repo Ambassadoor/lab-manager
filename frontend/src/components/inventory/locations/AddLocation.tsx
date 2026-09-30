@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Checkbox,
   Dialog,
@@ -6,19 +7,22 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
+  IconButton,
   MenuItem,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
-import { Controller, useForm, useWatch } from 'react-hook-form';
+import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { addLocation, getLocationTypes } from '../../../api/inventory';
 import { locationKeys } from '../../../api/queryKeys';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AcUnit,
+  Add,
   Business,
   BusinessTwoTone,
+  Close,
   DoorSliding,
   Inventory,
   Kitchen,
@@ -26,22 +30,39 @@ import {
   Pallet,
   Shelves,
 } from '@mui/icons-material';
+import type { Location } from '../../../types';
 
 type AddLocationProps = {
   id?: string;
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  // Runs after the locations are saved — lets the tree expand the parent
+  // row and print labels (the tree owns both, not this dialog).
+  onCreated?: (created: Location[], print: boolean) => void;
 };
 
+// Request body for POST /locations/ — every name becomes a sibling
+// location sharing the same parent and type.
 export type NewLocationDefaults = {
-  name: string;
+  names: string[];
   type: string;
   parent?: string;
+  new_type: {
+    name: string;
+    icon: string;
+  } | null;
+};
+
+type AddLocationForm = {
+  print: boolean;
+  // Objects rather than plain strings — useFieldArray only tracks arrays of objects.
+  names: { value: string }[];
+  type: string;
   new_type: {
     check: boolean;
     name: string;
     icon: string;
-  } | null;
+  };
 };
 
 const iconMap = new Map([
@@ -57,7 +78,7 @@ const iconMap = new Map([
 ]);
 
 //Modal for in page addition of locations
-export const AddLocation = ({ id, open, setOpen }: AddLocationProps) => {
+export const AddLocation = ({ id, open, setOpen, onCreated }: AddLocationProps) => {
   const { data: locationTypes } = useQuery({
     queryKey: locationKeys.types(),
     queryFn: getLocationTypes,
@@ -66,12 +87,15 @@ export const AddLocation = ({ id, open, setOpen }: AddLocationProps) => {
   const {
     control,
     clearErrors,
+    getValues,
     handleSubmit,
     reset,
+    setFocus,
     formState: { isValidating },
-  } = useForm({
+  } = useForm<AddLocationForm>({
     defaultValues: {
-      name: '',
+      print: true,
+      names: [{ value: '' }],
       type: '',
       new_type: {
         check: false,
@@ -83,6 +107,8 @@ export const AddLocation = ({ id, open, setOpen }: AddLocationProps) => {
     reValidateMode: 'onBlur',
   });
 
+  const { fields, append, remove } = useFieldArray({ control, name: 'names' });
+
   const newType = useWatch({
     control,
     name: 'new_type.check',
@@ -91,21 +117,35 @@ export const AddLocation = ({ id, open, setOpen }: AddLocationProps) => {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (variables: { data: NewLocationDefaults; id: string }) =>
+    mutationFn: (variables: { data: NewLocationDefaults; print: boolean }) =>
       addLocation(variables.data),
-    onSuccess: () => {
+    onSuccess: (created, { print }) => {
       // .all — a submission here can also create a new location type
       queryClient.invalidateQueries({ queryKey: locationKeys.all });
       setOpen(false);
       reset();
+      onCreated?.(created, print);
     },
   });
 
-  const onSubmit = (data: NewLocationDefaults) => {
-    if (!data.new_type?.check) {
-      data.new_type = null;
-    }
-    mutation.mutate({ data: { ...data, parent: id }, id: id || '' });
+  const close = () => {
+    setOpen(false);
+    reset();
+    mutation.reset();
+  };
+
+  const onSubmit = (data: AddLocationForm) => {
+    mutation.mutate({
+      data: {
+        names: data.names.map((n) => n.value.trim()),
+        type: data.type,
+        parent: id || undefined,
+        new_type: data.new_type.check
+          ? { name: data.new_type.name, icon: data.new_type.icon }
+          : null,
+      },
+      print: data.print,
+    });
   };
 
   return (
@@ -114,37 +154,87 @@ export const AddLocation = ({ id, open, setOpen }: AddLocationProps) => {
       open={open}
       component={'form'}
       onSubmit={handleSubmit(onSubmit)}
-      onClose={() => {
-        setOpen((prev) => !prev);
-        reset();
-      }}
+      onClose={close}
       disableRestoreFocus
     >
-      <DialogTitle>Add Location</DialogTitle>
+      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', pr: 2 }}>
+        <DialogTitle>{id ? 'Add Child Locations' : 'Add Locations'}</DialogTitle>
+        <Controller
+          control={control}
+          name="print"
+          render={({ field: { value, onChange, ...field } }) => (
+            <FormControlLabel
+              label="Print label?"
+              labelPlacement="start"
+              control={
+                <Checkbox
+                  {...field}
+                  checked={!!value}
+                  onChange={(e) => onChange(e.target.checked)}
+                />
+              }
+            />
+          )}
+        />
+      </Stack>
       <DialogContent>
         <Stack spacing={2}>
-          <Controller
-            control={control}
-            name="name"
-            rules={{
-              required: {
-                value: true,
-                message: 'Required',
-              },
-            }}
-            render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
-              <TextField
-                {...field}
-                label="Name"
-                error={!!error}
-                helperText={error?.message}
-                onChange={(e) => {
-                  onChange(e);
-                  clearErrors(name);
+          {mutation.isError && <Alert severity="error">{mutation.error.message}</Alert>}
+          {fields.map((field, index) => (
+            <Stack key={field.id} direction="row" spacing={1} sx={{ alignItems: 'flex-start' }}>
+              <Controller
+                control={control}
+                name={`names.${index}.value`}
+                rules={{
+                  required: {
+                    value: true,
+                    message: 'Required',
+                  },
+                  validate: {
+                    duplicate: (value) => {
+                      const normalized = value.trim().toLocaleLowerCase();
+                      const isDuplicate = getValues('names').some(
+                        (n, i) => i !== index && n.value.trim().toLocaleLowerCase() === normalized
+                      );
+                      if (isDuplicate) return 'Already listed above';
+                    },
+                  },
                 }}
+                render={({ field: { name, onChange, ...field }, fieldState: { error } }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label={fields.length > 1 ? `Name #${index + 1}` : 'Name'}
+                    error={!!error}
+                    helperText={error?.message}
+                    onChange={(e) => {
+                      onChange(e);
+                      clearErrors(name);
+                    }}
+                  />
+                )}
               />
-            )}
-          />
+              {index > 0 && (
+                <IconButton
+                  aria-label={`Remove name #${index + 1}`}
+                  onClick={() => remove(index)}
+                  sx={{ mt: 1 }}
+                >
+                  <Close />
+                </IconButton>
+              )}
+            </Stack>
+          ))}
+          <Button
+            startIcon={<Add />}
+            sx={{ alignSelf: 'flex-start' }}
+            onClick={() => {
+              append({ value: '' });
+              setFocus(`names.${fields.length}.value`);
+            }}
+          >
+            Add another
+          </Button>
           <Controller
             control={control}
             name="new_type.check"
@@ -288,13 +378,7 @@ export const AddLocation = ({ id, open, setOpen }: AddLocationProps) => {
         <Button type="submit" variant="contained" loading={mutation.isPending || isValidating}>
           Submit
         </Button>
-        <Button
-          variant="outlined"
-          onClick={() => {
-            setOpen(false);
-            reset();
-          }}
-        >
+        <Button variant="outlined" onClick={close}>
           Cancel
         </Button>
       </DialogActions>

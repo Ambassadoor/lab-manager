@@ -277,6 +277,9 @@ def print_label(template: int, fields: dict[str, str], copies: int = 1) -> dict:
     command += b"^ID"
 
     for name, value in fields.items():
+        # Callers send "\n" for a line break; P-touch Template text objects
+        # break lines on CR, not LF.
+        value = value.replace("\r\n", "\n").replace("\n", "\r")
         command += b"^ON" + name.encode("ascii") + b"\x00" + value.encode("ascii") + DELIMITER
 
     if copies > 1:
