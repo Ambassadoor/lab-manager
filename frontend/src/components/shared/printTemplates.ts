@@ -41,18 +41,13 @@ export const printContainerLabel = (container: { label: string }): Promise<Print
 // `path` is the location's names from the root down, ending with its own.
 export type LocationLabelTarget = { id: number; path: string[] };
 
-// How many trailing path levels go on the label — the full path from the
-// building down rarely fits the tape, and the last few levels are what
-// someone standing at the shelf actually needs to recognize it.
-const LABEL_PATH_LEVELS = 3;
-
-// "\n" becomes a line break on the printed label (the bridge converts it
-// to the printer's own line-break code).
-export const locationLabelText = ({ id, path }: LocationLabelTarget): string => {
-  const shown = path.slice(-LABEL_PATH_LEVELS);
-  const truncated = shown.length < path.length ? '... > ' : '';
-  return `${truncated}${shown.join(' > ')}\nLoc-${id}`;
-};
+// The full path, space-separated like Location.full_path shown elsewhere
+// in the app, with the ID on its own line. The location template is laid
+// out landscape so the label grows lengthwise to fit a long path. "\n"
+// becomes a line break on the printed label (the bridge converts it to
+// the printer's own line-break command).
+export const locationLabelText = ({ id, path }: LocationLabelTarget): string =>
+  `${path.join(' ')}\nLoc-${id}`;
 
 export const printLocationLabel = (location: LocationLabelTarget): Promise<PrintConfirmation> =>
   resolveAndPrint('location', {
