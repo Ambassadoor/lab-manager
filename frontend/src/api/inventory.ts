@@ -1,0 +1,235 @@
+// Various data fetchers
+import { apiFetch, toQueryString } from './client';
+import type {
+  Container,
+  StorageCategory,
+  Location,
+  CasCheck,
+  ContainerOptions,
+  ContainerFormDefaults,
+  CheckoutEvent,
+  ContainerDetailDefaults,
+  ContainerPatch,
+  WeighInDefaults,
+  WeightReading,
+  LocationType,
+  Chemical,
+  ChemicalDefaults,
+  Dashboard,
+} from '../types';
+import type { NewLocationDefaults } from '../components/inventory/locations/AddLocation';
+import type { EditLocationDefaults } from '../components/inventory/locations/EditLocation';
+
+// Server-side equivalents of what ContainerFilter exposes on the backend
+// (see backend/apps/inventory/filters.py) — only the subset Containers.tsx
+// actually drives today.
+export type ContainerListParams = {
+  search?: string;
+  checkout_status?: 'in' | 'out';
+  ordering?: string;
+};
+
+export const getContainers = (params?: ContainerListParams): Promise<Container[] | []> => {
+  return apiFetch(`/api/inventory/containers/${toQueryString(params)}`);
+};
+
+export const getChemicalByCas = (cas: string): Promise<CasCheck> => {
+  return apiFetch(`/api/inventory/chemicals/check_cas/?cas=${cas}`);
+};
+
+export const getStorageCategories = (): Promise<StorageCategory[]> => {
+  return apiFetch(`/api/inventory/chemical_storage_categories/`);
+};
+
+export const getLocations = (): Promise<Location[]> => {
+  return apiFetch('/api/inventory/locations/');
+};
+
+export const editLocation = (data: EditLocationDefaults, id: string): Promise<Location> => {
+  return apiFetch(`/api/inventory/locations/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+};
+
+export const getLocationContainers = (id: string): Promise<Location> => {
+  return apiFetch(`/api/inventory/locations/${id}/containers`);
+};
+
+export const getContainerMetaData = (): Promise<ContainerOptions> => {
+  return apiFetch('/api/inventory/containers/', {
+    method: 'OPTIONS',
+  });
+};
+
+// `confirmStorageConflicts` resubmits the identical request after the user
+// accepts a storage-compatibility warning (see storage_rules.py on the
+// backend, and useStorageConflictConfirm on this one) — a plain boolean
+// param rather than a field on ContainerFormDefaults so that type stays a
+// clean description of the form itself.
+export const submitNewContainerForm = (
+  data: ContainerFormDefaults,
+  confirmStorageConflicts?: boolean
+): Promise<Container> => {
+  return apiFetch('/api/inventory/containers/', {
+    method: 'POST',
+    body: JSON.stringify(
+      confirmStorageConflicts ? { ...data, confirm_storage_conflicts: true } : data
+    ),
+  });
+};
+
+export const getContainerDetails = (id: string): Promise<Container> => {
+  return apiFetch(`/api/inventory/containers/${id}/`);
+};
+
+// See submitNewContainerForm's comment on confirmStorageConflicts.
+export const updateContainer = (
+  slug: string,
+  data: ContainerDetailDefaults,
+  confirmStorageConflicts?: boolean
+): Promise<Container> => {
+  return apiFetch(`/api/inventory/containers/${slug}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(
+      confirmStorageConflicts ? { ...data, confirm_storage_conflicts: true } : data
+    ),
+  });
+};
+
+// For single-field edits (e.g. inline table editing) — same endpoint as
+// updateContainer, but typed for DRF's partial=True PATCH (every field
+// optional), so callers aren't forced to supply the whole container.
+export const patchContainer = (slug: string, data: ContainerPatch): Promise<Container> => {
+  return apiFetch(`/api/inventory/containers/${slug}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+};
+
+type ContainerValidation = {
+  is_discarded?: boolean;
+  is_valid?: boolean;
+  // Whether the container has a real tare weight to estimate usage from —
+  // reported here (rather than a separate call) since WeighIn.tsx already
+  // hits this endpoint right after every barcode scan.
+  has_estimated_usage?: boolean;
+};
+export const checkIfDiscarded = (slug: string): Promise<ContainerValidation> => {
+  return apiFetch(`/api/inventory/containers/${slug}/is_discarded/`);
+};
+
+export const checkOutContainers = (slugs: string[]): Promise<{ events: CheckoutEvent[] }> => {
+  return apiFetch(`/api/inventory/containers/check_out/`, {
+    method: 'POST',
+    body: JSON.stringify(slugs),
+  });
+};
+
+export const checkInContainers = (slugs: string[]): Promise<{ events: CheckoutEvent[] }> => {
+  return apiFetch(`/api/inventory/containers/check_in/`, {
+    method: 'POST',
+    body: JSON.stringify(slugs),
+  });
+};
+
+export const checkValidId = (slug: string): Promise<{ is_valid: boolean }> => {
+  return apiFetch(`/api/inventory/containers/${slug}/is_valid/`);
+};
+
+// Batch endpoint — records a weight reading and checks in every container
+// in `data.checkin` as one atomic request (either all rows save or none do).
+export const createWeighIn = (
+  data: WeighInDefaults
+): Promise<{ readings: WeightReading[]; events: CheckoutEvent[] }> => {
+  return apiFetch(`/api/inventory/containers/weigh_in_bulk/`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+export const getContainerWeighIns = (slug: string): Promise<WeightReading[]> => {
+  return apiFetch(`/api/inventory/containers/${slug}/weigh_in`, {
+    method: 'GET',
+  });
+};
+
+// Sends `names` (not `name`), so the backend responds with a list.
+export const addLocation = (data: NewLocationDefaults): Promise<Location[]> => {
+  return apiFetch(`/api/inventory/locations/`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+export const getLocationTypes = (): Promise<LocationType[]> => {
+  return apiFetch(`/api/inventory/location_types/`);
+};
+
+export const getLocationMenu = (): Promise<Location[]> => {
+  return apiFetch(`/api/inventory/locations/menu/`);
+};
+
+// Mirrors the subset of ChemicalFilter's search_fields the frontend drives
+// today (see backend/apps/inventory/filters.py).
+export type ChemicalListParams = {
+  search?: string;
+};
+
+export const getChemicals = (params?: ChemicalListParams): Promise<Chemical[]> => {
+  return apiFetch(`/api/inventory/chemicals/${toQueryString(params)}`);
+};
+
+export const addChemical = (data: ChemicalDefaults): Promise<Chemical> => {
+  return apiFetch(`/api/inventory/chemicals/`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+export const getChemicalById = (id: string): Promise<Chemical> => {
+  return apiFetch(`/api/inventory/chemicals/${id}/`);
+};
+
+export const updateChemical = (data: ChemicalDefaults, id: string): Promise<Chemical> => {
+  return apiFetch(`/api/inventory/chemicals/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+};
+
+export const deleteLocation = (id: string) => {
+  return apiFetch(`/api/inventory/locations/${id}/`, {
+    method: 'DELETE',
+  });
+};
+
+export const getDashboard = (): Promise<Dashboard> => {
+  return apiFetch('/api/inventory/dashboard');
+};
+
+// See submitNewContainerForm's comment on confirmStorageConflicts.
+export const transferContainers = (
+  data: {
+    containers: { slug: string }[];
+    location: string;
+  },
+  confirmStorageConflicts?: boolean
+): Promise<Container[]> => {
+  return apiFetch(`/api/inventory/containers/transfer/`, {
+    method: 'PATCH',
+    body: JSON.stringify(
+      confirmStorageConflicts ? { ...data, confirm_storage_conflicts: true } : data
+    ),
+  });
+};
+
+export const moveLocations = (data: {
+  childLocations: { slug: string }[];
+  parentLocation: string;
+}): Promise<Location[]> => {
+  return apiFetch(`/api/inventory/locations/move/`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+};

@@ -13,10 +13,14 @@ db.sqlite3
 staticfiles/
 media/
 
-# --- Environment files (only *.env.example is committed) ---
+# --- Environment files (only *.env.example and frontend/.env.production are committed) ---
 .env
 .env.local
 .env.*.local
+# Private keys (e.g. the GitHub App key for bug reports)
+*.pem
+# Deployed key files (Google service account JSON, GitHub App .pem)
+secrets/
 
 # --- Editors / OS ---
 .vscode/
@@ -24,3 +28,11 @@ media/
 *.swp
 .DS_Store
 Thumbs.db
+data_with_properties.json
+data.json
+
+# --- Playwright MCP ---
+.playwright-mcp/
+
+# --- Claude Code local settings (tool-approval bookkeeping, not shared config) ---
+.claude/settings.json

@@ -1,0 +1,72 @@
+// Central query key factory for TanStack Query.
+// Keys are hierarchical arrays so invalidateQueries({ queryKey: someKeys.all })
+// prefix-matches every query under that resource (list, detail, related sub-resources, etc).
+
+import type { ChemicalListParams, ContainerListParams } from './inventory';
+import type { LabelTemplateListParams } from './labelTemplates';
+import type { SdsListParams } from './sds';
+import type { UserListParams } from './users';
+
+export const containerKeys = {
+  all: ['containers'] as const,
+  // `params` defaults to {} rather than being left undefined — TanStack's
+  // partial-match invalidation treats an object segment with no keys as a
+  // wildcard, so every existing `invalidateQueries({ queryKey:
+  // containerKeys.list() })` call site still invalidates every
+  // parameterized variant without needing to know about them.
+  list: (params?: ContainerListParams) => [...containerKeys.all, 'list', params ?? {}] as const,
+  detail: (slug: string) => [...containerKeys.all, 'detail', slug] as const,
+  weighIns: (slug: string) => [...containerKeys.all, 'weighIns', slug] as const,
+  metaData: () => [...containerKeys.all, 'metaData'] as const,
+};
+
+export const chemicalKeys = {
+  all: ['chemicals'] as const,
+  // See containerKeys.list's comment — same partial-match reasoning applies.
+  list: (params?: ChemicalListParams) => [...chemicalKeys.all, 'list', params ?? {}] as const,
+  detail: (id: string) => [...chemicalKeys.all, 'detail', id] as const,
+  storageCategories: () => [...chemicalKeys.all, 'storageCategories'] as const,
+};
+
+export const locationKeys = {
+  all: ['locations'] as const,
+  list: () => [...locationKeys.all, 'list'] as const,
+  containers: (locationId: string) => [...locationKeys.all, 'containers', locationId] as const,
+  types: () => [...locationKeys.all, 'types'] as const,
+  menu: () => [...locationKeys.all, 'menu'] as const,
+};
+
+export const dashboardKeys = {
+  all: ['dashboard'] as const,
+};
+
+export const userKeys = {
+  all: ['users'] as const,
+  // See containerKeys.list's comment — same partial-match reasoning applies.
+  list: (params?: UserListParams) => [...userKeys.all, 'list', params ?? {}] as const,
+  detail: (id: string) => [...userKeys.all, 'detail', id] as const,
+};
+
+export const sdsKeys = {
+  all: ['sds'] as const,
+  // See containerKeys.list's comment — same partial-match reasoning applies.
+  list: (params?: SdsListParams) => [...sdsKeys.all, 'list', params ?? {}] as const,
+  detail: (id: number | string) => [...sdsKeys.all, 'detail', id] as const,
+};
+
+export const printerKeys = {
+  all: ['printer'] as const,
+  // Bridge hardware status, not a Django resource — no `list`/`detail`
+  // shape, just the one live value. Kept as its own key (rather than
+  // inlined at the call site) so a future print mutation can invalidate/
+  // refetch it after printing without duplicating the key array.
+  status: () => [...printerKeys.all, 'status'] as const,
+};
+
+export const labelTemplateKeys = {
+  all: ['labelTemplates'] as const,
+  // See containerKeys.list's comment — same partial-match reasoning applies.
+  list: (params?: LabelTemplateListParams) =>
+    [...labelTemplateKeys.all, 'list', params ?? {}] as const,
+  detail: (id: number) => [...labelTemplateKeys.all, 'detail', id] as const,
+};

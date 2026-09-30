@@ -9,9 +9,15 @@ Run:  poetry run uvicorn app.main:app --port 8200 --reload
 
 import os
 
-from fastapi import FastAPI
+import serial
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+load_dotenv()
+
+from app import balance, printer  # noqa: E402 — must import after load_dotenv() populates os.environ
 
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
 
@@ -34,24 +40,41 @@ def health():
 
 @app.get("/balance/read")
 def read_balance():
-    """Return the current weight from the USB balance.
+    """Return the current weight from the USB balance."""
+    try:
+        return balance.read_weight()
+    except serial.SerialException as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
 
-    TODO: open the serial port with pyserial and parse a reading.
-    The hardware spike confirmed the balance is reachable; wire it up here.
-    """
-    return {"weight": None, "unit": "g", "detail": "not yet implemented"}
+
+@app.post("/balance/tare")
+def tare_balance():
+    """Zero the USB balance."""
+    try:
+        return balance.tare()
+    except serial.SerialException as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
 
 
-class LabelRequest(BaseModel):
-    text: str
-    barcode: str | None = None
+class PrintLabelRequest(BaseModel):
+    template: int
+    fields: dict[str, str]
+    copies: int = 1
 
 
 @app.post("/print/label")
-def print_label(req: LabelRequest):
-    """Print a label on the Brother printer.
+def print_label(req: PrintLabelRequest):
+    """Print a label from a template already transferred onto the printer."""
+    try:
+        return printer.print_label(req.template, req.fields, req.copies)
+    except OSError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
 
-    TODO: drive the Brother SDK (b-PAC via pywin32) on the lab PC.
-    On that machine, install the Windows-only dependency:  poetry add pywin32
-    """
-    return {"printed": False, "detail": "not yet implemented", "echo": req.text}
+
+@app.get("/print/status")
+async def print_status():
+    """Return the printer's current media, battery, and error status (via SNMP)."""
+    try:
+        return await printer.get_status()
+    except OSError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e

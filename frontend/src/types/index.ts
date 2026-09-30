@@ -1,6 +1,13 @@
 // Shared application types.
-
-export type Role = 'lab_manager' | 'stockroom' | 'viewer';
+import type { Dayjs } from 'dayjs';
+import type { components } from './api';
+export type Role =
+  | 'admin'
+  | 'lab_manager'
+  | 'coordinator'
+  | 'faculty'
+  | 'stockroom'
+  | 'lab_assistant';
 
 export interface User {
   id: number;
@@ -8,5 +15,214 @@ export interface User {
   email: string;
   first_name: string;
   last_name: string;
+  lipscomb_id: string | null;
   role: Role;
+  // Human-readable label for `role` (e.g. "Lab Manager") — from the
+  // backend's Role.choices via get_role_display(), not duplicated here.
+  role_display: string;
 }
+
+export interface UserRegistration extends Omit<
+  User,
+  'id' | 'role' | 'role_display' | 'lipscomb_id'
+> {
+  password: string;
+  lipscomb_id: string;
+}
+
+export interface PreValidation {
+  errors: {
+    username?: string;
+    email?: string;
+  };
+}
+
+type ApiContainer = components['schemas']['Container'];
+type ApiLocation = components['schemas']['Location'];
+
+export type ContainerWrite = components['schemas']['ContainerWrite'];
+// Matches DRF's partial=True PATCH semantics — same fields as ContainerWrite, all optional.
+export type ContainerPatch = components['schemas']['PatchedContainerWrite'];
+
+// Detects which keys of a generated schema type are `readonly` (i.e. DRF
+// read_only=True fields). `readonly` only exists at compile time, so this
+// can't drive runtime behavior — it's a guardrail that makes it a type
+// error to mark a read-only field as an editable table column.
+type IfEquals<X, Y, A = X, B = never> =
+  (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? A : B;
+
+export type ReadonlyKeys<T> = {
+  // Pick<T, P> is homomorphic (preserves T's actual readonly modifier for
+  // P); the second arg force-strips it. Only genuinely readonly keys differ.
+  [P in keyof T]-?: IfEquals<Pick<T, P>, { -readonly [Q in P]: T[P] }, never, P>;
+}[keyof T];
+
+export type EditableKeys<T> = Exclude<keyof T, ReadonlyKeys<T>>;
+export type SDS = components['schemas']['SDS'];
+// `SDSWrite`'s `file` field is typed `string` (openapi-typescript's best
+// guess for a binary/multipart field) — createSds (api/sds.ts) builds a
+// FormData body directly rather than going through this type, so it isn't
+// re-exported for that use.
+export type GHSPictogram = components['schemas']['GhsPictogramsEnum'];
+
+type ApiChemical = components['schemas']['Chemical'];
+// `sds` is a SerializerMethodField — the generated schema can't infer its
+// real type and defaults to `string` (same reason Container does this for
+// latest_reading/checkout_status/latest_sds below).
+export interface Chemical extends Omit<ApiChemical, 'sds'> {
+  readonly sds: SDS[];
+}
+export type StorageCategory = components['schemas']['ChemicalStorageCategories'];
+export type UnitEnums = components['schemas']['QuantityUnitEnum'];
+export type CheckoutEvent = components['schemas']['CheckoutEvent'];
+export type WeightReading = components['schemas']['WeightReading'];
+export type LocationType = components['schemas']['LocationType'];
+export type Dashboard = {
+  recently_added: Container[];
+  restock_soon: Container[];
+  checked_out: Container[];
+};
+export interface Container extends Omit<
+  ApiContainer,
+  'latest_reading' | 'checkout_status' | 'latest_sds'
+> {
+  readonly latest_reading: WeightReading;
+  readonly checkout_status: CheckoutEvent;
+  readonly latest_sds: SDS | null;
+}
+
+export interface Location extends Omit<ApiLocation, 'children'> {
+  children: Location[];
+  containers: Container[];
+}
+
+export type WeighInDefaults = {
+  checkin: {
+    slug: string;
+    weight: string;
+    // Backfill for containers that don't have a real tare weight yet —
+    // only sent when the row's container actually needs one (see
+    // WeighIn.tsx); omitted/blank rows leave the container as-is.
+    tare_weight?: string;
+  }[];
+};
+
+export interface CasCheck {
+  mixtures: Chemical[];
+  chemicals: Chemical[];
+}
+
+export interface ContainerFormDefaults {
+  print: boolean;
+  name: string;
+  multiple_cas: boolean;
+  mixture_name: string;
+  mixture_storage_category: string | number;
+  mixture_molecular_weight: string;
+  chemicals: {
+    cas: string;
+    name: string;
+    molecular_weight: string;
+    storage_category: string | number;
+  }[];
+  location: string | number;
+  manufacturer: string;
+  initial_quantity: string | number;
+  quantity_unit: string;
+  product_num: string;
+  date_received: Dayjs | null | string;
+  density: string | number;
+  expiration_date: string | Dayjs | null;
+  initial_weight: string | number;
+  tare_weight: string | number;
+  mixture_id: string | number;
+}
+
+export interface ContainerOptions {
+  name: string;
+  description: string;
+  renders: string[];
+  parses: string[];
+  actions: {
+    POST: {
+      quantity_unit: {
+        choices: { value: string; display_name: string }[];
+      };
+    };
+  };
+}
+
+// Add/edit chemical form values (AddChemical, ChemicalEditForm)
+export type ChemicalDefaults = {
+  name: string;
+  cas: string;
+  molecular_weight?: string;
+  formula?: string;
+  // Category id, or '' for none (DRF reads '' as null for a relation)
+  storage_category?: number | '';
+};
+
+export type ContainerDetailDefaults = {
+  name: string;
+  location: string | number;
+  manufacturer: string;
+  product_num: string;
+  initial_quantity: string | number;
+  quantity_unit: string;
+  // The form holds this as text; blank means "unknown" and is sent as null
+  // (DRF's DecimalField rejects '' but accepts null on this nullable field).
+  tare_weight: string | null;
+};
+
+export type BalanceReading = {
+  weight: number;
+  unit: string;
+};
+
+export type PrinterStatus = {
+  battery_level: number;
+  media_width_mm: number;
+  media_length_mm: number;
+  media_type: string;
+  errors: string[];
+};
+
+export type PrintParams = {
+  template: number;
+  fields: Record<string, string>;
+  copies: 1;
+};
+
+export type PrintConfirmation = {
+  printed: true;
+};
+
+// A P-touch Template registered in the DB-backed template registry (see
+// bridge/PRINTER_PLAN.md's "template registry" TODO) — replaces the
+// hardcoded template numbers/field names printTemplates.ts used to carry.
+export type LabelTemplateKind = components['schemas']['KindEnum'];
+export type LabelFieldRole = components['schemas']['LabelTemplateFieldRoleEnum'];
+export type LabelMediaWidthMm = components['schemas']['MediaWidthMmEnum'];
+
+export type LabelTemplateField = components['schemas']['LabelTemplateField'];
+export type LabelTemplate = components['schemas']['LabelTemplate'];
+
+// A field row has no `id` yet when constructing a create/update payload —
+// the backend assigns one.
+export type LabelTemplateFieldWrite = Omit<LabelTemplateField, 'id'>;
+export type LabelTemplateWrite = Omit<LabelTemplate, 'id' | 'fields'> & {
+  fields: LabelTemplateFieldWrite[];
+};
+// Matches DRF's partial=True PATCH semantics — same fields as
+// LabelTemplateWrite, all optional.
+export type LabelTemplatePatch = components['schemas']['PatchedLabelTemplate'];
+
+// In-app bug reports and feedback (apps/feedback on the backend). The
+// *Create types are the responses; the *Input types are what the dialogs
+// send (only the writable fields).
+export type BugImpact = components['schemas']['ImpactEnum'];
+export type FeedbackCategory = components['schemas']['CategoryEnum'];
+export type BugReportCreate = components['schemas']['BugReportCreate'];
+export type BugReportInput = Pick<BugReportCreate, EditableKeys<BugReportCreate>>;
+export type FeedbackCreate = components['schemas']['FeedbackCreate'];
+export type FeedbackInput = Pick<FeedbackCreate, EditableKeys<FeedbackCreate>>;

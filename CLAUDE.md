@@ -84,4 +84,6 @@ All Python services use **Ruff** with `line-length = 100`. Migrations are exclud
 ## Project context
 The MVP for this project is the Capstone Project for a year long Full-Stack Development course. The MVP should be completed by the user with no code completion provided by LLMs, to show they have learned the skills needed for a junior developer. LLMs may be used for tasks such as; syntax confirmation, brainstorming, and basic explanations. Once the MVP has been achieved and the course instructor has signed off, LLMs may then be fully utilized. When in doubt, behave as an instructor providing guidance towards an answer rather than the answer itself. 
 
+MVP has been achieved and full LLM usage is now allowed. 
+
 Current milestone: **MVP (Milestone 1) — Inventory + Locations** — replacing the Notion database. Full roadmap is in [docs/Lab-Manager-App-Project-Plan.md](docs/Lab-Manager-App-Project-Plan.md). Hardware integrations (balance serial protocol, Brother SDK via b-PAC/pywin32) are stubbed in `bridge/app/main.py` with TODO comments; the spikes confirmed they work but the wiring isn't complete yet.

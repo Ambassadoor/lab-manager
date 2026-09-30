@@ -1,0 +1,479 @@
+from django.db import transaction
+from django.db.models.functions import Lower
+from django.http import Http404
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet
+
+from apps.users.models import User
+from apps.users.permissions import role_at_least
+
+from ..filters import ContainerFilter
+from ..models import Chemical, ChemicalStorageCategories, CheckoutEvent, Container, WeightReading
+from ..serializers import (
+    ChemicalSerializer,
+    CheckoutEventSerializer,
+    CheckoutEventWriteSerializer,
+    ContainerSerializer,
+    ContainerWriteSerializer,
+    IngredientSerializer,
+    WeightReadingReadSerializer,
+    WeightReadingSerializer,
+)
+
+
+class ContainerView(ModelViewSet):
+    queryset = Container.objects.all()
+    filterset_class = ContainerFilter
+    search_fields = [
+        "name",
+        "manufacturer",
+        "product_num",
+        "slug",
+        "chemical__name",
+        "chemical__cas",
+    ]
+    ordering_fields = [
+        "id",
+        "name",
+        "date_received",
+        "expiration_date",
+        "manufacturer",
+        "quantity_unit",
+        "chemical__name",
+        "location__name",
+    ]
+    ordering = ["id"]
+    lookup_field = "slug"
+
+    permission_classes = [IsAuthenticated]
+
+    # Deleting a container is Manager/Admin-only, unchanged from before roles
+    # were fleshed out — containers get marked discarded rather than
+    # deleted in normal operation. Every other write (creating/editing a
+    # container, checking in/out, weighing in, transferring) needs at least
+    # Stockroom; plain reads (list/retrieve/is_discarded/is_valid) stay open
+    # to any authenticated role, Lab Assistant included.
+    WRITE_ACTIONS = {
+        "create",
+        "update",
+        "partial_update",
+        "check_out",
+        "check_in",
+        "weigh_in_bulk",
+        "transfer",
+    }
+
+    def get_permissions(self):
+        if self.action == "destroy":
+            return [role_at_least(User.Role.LAB_MANAGER)()]
+        # weigh_in is a combined GET/POST action (fetch history vs. record a
+        # reading) — only its write side needs gating.
+        if self.action == "weigh_in" and self.request.method == "POST":
+            return [role_at_least(User.Role.STOCKROOM)()]
+        if self.action in self.WRITE_ACTIONS:
+            return [role_at_least(User.Role.STOCKROOM)()]
+        return super().get_permissions()
+
+    # Determine which serialize to use
+    def get_serializer_class(self):
+        if self.action in ["create", "update", "partial_update", "metadata"]:
+            return ContainerWriteSerializer
+        elif self.action in ["check_out", "check_in"]:
+            return CheckoutEventSerializer
+        else:
+            return ContainerSerializer
+
+    # Chemical storage compatibility (see ../storage_rules.py) is advisory,
+    # not enforced at the DB level — a request that sets/changes a
+    # container's location and would trigger a warning gets a 409 instead
+    # of saving, unless it explicitly says to proceed anyway. The frontend
+    # shows the warnings in a confirmation dialog and, if the user
+    # confirms, resubmits the identical request with this flag set.
+    @staticmethod
+    def _confirmed_storage_conflicts(request):
+        return bool(request.data.get("confirm_storage_conflicts"))
+
+    @staticmethod
+    def _storage_conflict_response(warnings):
+        return Response(
+            {"warnings": warnings, "requires_confirmation": True},
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    # Validates if a container has been discarded. Also reports
+    # has_estimated_usage — checked at exactly the same point a barcode scan
+    # already validates the container in WeighIn.tsx, so the frontend can
+    # decide whether to show its tare-weight backfill field without a
+    # second round trip.
+    @action(detail=True, methods=["get"])
+    def is_discarded(self, request, slug=None):
+        try:
+            q = self.get_object()
+            return Response(
+                {
+                    "is_discarded": q.date_discarded is not None,
+                    "has_estimated_usage": q.has_estimated_usage,
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Http404:
+            return Response({"is_valid": False}, status=status.HTTP_200_OK)
+
+    # Creates checkout events for the provided containers
+    @action(detail=False, methods=["POST"])
+    def check_out(self, request):
+        data = request.data
+
+        events = []
+        for slug in data:
+            try:
+                container = Container.objects.get(slug=slug)
+                events.append({"container": container.id, "action": "out"})
+            except Container.DoesNotExist:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+        serializer = CheckoutEventWriteSerializer(
+            data=events, many=True, context={"request": request}
+        )
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response({"events": serializer.data}, status=status.HTTP_201_CREATED)
+
+    # Creates check in events for the provided containers
+    @action(detail=False, methods=["POST"])
+    def check_in(self, request):
+        data = request.data
+
+        events = []
+        for slug in data:
+            try:
+                container = Container.objects.get(slug=slug)
+                # Adds a relation to the most recent event only if it is a checkout
+                # event that hasn't already been checked in (a "related_event" is
+                # only ever set on "in" events, so checking it on the "out" event
+                # itself is a no-op — we need the reverse `check_in_event` relation).
+                last_check_out = (
+                    container.events.filter(action="out").order_by("-timestamp").first()
+                )
+                if (
+                    last_check_out is not None
+                    and CheckoutEvent.objects.filter(related_event=last_check_out).exists()
+                ):
+                    last_check_out = None
+                events.append(
+                    {
+                        "container": container.id,
+                        "action": "in",
+                        "related_event": last_check_out.id if last_check_out is not None else None,
+                    }
+                )
+            except Container.DoesNotExist:
+                return Response(status.HTTP_400_BAD_REQUEST)
+        serializer = CheckoutEventWriteSerializer(
+            data=events, many=True, context={"request": request}
+        )
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response({"events": serializer.data}, status=status.HTTP_201_CREATED)
+
+    # Returns if the provided container is valid or not
+    @action(detail=True, methods=["GET"])
+    def is_valid(self, request, slug=None):
+        try:
+            self.get_object()
+            return Response({"is_valid": True}, status=status.HTTP_200_OK)
+        except Http404:
+            return Response({"is_valid": False}, status=status.HTTP_200_OK)
+
+    # Same as UpdateModelMixin.update() (which this would otherwise use
+    # unmodified — covers both PUT and PATCH, since partial_update() just
+    # calls this with partial=True), with one addition: a location
+    # change that trips a storage-compatibility warning 409s instead of
+    # saving, unless the request already confirmed it wants to proceed.
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        if serializer.storage_warnings and not self._confirmed_storage_conflicts(request):
+            return self._storage_conflict_response(serializer.storage_warnings)
+        self.perform_update(serializer)
+
+        if getattr(instance, "_prefetched_objects_cache", None):
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+    # Creates new Mixture, chemicals, and containers
+    @transaction.atomic
+    def create(self, request):
+        chemicals = Chemical.objects.all()
+
+        data = request.data
+
+        # Creates a new parent chemical if one does not exist already
+        if data.get("multiple_cas"):
+            if data.get("mixture_id") != "":
+                chemical = Chemical.objects.get(pk=data.get("mixture_id"))
+            else:
+                mixture_data = {
+                    "name": data.get("mixture_name"),
+                    "molecular_weight": data.get("mixture_molecular_weight"),
+                    "storage_category": data.get("mixture_storage_category"),
+                }
+                chemical_serializer = ChemicalSerializer(data=mixture_data)
+                chemical_serializer.is_valid(raise_exception=True)
+                chemical = chemical_serializer.save()
+            # Gets or creates children chemicals creates ingredients for the parent chemical
+            request_chems = data.get("chemicals")
+            for chem in request_chems:
+                serializer = ChemicalSerializer(data=chem)
+                try:
+                    c = chemicals.get(cas=chem.get("cas"))
+                except Chemical.DoesNotExist:
+                    serializer.is_valid(raise_exception=True)
+                    c = serializer.save()
+
+                ingredient_data = {"mixture": chemical.id, "ingredient": c.id}
+
+                ingredient = IngredientSerializer(data=ingredient_data)
+                ingredient.is_valid(raise_exception=True)
+                ingredient.save()
+
+        else:
+            # Handles creating a single chemical if only one cas# was provided
+            request_chem = data.get("chemicals")[0]
+            storage_category_id = request_chem.get("storage_category")
+            if storage_category_id:
+                request_chem["storage_category"] = ChemicalStorageCategories.objects.filter(
+                    pk=storage_category_id
+                ).first()
+            chemical, created = Chemical.objects.get_or_create(cas=request_chem.get("cas"))
+            if created:
+                chemical.molecular_weight = request_chem.get("molecular_weight")
+                chemical.name = request_chem.get("name")
+                chemical.storage_category = request_chem.get("storage_category")
+                chemical.save()
+        # Creates the new container
+        new_container = {
+            "name": data.get("name"),
+            "chemical": chemical.id,
+            "location": data.get("location"),
+            "manufacturer": data.get("manufacturer"),
+            "initial_quantity": data.get("initial_quantity"),
+            "quantity_unit": data.get("quantity_unit"),
+            "product_num": data.get("product_num"),
+            "date_received": data.get("date_received"),
+            "density": data.get("density"),
+            "expiration_date": data.get("expiration_date"),
+            "initial_weight": data.get("initial_weight"),
+            "tare_weight": data.get("tare_weight"),
+        }
+        serializer = ContainerWriteSerializer(data=new_container)
+        serializer.is_valid(raise_exception=True)
+        if serializer.storage_warnings and not self._confirmed_storage_conflicts(request):
+            return self._storage_conflict_response(serializer.storage_warnings)
+        container = serializer.save()
+        container.slug = f"chem-{container.id}"
+        container.save()
+        wr = {
+            "container": container.id,
+            "weight": container.initial_weight,
+        }
+
+        wr_serializer = WeightReadingSerializer(data=wr, context={"request": request})
+        wr_serializer.is_valid(raise_exception=True)
+        wr_serializer.save()
+
+        # Not resetting IDs on failure: this whole method runs inside
+        # @transaction.atomic, so a failed create already rolls back every
+        # row it touched. The only thing that survives a rollback is
+        # Postgres's auto-increment sequence counter — sequence increments
+        # are deliberately non-transactional, to avoid every insert
+        # contending on the same lock — so a run of failed creates can leave
+        # gaps in the numeric part of Container.label. Resetting the
+        # sequence to close that gap would mean mutating shared state
+        # outside the transaction, which races against any concurrent
+        # insert; the gap is cosmetic and not worth that risk.
+        return Response(ContainerSerializer(container).data, status=status.HTTP_201_CREATED)
+
+    # Creates new weigh in event
+    @action(detail=True, methods=["GET", "POST"])
+    def weigh_in(self, request, slug=None):
+        container = self.get_object()
+
+        if request.method == "POST":
+            data = request.data
+
+            weigh_in = {
+                "container": container.id,
+                "weight": data.get("weight"),
+            }
+
+            serializer = WeightReadingSerializer(data=weigh_in, context={"request": request})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        elif request.method == "GET":
+            events = container.readings
+            serializer = WeightReadingReadSerializer(events, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["PATCH"])
+    @transaction.atomic
+    def transfer(self, request):
+        processed = []
+        data = request.data
+        # Case-insensitive: barcodes encode Container.label (uppercase,
+        # e.g. "CHEM-1161"), but slug is stored lowercase — a raw slug__in
+        # match against scanned input would false-negative on every scan.
+        slugs = [c["slug"].strip().lower() for c in data["containers"]]
+        location = data["location"]
+        containers = list(
+            Container.objects.annotate(slug_lower=Lower("slug"))
+            .filter(slug_lower__in=slugs)
+            .select_related("chemical")
+        )
+        missing = set(slugs) - {c.slug_lower for c in containers}
+        if missing:
+            return Response(
+                {"detail": f"Container(s) not found: {', '.join(sorted(missing))}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # Validate every container before saving any of them — collecting
+        # all of the batch's storage warnings up front means one combined
+        # confirmation covers the whole transfer, and (since a mid-loop
+        # 409 return wouldn't roll back containers already saved earlier
+        # in the same loop, unlike an exception) nothing gets partially
+        # moved while the rest is still waiting on confirmation.
+        container_serializers = []
+        for item in containers:
+            # The batch's *other* containers aren't in the DB at this
+            # location yet, so check_storage_conflicts (which only looks
+            # at what's already saved there) can't see them on its own —
+            # passed explicitly so the batch is also checked against
+            # itself, not just against what's already in the location.
+            # Same chemical as `item` is included harmlessly: no rule
+            # here ever treats a chemical as conflicting with itself.
+            also_placing = [other.chemical for other in containers if other.id != item.id]
+            serializer = ContainerWriteSerializer(
+                instance=item,
+                data={"location": location},
+                partial=True,
+                context={"also_placing": also_placing},
+            )
+            serializer.is_valid(raise_exception=True)
+            container_serializers.append(serializer)
+
+        all_warnings = []
+        for serializer in container_serializers:
+            all_warnings.extend(serializer.storage_warnings)
+        if all_warnings and not self._confirmed_storage_conflicts(request):
+            # dict.fromkeys — dedupes while keeping first-seen order,
+            # since transferring several containers of the same kind to
+            # the same location can otherwise repeat an identical warning
+            # once per container.
+            return self._storage_conflict_response(list(dict.fromkeys(all_warnings)))
+
+        for serializer in container_serializers:
+            processed.append(serializer.save())
+        return Response(ContainerSerializer(processed, many=True).data, status=status.HTTP_200_OK)
+
+    # Records a weight reading and checks in a batch of containers in one
+    # atomic request — consolidates what used to be two separate actions
+    # (weigh_in per container, check_in as a bulk slug list) into the single
+    # form flow the frontend's WeighIn page presents.
+    @action(detail=False, methods=["POST"], url_path="weigh_in_bulk")
+    @transaction.atomic
+    def weigh_in_bulk(self, request):
+        data = request.data
+        checkin = data["checkin"]
+        # Case-insensitive: barcodes encode Container.label (uppercase,
+        # e.g. "CHEM-1161"), but slug is stored lowercase — a raw slug__in
+        # match against scanned input would false-negative on every scan.
+        slugs = [c["slug"].strip().lower() for c in checkin]
+        weights_by_slug = {c["slug"].strip().lower(): c["weight"] for c in checkin}
+        # Optional per-item backfill for containers that don't have a real
+        # tare weight yet (see Container.has_estimated_usage) — the
+        # frontend only ever sends this for a container it already knows
+        # needs one, but it's re-checked against has_estimated_usage below
+        # regardless, rather than trusted blindly.
+        tare_weights_by_slug = {
+            c["slug"].strip().lower(): c["tare_weight"]
+            for c in checkin
+            if c.get("tare_weight") not in (None, "")
+        }
+        containers = Container.objects.annotate(slug_lower=Lower("slug")).filter(
+            slug_lower__in=slugs
+        )
+        missing = set(slugs) - {c.slug_lower for c in containers}
+        if missing:
+            return Response(
+                {"detail": f"Container(s) not found: {', '.join(sorted(missing))}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        readings_data = []
+        events_data = []
+        for container in containers:
+            readings_data.append(
+                {"container": container.id, "weight": weights_by_slug[container.slug_lower]}
+            )
+            # Only attach to the most recent checkout if it hasn't already been
+            # checked in (see check_in above for why related_event__exact=None
+            # on the "out" event itself is a no-op).
+            last_check_out = container.events.filter(action="out").order_by("-timestamp").first()
+            if (
+                last_check_out is not None
+                and CheckoutEvent.objects.filter(related_event=last_check_out).exists()
+            ):
+                last_check_out = None
+            events_data.append(
+                {
+                    "container": container.id,
+                    "action": "in",
+                    "related_event": last_check_out.id if last_check_out is not None else None,
+                }
+            )
+
+            tare_weight = tare_weights_by_slug.get(container.slug_lower)
+            if tare_weight is not None and not container.has_estimated_usage:
+                tare_serializer = ContainerWriteSerializer(
+                    instance=container, data={"tare_weight": tare_weight}, partial=True
+                )
+                tare_serializer.is_valid(raise_exception=True)
+                tare_serializer.save()
+
+        reading_serializer = WeightReadingSerializer(
+            data=readings_data, many=True, context={"request": request}
+        )
+        reading_serializer.is_valid(raise_exception=True)
+        reading_serializer.save()
+
+        event_serializer = CheckoutEventWriteSerializer(
+            data=events_data, many=True, context={"request": request}
+        )
+        event_serializer.is_valid(raise_exception=True)
+        event_serializer.save()
+
+        return Response(
+            {"readings": reading_serializer.data, "events": event_serializer.data},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class WeightReadingView(ModelViewSet):
+    queryset = WeightReading.objects.all()
+    serializer_class = WeightReadingSerializer
+
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action == "destroy":
+            return [role_at_least(User.Role.LAB_MANAGER)()]
+        if self.action in {"create", "update", "partial_update"}:
+            return [role_at_least(User.Role.STOCKROOM)()]
+        return super().get_permissions()

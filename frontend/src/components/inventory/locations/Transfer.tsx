@@ -1,0 +1,269 @@
+import { Close } from '@mui/icons-material';
+import {
+  Alert,
+  Box,
+  Button,
+  IconButton,
+  List,
+  ListItem,
+  ListItemText,
+  Snackbar,
+  Stack,
+  Typography,
+} from '@mui/material';
+import { useFieldArray, useForm } from 'react-hook-form';
+import { useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { containerKeys, locationKeys } from '../../../api/queryKeys';
+import { getLocationMenu, transferContainers } from '../../../api/inventory';
+import { ScannableFieldRow } from '../../shared/ScannableFieldRow';
+import { LocationSelect } from '../../shared/LocationSelect';
+import { requiredRule } from '../../shared/formRules';
+import { ActionFormCard } from '../../shared/ActionFormCard';
+import { ConfirmDialog } from '../../shared/ConfirmDialog';
+import { useConfirmDialog } from '../../shared/useConfirmDialog';
+import { useStorageConflictConfirm } from '../../shared/useStorageConflictConfirm';
+import { StorageConflictWarnings } from '../../shared/StorageConflictWarnings';
+
+type SnackbarState = { message: string; severity: 'success' | 'error' };
+type TransferTarget = { containers: { slug: string }[]; location: string };
+
+export const Transfer = () => {
+  const [snackbar, setSnackbar] = useState<SnackbarState | null>(null);
+  const queryClient = useQueryClient();
+  const {
+    control,
+    clearErrors,
+    reset,
+    resetField,
+    handleSubmit,
+    setFocus,
+    getValues,
+    setValue,
+    formState: { isSubmitting, errors },
+  } = useForm({
+    mode: 'onBlur',
+    reValidateMode: 'onBlur',
+    defaultValues: {
+      location: '',
+      containers: [
+        {
+          slug: '',
+        },
+      ],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'containers',
+  });
+
+  const { data: locationMenu } = useQuery({
+    queryKey: locationKeys.menu(),
+    queryFn: getLocationMenu,
+  });
+
+  // Shared across every row (not created per-row) — a completed scan on one
+  // row can append a new row whose autoFocus shifts focus there before the
+  // scanner's trailing Enter arrives, so whichever row has focus needs to
+  // see the same ref to know it should swallow that Enter.
+  const justScannedRef = useRef(false);
+
+  // Holds the batch awaiting confirmation — the parent-location field also
+  // fires this on a "double scan" (see onScan below), not just the Transfer
+  // button, so both paths funnel through the same confirm gate.
+  const transferConfirm = useConfirmDialog<TransferTarget>();
+  // Second, later confirm step — a batch that clears "confirm transfer"
+  // above can still 409 on a storage-compatibility rule (see
+  // backend/apps/inventory/storage_rules.py), which needs its own separate
+  // confirmation on top rather than being silently folded into the first.
+  const storageConflict = useStorageConflictConfirm();
+
+  const mutation = useMutation({
+    mutationFn: ({ data, confirmed }: { data: TransferTarget; confirmed?: boolean }) =>
+      transferContainers(data, confirmed),
+    onSuccess: (response) => {
+      if (response.length > 0) {
+        setSnackbar({ message: 'Containers transferred.', severity: 'success' });
+        reset();
+        queryClient.invalidateQueries({ queryKey: containerKeys.list() });
+      }
+      transferConfirm.cancel();
+    },
+    onError: (error, { data }) => {
+      // Closes the "confirm transfer" dialog once the storage-conflict one
+      // takes over — otherwise both would be open/stacked at once, since
+      // nothing else here closes the first dialog on a failed attempt.
+      const handled = storageConflict.intercept(error, () =>
+        mutation.mutate({ data, confirmed: true })
+      );
+      if (handled) transferConfirm.cancel();
+    },
+  });
+
+  const onSubmit = (data: TransferTarget) => {
+    const containers = data.containers.filter((c) => c.slug.trim().length > 0);
+    if (containers.length === 0) return;
+    // A new submit is a new batch — drop the previous attempt's error (e.g.
+    // storage warnings for a container since removed from the list) so
+    // the confirm dialog doesn't open already showing it. The rules are
+    // re-checked server-side when this batch is confirmed.
+    mutation.reset();
+    transferConfirm.request({ ...data, containers });
+  };
+
+  return (
+    <>
+      <ConfirmDialog
+        open={transferConfirm.isOpen}
+        title="Confirm transfer"
+        maxWidth="xs"
+        message={
+          transferConfirm.target && (
+            <>
+              <Typography variant="body1">
+                Transfer {transferConfirm.target.containers.length} container
+                {transferConfirm.target.containers.length !== 1 ? 's' : ''} to{' '}
+                {locationMenu?.find((l) => String(l.id) === transferConfirm.target?.location)
+                  ?.full_path ?? transferConfirm.target.location}
+                ?
+              </Typography>
+              <List dense sx={{ maxHeight: 240, overflow: 'auto' }}>
+                {transferConfirm.target.containers.map((c) => (
+                  <ListItem key={c.slug} disableGutters>
+                    <ListItemText primary={c.slug.toUpperCase()} />
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          )
+        }
+        confirmLabel="Transfer"
+        confirmColor="primary"
+        loading={mutation.isPending}
+        error={mutation.isError ? mutation.error.message : null}
+        onCancel={() => {
+          mutation.reset();
+          transferConfirm.cancel();
+        }}
+        onConfirm={() => {
+          if (transferConfirm.target) {
+            mutation.mutate({ data: transferConfirm.target, confirmed: false });
+          }
+        }}
+      />
+      <ConfirmDialog
+        open={storageConflict.isOpen}
+        title="Storage Conflict"
+        message={
+          storageConflict.warnings && (
+            <StorageConflictWarnings warnings={storageConflict.warnings} />
+          )
+        }
+        confirmLabel="Transfer anyway"
+        confirmColor="warning"
+        onCancel={() => {
+          mutation.reset();
+          storageConflict.cancel();
+        }}
+        onConfirm={storageConflict.confirm}
+      />
+      <Snackbar
+        open={!!snackbar}
+        onClose={() => setSnackbar(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        autoHideDuration={6000}
+        action={
+          <IconButton onClick={() => setSnackbar(null)} color="inherit">
+            <Close />
+          </IconButton>
+        }
+      >
+        <Alert
+          onClose={() => setSnackbar(null)}
+          severity={snackbar?.severity ?? 'success'}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar?.message}
+        </Alert>
+      </Snackbar>
+      <ActionFormCard
+        title={'Transfer Location'}
+        subheader={`Add ID's of containers you are moving.`}
+        onSubmit={handleSubmit(onSubmit)}
+        actions={
+          <>
+            <Button
+              type="submit"
+              variant="contained"
+              loading={isSubmitting}
+              disabled={!!errors.containers || !!errors.location}
+            >
+              Transfer
+            </Button>
+            <Button variant="outlined" onClick={() => reset()}>
+              Cancel
+            </Button>
+          </>
+        }
+      >
+        <Stack spacing={2}>
+          {fields.map((field, index) => (
+            <ScannableFieldRow
+              key={field.id}
+              control={control}
+              name={`containers.${index}.slug`}
+              label={`Container #${index + 1}`}
+              clearErrors={clearErrors}
+              onScan={(scannedId, setFieldValue) => {
+                const locationId = /^loc-(\d+)$/i.exec(scannedId)?.[1];
+                if (locationId) {
+                  // The location label was scanned into the trailing blank
+                  // row — drop that row, but keep at least one so there's
+                  // still a field to scan into.
+                  if (fields.length > 1) {
+                    remove(index);
+                  } else {
+                    resetField(`containers.${index}.slug`);
+                  }
+                  setValue('location', locationId);
+                  clearErrors('location');
+                  handleSubmit(onSubmit)();
+                  return;
+                }
+                const isDuplicate = getValues('containers').some(
+                  (c) => c.slug.toLocaleLowerCase() === scannedId.toLocaleLowerCase()
+                );
+                if (isDuplicate) {
+                  resetField(`containers.${index}.slug`);
+                  return;
+                }
+                setFieldValue(scannedId);
+                append({ slug: '' });
+              }}
+              showRemove={index > 0}
+              onRemove={() => remove(index)}
+              onAdd={() => {
+                append({ slug: '' });
+                setFocus(`containers.${fields.length}.slug`);
+              }}
+              justScannedRef={justScannedRef}
+            />
+          ))}
+        </Stack>
+        <Box sx={{ mt: 2 }}>
+          <LocationSelect
+            control={control}
+            name="location"
+            label="New Location"
+            rules={{ required: requiredRule }}
+            clearErrors={clearErrors}
+            fullWidth
+          />
+        </Box>
+      </ActionFormCard>
+    </>
+  );
+};
