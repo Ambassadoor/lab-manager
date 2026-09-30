@@ -277,9 +277,11 @@ def print_label(template: int, fields: dict[str, str], copies: int = 1) -> dict:
     command += b"^ID"
 
     for name, value in fields.items():
-        # Callers send "\n" for a line break; P-touch Template text objects
-        # break lines on CR, not LF.
-        value = value.replace("\r\n", "\n").replace("\n", "\r")
+        # Callers send "\n" for a line break. Raw CR/LF in object data is
+        # discarded by the printer; ^CR is the in-object line feed command,
+        # valid regardless of the line feed string configured with ^RC
+        # (P-touch Template Command Reference, "^CR Line feed in object").
+        value = value.replace("\r\n", "\n").replace("\n", "^CR")
         command += b"^ON" + name.encode("ascii") + b"\x00" + value.encode("ascii") + DELIMITER
 
     if copies > 1:
