@@ -1,14 +1,17 @@
 # Bridge
 
-A small FastAPI service that runs on the lab PC. The web app calls it on
-`localhost` to reach hardware the browser cannot access: the USB balance
-and the Brother label printer.
+A small FastAPI service that runs next to the hardware: on the lab PC
+(Windows) or, as of Sep 2026, the stockroom Raspberry Pi (Linux, behind
+nginx at `/bridge/` — see `deploy/pi/`). The web app calls it to reach
+hardware the browser cannot access: the USB balance and the Brother label
+printer.
 
 ## Stack
 - FastAPI + Uvicorn
 - pyserial (USB balance)
 - stdlib `socket` (Brother printer — P-touch Template protocol over plain
-  TCP/IP for printing, no SDK or Windows-only dependency needed)
+  TCP/IP for printing, no SDK or Windows-only dependency needed), or the
+  printer's USB device on Linux (`PRINTER_CONNECTION=usb`)
 - pysnmp (Brother printer — status/media/supply queries; the network
   print connection above doesn't support these, see Printer setup)
 - Poetry, Ruff
@@ -46,6 +49,18 @@ fix). Device Manager → Ports (COM & LPT) shows the port list too, if
 you'd rather check without a terminal open — it just won't show serial
 numbers.
 
+**On Linux (the Pi)** the adapter is `/dev/ttyUSB0` rather than a `COM`
+port, and the same command reports its serial number **without** the
+trailing `A` that Windows' FTDI driver adds (`BG01LURN` on Linux,
+`BG01LURNA` on Windows) — set `BALANCE_SERIAL_NUMBER` to whichever form
+the machine running the bridge shows. The device belongs to the `plugdev`
+group there, so the user running the bridge must be in it.
+
+**How reads work:** each `/balance/read` sends `P`, which makes the
+balance send a short report (date, time, net/tare/gross weights); the
+bridge returns its `Net Wt.` line, in about 0.2 s. If the report doesn't
+come, it takes the balance's next automatic reading instead (every ~2 s).
+
 ### Printer setup
 
 The printer must be on the **wired** network, not WiFi — some networks
@@ -67,13 +82,29 @@ template gets an assigned number (1-99); pass that as `template` in the
 request, along with a `fields` object mapping the template's named
 objects (e.g. `Text1`, `Barcode1`) to their values.
 
-**For `GET /print/status`:** this uses SNMP, not the raw print
+**For `GET /print/status`** (network connection): this uses SNMP, not the raw print
 connection — Brother's own docs show the raw network connection only
 supports one-directional print data, not status queries (that's a
 USB/Bluetooth-only feature of the same command protocol). `PRINTER_SNMP_COMMUNITY`
 defaults to `public`, the near-universal default for read-only SNMP;
 only change it if the printer's SNMP settings have been customized away
 from that.
+
+### Printer over USB (Linux)
+
+For a machine the network won't let reach the printer — the case for the
+stockroom Pi — plug the printer into it by USB and set
+`PRINTER_CONNECTION=usb` in `.env`. The bridge then writes the same
+P-touch Template commands to the printer's USB device, found by Brother's
+USB vendor id (set `PRINTER_USB_DEVICE`, e.g. `/dev/usb/lp0`, to pin it).
+USB is bidirectional, so `GET /print/status` asks the printer directly
+(`^SR`) and SNMP isn't used. The device belongs to the `lp` group, so the
+user running the bridge must be in it. Templates still have to be on the
+printer already. USB mode is Linux-only (it finds the device through
+`/sys`); on Windows use the network connection.
+
+`battery_level` in the status reads `4` on mains power and `255` on
+battery.
 
 ## Running as a Windows service
 

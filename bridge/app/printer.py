@@ -1,9 +1,10 @@
-"""Network communication with the Brother PT-P950NW label printer.
+"""Communication with the Brother PT-P950NW label printer, over the network
+or USB (PRINTER_CONNECTION).
 
 Kept separate from main.py so the FastAPI routes stay thin — this module
-owns the P-touch Template command protocol, the raw socket I/O for
-printing, and the SNMP query used for status (see get_status()'s
-docstring for why status uses a different transport than printing).
+owns the P-touch Template command protocol, the raw socket / USB device
+I/O for printing, and the status query (SNMP over the network, a direct
+^SR request over USB — see get_status()'s docstring for why).
 
 Printing requires a label template to already be transferred onto the
 printer's own memory via P-touch Editor's Transfer Manager (a one-time,
@@ -12,8 +13,13 @@ its assigned number (1-99) and fill in its named objects, not create or
 upload one.
 """
 
+import asyncio
+import glob
 import os
+import select
 import socket
+import time
+from pathlib import Path
 
 from pysnmp.hlapi.v1arch.asyncio import (
     CommunityData,
@@ -24,8 +30,16 @@ from pysnmp.hlapi.v1arch.asyncio import (
     get_cmd,
 )
 
+# "network" (raw socket to PRINTER_IP:PRINTER_PORT) or "usb" (the printer's
+# USB printer-class device, e.g. /dev/usb/lp0 on Linux). USB exists for
+# networks that block the bridge's machine from reaching the printer.
+PRINTER_CONNECTION = os.getenv("PRINTER_CONNECTION", "network").strip().lower()
 PRINTER_IP = os.getenv("PRINTER_IP")
 PRINTER_PORT = int(os.getenv("PRINTER_PORT", "9100"))
+# Optional explicit device path; when unset, the first USB printer device
+# whose vendor is Brother is used, so it survives lp0 -> lp1 renumbering.
+PRINTER_USB_DEVICE = os.getenv("PRINTER_USB_DEVICE")
+BROTHER_USB_VENDOR_ID = "04f9"
 TIMEOUT_SECONDS = 5
 
 STATUS_RESPONSE_SIZE = 32
@@ -105,9 +119,71 @@ def _decode_flags(byte: int, flags: dict[int, str]) -> list[str]:
 
 
 def _send(data: bytes, response_size: int = 0) -> bytes:
-    """Open a connection, send a command, optionally read a fixed-size
-    response, close. One connection per operation, same pattern as
+    """Send a command over the configured connection, optionally reading a
+    fixed-size response. One connection per operation, same pattern as
     balance.py's open-per-call approach for the serial port."""
+    if _connection() == "usb":
+        return _send_usb(data, response_size)
+    return _send_network(data, response_size)
+
+
+def _connection() -> str:
+    if PRINTER_CONNECTION not in ("network", "usb"):
+        raise OSError(f"PRINTER_CONNECTION must be 'network' or 'usb', not {PRINTER_CONNECTION!r}")
+    return PRINTER_CONNECTION
+
+
+def _find_usb_device() -> str:
+    if PRINTER_USB_DEVICE:
+        return PRINTER_USB_DEVICE
+    # /sys/class/usbmisc/lpN/device is the USB interface; its parent holds
+    # the device-level idVendor.
+    for sys_dir in sorted(glob.glob("/sys/class/usbmisc/lp*")):
+        vendor_file = Path(sys_dir, "device").resolve().parent / "idVendor"
+        try:
+            if vendor_file.read_text().strip() == BROTHER_USB_VENDOR_ID:
+                return f"/dev/usb/{Path(sys_dir).name}"
+        except OSError:
+            continue
+    raise OSError("No Brother printer found on USB — is it plugged in and switched on?")
+
+
+def _send_usb(data: bytes, response_size: int) -> bytes:
+    device = _find_usb_device()
+    try:
+        fd = os.open(device, os.O_RDWR)
+    except OSError as e:
+        raise OSError(f"Could not open printer USB device {device}: {e}") from e
+
+    try:
+        view = memoryview(data)
+        while view:
+            view = view[os.write(fd, view) :]
+        if not response_size:
+            return b""
+
+        # Unlike the network raw port, USB is bidirectional, so status
+        # requests get an answer — but reads block, hence select().
+        response = b""
+        deadline = time.monotonic() + TIMEOUT_SECONDS
+        while len(response) < response_size:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0 or not select.select([fd], [], [], remaining)[0]:
+                raise OSError(
+                    f"Printer on {device} got no response within {TIMEOUT_SECONDS}s "
+                    f"(received {len(response)} of {response_size} bytes)"
+                )
+            chunk = os.read(fd, response_size - len(response))
+            if chunk:
+                response += chunk
+            else:
+                time.sleep(0.05)  # usblp can report readable with nothing buffered yet
+        return response
+    finally:
+        os.close(fd)
+
+
+def _send_network(data: bytes, response_size: int = 0) -> bytes:
     try:
         sock = socket.create_connection((PRINTER_IP, PRINTER_PORT), timeout=TIMEOUT_SECONDS)
     except OSError as e:
@@ -136,30 +212,24 @@ def _send(data: bytes, response_size: int = 0) -> bytes:
 async def get_status() -> dict:
     """Query the printer's current status: media, battery, errors.
 
-    This goes over SNMP, not the raw socket printing uses. Brother's own
-    docs show the network raw connection only supports one-directional
-    print data (confirmed by comparing the raster doc's USB vs. network
-    flow charts, and by testing — ^SR/ESC i S get no response at all over
-    that connection). SNMP is the mechanism Brother actually documents for
-    reaching this same status structure over the network on this model.
+    Over the network this goes over SNMP, not the raw socket printing uses.
+    Brother's own docs show the network raw connection only supports
+    one-directional print data (confirmed by comparing the raster doc's USB
+    vs. network flow charts, and by testing — ^SR/ESC i S get no response at
+    all over that connection). SNMP is the mechanism Brother actually
+    documents for reaching this same status structure over the network on
+    this model. Over USB, which is bidirectional, ^SR is asked directly.
     """
-    error_indication, error_status, _error_index, var_binds = await get_cmd(
-        _get_snmp_dispatcher(),
-        CommunityData(SNMP_COMMUNITY),
-        await UdpTransportTarget.create((PRINTER_IP, 161)),
-        ObjectType(ObjectIdentity(_STATUS_OID)),
-    )
-
-    if error_indication:
-        raise OSError(f"SNMP error querying printer status: {error_indication}")
-    if error_status:
-        raise OSError(f"SNMP error querying printer status: {error_status.prettyPrint()}")
-
-    response = bytes(var_binds[0][1])
+    if _connection() == "usb":
+        response = await asyncio.to_thread(
+            _send, _SELECT_PTOUCH_TEMPLATE_MODE + b"^SR", STATUS_RESPONSE_SIZE
+        )
+    else:
+        response = await _get_status_snmp()
 
     if len(response) < STATUS_RESPONSE_SIZE:
         raise OSError(
-            f"Incomplete SNMP status response from printer ({len(response)} of "
+            f"Incomplete status response from printer ({len(response)} of "
             f"{STATUS_RESPONSE_SIZE} bytes)"
         )
 
@@ -173,6 +243,22 @@ async def get_status() -> dict:
             + _decode_flags(response[_OFFSET_ERROR_2], _ERROR_2_FLAGS)
         ),
     }
+
+
+async def _get_status_snmp() -> bytes:
+    error_indication, error_status, _error_index, var_binds = await get_cmd(
+        _get_snmp_dispatcher(),
+        CommunityData(SNMP_COMMUNITY),
+        await UdpTransportTarget.create((PRINTER_IP, 161)),
+        ObjectType(ObjectIdentity(_STATUS_OID)),
+    )
+
+    if error_indication:
+        raise OSError(f"SNMP error querying printer status: {error_indication}")
+    if error_status:
+        raise OSError(f"SNMP error querying printer status: {error_status.prettyPrint()}")
+
+    return bytes(var_binds[0][1])
 
 
 def print_label(template: int, fields: dict[str, str], copies: int = 1) -> dict:

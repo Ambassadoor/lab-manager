@@ -14,7 +14,7 @@ from django.conf import settings
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from googleapiclient.http import MediaInMemoryUpload
+from googleapiclient.http import MediaFileUpload, MediaInMemoryUpload
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
@@ -70,3 +70,80 @@ def upload_sds_file(file, filename: str) -> str:
     except HttpError as e:
         raise DriveUploadError(f"Failed to upload file to Google Drive: {e}") from e
     return drive_id
+
+
+# Uploads a database backup (a local file path) to BACKUP_DRIVE_FOLDER_ID and
+# returns its Drive id. Deliberately NOT shared by link like SDS files: a dump
+# holds the whole database, user accounts included. Access comes only from the
+# folder's own sharing.
+def upload_backup(path: str, name: str) -> str:
+    client = _get_client()
+    media = MediaFileUpload(path, mimetype="application/octet-stream", resumable=True)
+    try:
+        created = (
+            client.files()
+            .create(
+                body={"name": name, "parents": [settings.BACKUP_DRIVE_FOLDER_ID]},
+                media_body=media,
+                fields="id",
+                supportsAllDrives=True,
+            )
+            .execute()
+        )
+    except HttpError as e:
+        raise DriveUploadError(f"Failed to upload backup to Google Drive: {e}") from e
+    return created["id"]
+
+
+# Moves backups in BACKUP_DRIVE_FOLDER_ID created before `cutoff` (an aware
+# datetime) to the trash, returning their names — or None if the service
+# account isn't allowed to (a shared-drive Contributor can add files but not
+# trash them; Content manager can). Trash rather than delete: a Content
+# manager may trash but not permanently delete, and Drive empties the trash
+# itself after 30 days.
+def trash_backups_older_than(cutoff) -> list[str] | None:
+    client = _get_client()
+    try:
+        folder = (
+            client.files()
+            .get(
+                fileId=settings.BACKUP_DRIVE_FOLDER_ID,
+                fields="capabilities(canTrashChildren)",
+                supportsAllDrives=True,
+            )
+            .execute()
+        )
+    except HttpError as e:
+        raise DriveUploadError(f"Failed to read the Google Drive backup folder: {e}") from e
+    if not folder.get("capabilities", {}).get("canTrashChildren"):
+        return None
+
+    query = (
+        f"'{settings.BACKUP_DRIVE_FOLDER_ID}' in parents and trashed = false "
+        f"and name contains '.dump' and createdTime < '{cutoff.isoformat()}'"
+    )
+    trashed = []
+    try:
+        page_token = None
+        while True:
+            result = (
+                client.files()
+                .list(
+                    q=query,
+                    fields="nextPageToken, files(id, name)",
+                    supportsAllDrives=True,
+                    includeItemsFromAllDrives=True,
+                    pageToken=page_token,
+                )
+                .execute()
+            )
+            for f in result["files"]:
+                client.files().update(
+                    fileId=f["id"], body={"trashed": True}, supportsAllDrives=True
+                ).execute()
+                trashed.append(f["name"])
+            page_token = result.get("nextPageToken")
+            if not page_token:
+                return trashed
+    except HttpError as e:
+        raise DriveUploadError(f"Failed to clean up old backups on Google Drive: {e}") from e

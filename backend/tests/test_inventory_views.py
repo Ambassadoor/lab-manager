@@ -53,7 +53,7 @@ class TestContainerTransfer:
         c2 = make_container("c2", location=origin)
 
         response = client.patch(
-            "/inventory/containers/transfer/",
+            "/api/inventory/containers/transfer/",
             # Uppercased/whitespace-padded like a real barcode scan would be.
             {
                 "containers": [{"slug": f" {c1.slug.upper()} "}, {"slug": c2.slug}],
@@ -76,7 +76,7 @@ class TestContainerTransfer:
         c1 = make_container("c1", location=origin)
 
         response = client.patch(
-            "/inventory/containers/transfer/",
+            "/api/inventory/containers/transfer/",
             {
                 "containers": [{"slug": c1.slug}, {"slug": "does-not-exist"}],
                 "location": destination.id,
@@ -98,7 +98,7 @@ class TestLocationMove:
         child = make_location("child", parent=old_parent)
 
         response = client.patch(
-            "/inventory/locations/move/",
+            "/api/inventory/locations/move/",
             {
                 "childLocations": [{"slug": child.barcode}],
                 "parentLocation": new_parent.barcode.lower(),
@@ -116,7 +116,7 @@ class TestLocationMove:
         child = make_location("child", parent=parent)
 
         response = client.patch(
-            "/inventory/locations/move/",
+            "/api/inventory/locations/move/",
             {
                 "childLocations": [{"slug": grandparent.barcode}],
                 "parentLocation": child.barcode,
@@ -132,7 +132,7 @@ class TestLocationMove:
         child = make_location("child")
 
         response = client.patch(
-            "/inventory/locations/move/",
+            "/api/inventory/locations/move/",
             {"childLocations": [{"slug": child.barcode}], "parentLocation": "loc-999999"},
             format="json",
         )
@@ -146,7 +146,7 @@ class TestWeighInBulk:
         container = make_container("c1")
 
         response = client.post(
-            "/inventory/containers/weigh_in_bulk/",
+            "/api/inventory/containers/weigh_in_bulk/",
             {"checkin": [{"slug": container.slug.upper(), "weight": "12.3400"}]},
             format="json",
         )
@@ -160,13 +160,13 @@ class TestWeighInBulk:
         container = make_container("c1")
 
         checkout_response = client.post(
-            "/inventory/containers/check_out/", [container.slug], format="json"
+            "/api/inventory/containers/check_out/", [container.slug], format="json"
         )
         assert checkout_response.status_code == 201
         checkout_event_id = checkout_response.data["events"][0]["id"]
 
         response = client.post(
-            "/inventory/containers/weigh_in_bulk/",
+            "/api/inventory/containers/weigh_in_bulk/",
             {"checkin": [{"slug": container.slug, "weight": "5.0000"}]},
             format="json",
         )
@@ -177,7 +177,7 @@ class TestWeighInBulk:
 
     def test_rejects_unknown_slug(self, client, make_container):
         response = client.post(
-            "/inventory/containers/weigh_in_bulk/",
+            "/api/inventory/containers/weigh_in_bulk/",
             {"checkin": [{"slug": "does-not-exist", "weight": "1.0"}]},
             format="json",
         )
@@ -189,7 +189,7 @@ class TestWeighInBulk:
         assert container.has_estimated_usage is False
 
         response = client.post(
-            "/inventory/containers/weigh_in_bulk/",
+            "/api/inventory/containers/weigh_in_bulk/",
             {"checkin": [{"slug": container.slug, "weight": "10.0000", "tare_weight": "3.5000"}]},
             format="json",
         )
@@ -202,7 +202,7 @@ class TestWeighInBulk:
         container = make_container("c1", tare_weight=Decimal("12.0000"))
 
         response = client.post(
-            "/inventory/containers/weigh_in_bulk/",
+            "/api/inventory/containers/weigh_in_bulk/",
             {"checkin": [{"slug": container.slug, "weight": "10.0000", "tare_weight": "99.0000"}]},
             format="json",
         )
@@ -218,7 +218,7 @@ class TestContainerFilters:
         sigma = make_container("sigma-jar", manufacturer="Sigma-Aldrich")
         make_container("fisher-jar", manufacturer="Fisher Scientific")
 
-        response = client.get("/inventory/containers/?manufacturer=sigma")
+        response = client.get("/api/inventory/containers/?manufacturer=sigma")
 
         assert response.status_code == 200
         slugs = {c["slug"] for c in response.data}
@@ -229,7 +229,7 @@ class TestContainerFilters:
         water_container = make_container("water-jar")
         make_container("acetone-jar", chemical=acetone)
 
-        response = client.get(f"/inventory/containers/?chemical={chemical.id}")
+        response = client.get(f"/api/inventory/containers/?chemical={chemical.id}")
 
         assert response.status_code == 200
         slugs = {c["slug"] for c in response.data}
@@ -241,7 +241,7 @@ class TestContainerFilters:
         on_a = make_container("on-a", location=shelf_a)
         make_container("on-b", location=shelf_b)
 
-        response = client.get(f"/inventory/containers/?location={shelf_a.id}")
+        response = client.get(f"/api/inventory/containers/?location={shelf_a.id}")
 
         assert response.status_code == 200
         slugs = {c["slug"] for c in response.data}
@@ -251,7 +251,7 @@ class TestContainerFilters:
         ml = make_container("ml-jar", quantity_unit="mL")
         make_container("kg-jar", quantity_unit="kg")
 
-        response = client.get("/inventory/containers/?quantity_unit=mL")
+        response = client.get("/api/inventory/containers/?quantity_unit=mL")
 
         assert response.status_code == 200
         slugs = {c["slug"] for c in response.data}
@@ -261,7 +261,7 @@ class TestContainerFilters:
         opened = make_container("opened-jar", date_opened=date(2026, 1, 1))
         make_container("unopened-jar")
 
-        response = client.get("/inventory/containers/?is_opened=true")
+        response = client.get("/api/inventory/containers/?is_opened=true")
 
         assert response.status_code == 200
         slugs = {c["slug"] for c in response.data}
@@ -271,7 +271,7 @@ class TestContainerFilters:
         make_container("kept-jar")
         discarded = make_container("discarded-jar", date_discarded=date(2026, 1, 1))
 
-        response = client.get("/inventory/containers/?is_discarded=true")
+        response = client.get("/api/inventory/containers/?is_discarded=true")
 
         assert response.status_code == 200
         slugs = {c["slug"] for c in response.data}
@@ -285,7 +285,7 @@ class TestContainerFilters:
         make_container("no-tare-jar")
         make_container("zero-tare-jar", tare_weight=Decimal("0.0000"))
 
-        response = client.get("/inventory/containers/?has_estimated_usage=true")
+        response = client.get("/api/inventory/containers/?has_estimated_usage=true")
 
         assert response.status_code == 200
         slugs = {c["slug"] for c in response.data}
@@ -295,11 +295,11 @@ class TestContainerFilters:
         checked_out = make_container("out-jar")
         checked_in = make_container("in-jar")
 
-        client.post("/inventory/containers/check_out/", [checked_out.slug], format="json")
-        client.post("/inventory/containers/check_out/", [checked_in.slug], format="json")
-        client.post("/inventory/containers/check_in/", [checked_in.slug], format="json")
+        client.post("/api/inventory/containers/check_out/", [checked_out.slug], format="json")
+        client.post("/api/inventory/containers/check_out/", [checked_in.slug], format="json")
+        client.post("/api/inventory/containers/check_in/", [checked_in.slug], format="json")
 
-        response = client.get("/inventory/containers/?checkout_status=out")
+        response = client.get("/api/inventory/containers/?checkout_status=out")
 
         assert response.status_code == 200
         slugs = {c["slug"] for c in response.data}
@@ -310,7 +310,7 @@ class TestContainerFilters:
         make_container("late-jar", date_received=date(2026, 6, 1))
 
         response = client.get(
-            "/inventory/containers/?date_received_after=2024-12-01&date_received_before=2025-06-01"
+            "/api/inventory/containers/?date_received_after=2024-12-01&date_received_before=2025-06-01"
         )
 
         assert response.status_code == 200
@@ -321,7 +321,7 @@ class TestContainerFilters:
         target = make_container("beaker-42")
         make_container("flask-7")
 
-        response = client.get("/inventory/containers/?search=beaker")
+        response = client.get("/api/inventory/containers/?search=beaker")
 
         assert response.status_code == 200
         slugs = {c["slug"] for c in response.data}
@@ -333,14 +333,14 @@ class TestChemicalFilters:
     def test_filters_by_cas_icontains(self, client, chemical):
         acetone = Chemical.objects.create(name="Acetone", cas="67-64-1")
 
-        response = client.get("/inventory/chemicals/?cas=67-64")
+        response = client.get("/api/inventory/chemicals/?cas=67-64")
 
         assert response.status_code == 200
         ids = {c["id"] for c in response.data}
         assert ids == {acetone.id}
 
     def test_filters_by_name_icontains(self, client, chemical):
-        response = client.get("/inventory/chemicals/?name=wat")
+        response = client.get("/api/inventory/chemicals/?name=wat")
 
         assert response.status_code == 200
         ids = {c["id"] for c in response.data}
@@ -352,7 +352,7 @@ class TestChemicalFilters:
         )
         acetone = Chemical.objects.create(name="Acetone", cas="67-64-1", storage_category=flammable)
 
-        response = client.get(f"/inventory/chemicals/?storage_category={flammable.id}")
+        response = client.get(f"/api/inventory/chemicals/?storage_category={flammable.id}")
 
         assert response.status_code == 200
         ids = {c["id"] for c in response.data}
@@ -363,14 +363,14 @@ class TestChemicalFilters:
         chemical.is_organic = False
         chemical.save()
 
-        response = client.get("/inventory/chemicals/?is_organic=true")
+        response = client.get("/api/inventory/chemicals/?is_organic=true")
 
         assert response.status_code == 200
         ids = {c["id"] for c in response.data}
         assert ids == {acetone.id}
 
     def test_search_matches_name(self, client, chemical):
-        response = client.get("/inventory/chemicals/?search=wat")
+        response = client.get("/api/inventory/chemicals/?search=wat")
 
         assert response.status_code == 200
         ids = {c["id"] for c in response.data}
@@ -383,7 +383,7 @@ class TestLocationFilters:
         room = make_location("chem-room")
         make_location("storage-closet")
 
-        response = client.get("/inventory/locations/?name=chem")
+        response = client.get("/api/inventory/locations/?name=chem")
 
         assert response.status_code == 200
         ids = {loc["id"] for loc in response.data}
@@ -396,7 +396,7 @@ class TestLocationFilters:
         cabinet.barcode = f"LOC-{cabinet.id}"
         cabinet.save()
 
-        response = client.get(f"/inventory/locations/?type={location_type.id}")
+        response = client.get(f"/api/inventory/locations/?type={location_type.id}")
 
         assert response.status_code == 200
         ids = {loc["id"] for loc in response.data}
@@ -407,7 +407,7 @@ class TestLocationFilters:
         make_location("aaa-first")
         make_location("zzz-last")
 
-        response = client.get("/inventory/locations/?ordering=-name")
+        response = client.get("/api/inventory/locations/?ordering=-name")
 
         assert response.status_code == 200
         names = [loc["name"] for loc in response.data]
@@ -429,7 +429,7 @@ class TestLocationContainers:
         in_grandchild = make_container("in-grandchild", location=grandchild)
         in_sibling = make_container("in-sibling", location=sibling)
 
-        response = client.get(f"/inventory/locations/{root.id}/containers/")
+        response = client.get(f"/api/inventory/locations/{root.id}/containers/")
 
         assert response.status_code == 200
         slugs = {c["slug"] for c in response.data["containers"]}
@@ -467,9 +467,9 @@ class TestLocationContainers:
             current = make_location(f"level-{i}", parent=current)
 
         with CaptureQueriesContext(connection) as shallow_queries:
-            shallow_response = client.get(f"/inventory/locations/{shallow_root.id}/containers/")
+            shallow_response = client.get(f"/api/inventory/locations/{shallow_root.id}/containers/")
         with CaptureQueriesContext(connection) as deep_queries:
-            deep_response = client.get(f"/inventory/locations/{deep_root.id}/containers/")
+            deep_response = client.get(f"/api/inventory/locations/{deep_root.id}/containers/")
 
         assert shallow_response.status_code == 200
         assert deep_response.status_code == 200
@@ -486,7 +486,7 @@ class TestLocationTreeSerialization:
         beta_child = make_location("beta-child", parent=root)
         make_location("gamma-grandchild", parent=beta_child)
 
-        response = client.get("/inventory/locations/")
+        response = client.get("/api/inventory/locations/")
 
         assert response.status_code == 200
         root_data = next(loc for loc in response.data if loc["name"] == "alpha-root")
@@ -517,7 +517,7 @@ class TestLocationTreeSerialization:
         root = make_location("root")
 
         with CaptureQueriesContext(connection) as first_queries:
-            first_response = client.get("/inventory/locations/")
+            first_response = client.get("/api/inventory/locations/")
         assert first_response.status_code == 200
 
         current = root
@@ -525,7 +525,7 @@ class TestLocationTreeSerialization:
             current = make_location(f"level-{i}", parent=current)
 
         with CaptureQueriesContext(connection) as second_queries:
-            second_response = client.get("/inventory/locations/")
+            second_response = client.get("/api/inventory/locations/")
         assert second_response.status_code == 200
 
         assert len(second_queries) == len(first_queries)
@@ -537,7 +537,7 @@ class TestLocationMenu:
         root = make_location("alpha-root")
         make_location("beta-child", parent=root)
 
-        response = client.get("/inventory/locations/menu/")
+        response = client.get("/api/inventory/locations/menu/")
 
         assert response.status_code == 200
         paths = {loc["name"]: loc["full_path"] for loc in response.data}
@@ -548,7 +548,7 @@ class TestLocationMenu:
         root = make_location("root")
 
         with CaptureQueriesContext(connection) as first_queries:
-            first_response = client.get("/inventory/locations/menu/")
+            first_response = client.get("/api/inventory/locations/menu/")
         assert first_response.status_code == 200
 
         current = root
@@ -556,7 +556,7 @@ class TestLocationMenu:
             current = make_location(f"level-{i}", parent=current)
 
         with CaptureQueriesContext(connection) as second_queries:
-            second_response = client.get("/inventory/locations/menu/")
+            second_response = client.get("/api/inventory/locations/menu/")
         assert second_response.status_code == 200
 
         assert len(second_queries) == len(first_queries)
@@ -585,19 +585,19 @@ class TestRolePermissions:
         client = client_as(User.Role.LAB_ASSISTANT)
         container = make_container("c1")
 
-        assert client.get("/inventory/containers/").status_code == 200
+        assert client.get("/api/inventory/containers/").status_code == 200
         assert (
             client.patch(
-                f"/inventory/containers/{container.slug}/",
+                f"/api/inventory/containers/{container.slug}/",
                 {"manufacturer": "Acme"},
                 format="json",
             ).status_code
             == 403
         )
-        assert client.delete(f"/inventory/containers/{container.slug}/").status_code == 403
+        assert client.delete(f"/api/inventory/containers/{container.slug}/").status_code == 403
         assert (
             client.post(
-                "/inventory/containers/check_out/", [container.slug], format="json"
+                "/api/inventory/containers/check_out/", [container.slug], format="json"
             ).status_code
             == 403
         )
@@ -612,15 +612,15 @@ class TestRolePermissions:
 
         assert (
             client.post(
-                "/inventory/containers/check_out/", [container.slug], format="json"
+                "/api/inventory/containers/check_out/", [container.slug], format="json"
             ).status_code
             == 201
         )
         # Location delete has its own DB-level safeguard (ProtectedError for
         # a non-empty location), which is exactly why Stockroom gets it...
-        assert client.delete(f"/inventory/locations/{empty_location.id}/").status_code == 204
+        assert client.delete(f"/api/inventory/locations/{empty_location.id}/").status_code == 204
         # ...while Container delete stays Manager/Admin-only.
-        assert client.delete(f"/inventory/containers/{container.slug}/").status_code == 403
+        assert client.delete(f"/api/inventory/containers/{container.slug}/").status_code == 403
 
     def test_coordinator_can_delete_locations_but_not_containers_or_chemicals(
         self, client_as, make_location, make_container, chemical
@@ -629,9 +629,9 @@ class TestRolePermissions:
         empty_location = make_location("empty")
         container = make_container("c1")
 
-        assert client.delete(f"/inventory/locations/{empty_location.id}/").status_code == 204
-        assert client.delete(f"/inventory/containers/{container.slug}/").status_code == 403
-        assert client.delete(f"/inventory/chemicals/{chemical.id}/").status_code == 403
+        assert client.delete(f"/api/inventory/locations/{empty_location.id}/").status_code == 204
+        assert client.delete(f"/api/inventory/containers/{container.slug}/").status_code == 403
+        assert client.delete(f"/api/inventory/chemicals/{chemical.id}/").status_code == 403
 
     @pytest.mark.parametrize("role", [User.Role.LAB_MANAGER, User.Role.ADMIN])
     def test_lab_manager_and_admin_can_delete_containers_and_chemicals(
@@ -643,8 +643,8 @@ class TestRolePermissions:
         # does would hit a real FK constraint, unrelated to what's tested here.
         unused_chemical = Chemical.objects.create(name="Isopropanol", cas="67-63-0")
 
-        assert client.delete(f"/inventory/containers/{container.slug}/").status_code == 204
-        assert client.delete(f"/inventory/chemicals/{unused_chemical.id}/").status_code == 204
+        assert client.delete(f"/api/inventory/containers/{container.slug}/").status_code == 204
+        assert client.delete(f"/api/inventory/chemicals/{unused_chemical.id}/").status_code == 204
 
 
 @pytest.mark.django_db
@@ -652,7 +652,7 @@ class TestContainerTareWeight:
     def test_detail_exposes_tare_weight(self, client, make_container):
         container = make_container("c1", tare_weight=Decimal("12.5000"))
 
-        response = client.get(f"/inventory/containers/{container.slug}/")
+        response = client.get(f"/api/inventory/containers/{container.slug}/")
 
         assert response.status_code == 200
         assert Decimal(response.data["tare_weight"]) == Decimal("12.5")
@@ -661,7 +661,7 @@ class TestContainerTareWeight:
         container = make_container("c1")
 
         set_response = client.patch(
-            f"/inventory/containers/{container.slug}/", {"tare_weight": "8.25"}, format="json"
+            f"/api/inventory/containers/{container.slug}/", {"tare_weight": "8.25"}, format="json"
         )
         assert set_response.status_code == 200
         container.refresh_from_db()
@@ -670,7 +670,7 @@ class TestContainerTareWeight:
 
         # The detail page sends null (not "") for a blanked field.
         clear_response = client.patch(
-            f"/inventory/containers/{container.slug}/", {"tare_weight": None}, format="json"
+            f"/api/inventory/containers/{container.slug}/", {"tare_weight": None}, format="json"
         )
         assert clear_response.status_code == 200
         container.refresh_from_db()
@@ -692,7 +692,7 @@ class TestStorageCategories:
         assert set(migration.FLINN_CATEGORIES) == expected
 
     def test_list_includes_full_description_and_families(self, client):
-        response = client.get("/inventory/chemical_storage_categories/")
+        response = client.get("/api/inventory/chemical_storage_categories/")
 
         assert response.status_code == 200
         by_code = {c["shorthand"]: c for c in response.json()}

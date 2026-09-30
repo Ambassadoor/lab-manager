@@ -44,7 +44,7 @@ class TestDashboardRestockSoon:
         make_reading(container, "1798.6000", weigher)
 
         client = client_as(User.Role.LAB_ASSISTANT)
-        response = client.get("/inventory/dashboard/")
+        response = client.get("/api/inventory/dashboard/")
 
         assert response.status_code == 200
         labels = {c["label"] for c in response.data["restock_soon"]}
@@ -61,7 +61,7 @@ class TestDashboardRestockSoon:
         make_reading(container, "450.0000", weigher)  # (450-100)/400 = 87.5% remaining
 
         client = client_as(User.Role.LAB_ASSISTANT)
-        response = client.get("/inventory/dashboard/")
+        response = client.get("/api/inventory/dashboard/")
 
         labels = {c["label"] for c in response.data["restock_soon"]}
         assert container.label not in labels
@@ -73,7 +73,7 @@ class TestDashboardRestockSoon:
         no_tare = make_container("no-tare", initial_weight=Decimal("500.0000"))
 
         client = client_as(User.Role.LAB_ASSISTANT)
-        response = client.get("/inventory/dashboard/")
+        response = client.get("/api/inventory/dashboard/")
 
         assert response.status_code == 200
         labels = {c["label"] for c in response.data["restock_soon"]}
@@ -100,7 +100,7 @@ class TestDashboardRestockSoon:
         make_reading(emptier, "104.0000", weigher)  # 1% remaining
 
         client = client_as(User.Role.LAB_ASSISTANT)
-        response = client.get("/inventory/dashboard/")
+        response = client.get("/api/inventory/dashboard/")
 
         labels = [c["label"] for c in response.data["restock_soon"]]
         assert labels.index(emptier.label) < labels.index(fuller.label)
