@@ -5,6 +5,7 @@ from django.db.models.functions import Lower
 from django.http import Http404
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -13,9 +14,10 @@ from apps.users.models import User
 from apps.users.permissions import role_at_least
 
 from ..filters import ContainerFilter
-from ..models import Chemical, ChemicalStorageCategories, CheckoutEvent, Container, WeightReading
+from ..models import Chemical, CheckoutEvent, Container, WeightReading
 from ..serializers import (
     ChemicalSerializer,
+    ChemicalWriteSerializer,
     CheckoutEventSerializer,
     CheckoutEventWriteSerializer,
     ContainerSerializer,
@@ -264,18 +266,27 @@ class ContainerView(ModelViewSet):
 
         else:
             # Handles creating a single chemical if only one cas# was provided
-            request_chem = data.get("chemicals")[0]
-            storage_category_id = request_chem.get("storage_category")
-            if storage_category_id:
-                request_chem["storage_category"] = ChemicalStorageCategories.objects.filter(
-                    pk=storage_category_id
-                ).first()
-            chemical, created = Chemical.objects.get_or_create(cas=request_chem.get("cas"))
-            if created:
-                chemical.molecular_weight = request_chem.get("molecular_weight")
-                chemical.name = request_chem.get("name")
-                chemical.storage_category = request_chem.get("storage_category")
-                chemical.save()
+            request_chems = data.get("chemicals")
+            if not request_chems:
+                raise ValidationError({"chemicals": ["Provide at least one chemical."]})
+            request_chem = request_chems[0]
+            cas = request_chem.get("cas")
+            chemical = chemicals.filter(cas=cas).first() if cas else None
+            if chemical is None:
+                # Through the serializer rather than assigning fields by hand:
+                # it turns the form's blank molecular weight / storage
+                # category ("") into NULL instead of crashing on them, and
+                # runs the CAS check-digit validation.
+                chemical_serializer = ChemicalWriteSerializer(
+                    data={
+                        "name": request_chem.get("name"),
+                        "cas": cas,
+                        "molecular_weight": request_chem.get("molecular_weight"),
+                        "storage_category": request_chem.get("storage_category"),
+                    }
+                )
+                chemical_serializer.is_valid(raise_exception=True)
+                chemical = chemical_serializer.save()
         # Creates the new container
         new_container = {
             "name": data.get("name"),

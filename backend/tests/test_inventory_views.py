@@ -12,6 +12,7 @@ from apps.inventory.models import (
     Chemical,
     ChemicalStorageCategories,
     CheckoutEvent,
+    Container,
     Location,
     LocationTypes,
     WeightReading,
@@ -873,3 +874,128 @@ class TestScannedContainerIds:
         )
 
         assert response.status_code == 400
+
+
+# Regression tests: a container for a chemical not yet on file went through
+# hand-assigned fields, so the form's blank molecular weight or storage
+# category ("") crashed with a 500 instead of saving as empty.
+@pytest.mark.django_db
+class TestContainerCreate:
+    NEW_CAS = "67-63-0"
+
+    @pytest.fixture
+    def payload(self, make_location):
+        location = make_location("shelf")
+
+        def _make(chemical, **overrides):
+            data = {
+                "name": "Isopropanol, 500 mL",
+                "multiple_cas": False,
+                "chemicals": [chemical],
+                "mixture_id": "",
+                "location": location.id,
+                "manufacturer": "Acme",
+                "initial_quantity": 100,
+                "quantity_unit": "g",
+                "product_num": "P-1",
+                "date_received": "2026-09-01",
+                "density": "",
+                "expiration_date": None,
+                "initial_weight": "150",
+                "tare_weight": "50",
+            }
+            data.update(overrides)
+            return data
+
+        return _make
+
+    def test_new_chemical_with_blank_optional_fields(self, client, payload):
+        # Exactly what the form sends when both fields are left empty
+        chemical = {
+            "cas": self.NEW_CAS,
+            "name": "Isopropanol",
+            "molecular_weight": "",
+            "storage_category": "",
+        }
+
+        response = client.post("/api/inventory/containers/", payload(chemical), format="json")
+
+        assert response.status_code == 201
+        created = Chemical.objects.get(cas=self.NEW_CAS)
+        assert created.name == "Isopropanol"
+        assert created.molecular_weight is None
+        assert created.storage_category is None
+        container = Container.objects.get(chemical=created)
+        assert response.data["slug"] == container.slug == f"chem-{container.id}"
+        assert WeightReading.objects.get(container=container).weight == Decimal("150")
+
+    def test_new_chemical_keeps_the_fields_that_are_filled_in(self, client, payload):
+        category = ChemicalStorageCategories.objects.get(shorthand="O2")
+        chemical = {
+            "cas": self.NEW_CAS,
+            "name": "Isopropanol",
+            "molecular_weight": "60.096",
+            "storage_category": category.id,
+        }
+
+        response = client.post("/api/inventory/containers/", payload(chemical), format="json")
+
+        assert response.status_code == 201
+        created = Chemical.objects.get(cas=self.NEW_CAS)
+        assert created.molecular_weight == Decimal("60.096")
+        assert created.storage_category == category
+
+    def test_existing_chemical_is_reused_unchanged(self, client, payload, chemical):
+        submitted = {
+            "cas": chemical.cas,
+            "name": "A different name",
+            "molecular_weight": "",
+            "storage_category": "",
+        }
+
+        response = client.post("/api/inventory/containers/", payload(submitted), format="json")
+
+        assert response.status_code == 201
+        assert response.data["chemical"] == chemical.id
+        assert Chemical.objects.filter(cas=chemical.cas).count() == 1
+        chemical.refresh_from_db()
+        assert chemical.name == "Water"
+
+    def test_invalid_cas_is_rejected_and_nothing_is_saved(self, client, payload):
+        chemical = {
+            "cas": "67-63-9",  # wrong check digit
+            "name": "Isopropanol",
+            "molecular_weight": "",
+            "storage_category": "",
+        }
+
+        response = client.post("/api/inventory/containers/", payload(chemical), format="json")
+
+        assert response.status_code == 400
+        assert "cas" in response.data
+        assert not Chemical.objects.filter(name="Isopropanol").exists()
+        assert not Container.objects.exists()
+
+    def test_a_failed_container_does_not_leave_its_new_chemical_behind(self, client, payload):
+        chemical = {
+            "cas": self.NEW_CAS,
+            "name": "Isopropanol",
+            "molecular_weight": "",
+            "storage_category": "",
+        }
+
+        response = client.post(
+            "/api/inventory/containers/", payload(chemical, location=999999), format="json"
+        )
+
+        assert response.status_code == 400
+        assert not Chemical.objects.filter(cas=self.NEW_CAS).exists()
+
+    def test_missing_chemicals_is_a_400(self, client, payload):
+        data = payload({})
+        data["chemicals"] = []
+
+        response = client.post("/api/inventory/containers/", data, format="json")
+
+        assert response.status_code == 400
+        assert "chemicals" in response.data
