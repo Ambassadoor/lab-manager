@@ -92,7 +92,10 @@ tag.
 
 Since Sep 30, 2026 the live app runs on a Raspberry Pi in the stockroom:
 nginx serves the built frontend, the API (gunicorn) and the bridge from one
-address, with nightly database backups to Google Drive. The walkthrough,
+address, with nightly database backups to Google Drive. Since Oct 1, 2026
+that address is `https://app.cplabmanager.com`, which works from the campus
+network only; the certificate and the domain are covered in
+`deploy/pi/README.md`. The walkthrough,
 what differs from the original plan, and how to switch back to running
 things as above are in
 `docs/Lab Manager on a Raspberry Pi — Deployment Plan.md`; the installed

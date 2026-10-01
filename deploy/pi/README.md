@@ -86,6 +86,14 @@ The app is served at `https://app.cplabmanager.com`. Three things make that work
    ```
 
    The certificate and key land in `/etc/letsencrypt/live/app.cplabmanager.com/`, where `labmanager.nginx` expects them. The token file is readable by root only and is not in the repo.
+3. Open the port in the Pi's firewall:
+
+   ```bash
+   sudo ufw allow 443/tcp
+   sudo ufw status            # 22, 80 and 443 allowed
+   ```
+
+   Without this, port 80 redirects browsers to a port that silently drops them: every other machine sees "site can't be reached" while `curl` on the Pi itself works.
 
 ### Renewal
 
@@ -110,7 +118,7 @@ TRUST_PROXY_HEADERS=True
 # and no COOKIE_SECURE line, so the session and CSRF cookies are HTTPS-only
 ```
 
-`bridge/.env` gets the same `FRONTEND_ORIGIN`. These and the nginx file must change together: HTTPS-only cookies on a plain HTTP site break login, and an HTTPS site with the old `FRONTEND_ORIGIN` fails every form submission's CSRF check.
+`bridge/.env` gets the same `FRONTEND_ORIGIN`. Restart `labmanager-api` after editing; a 400 from `/api/` while the page itself loads means Django did not pick up the new `ALLOWED_HOSTS` (check the file was saved). These and the nginx file must change together: HTTPS-only cookies on a plain HTTP site break login, and an HTTPS site with the old `FRONTEND_ORIGIN` fails every form submission's CSRF check.
 
 ### Handing this over
 

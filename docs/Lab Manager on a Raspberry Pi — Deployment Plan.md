@@ -4,6 +4,15 @@ Sep 29, 2026 · @Caleb
 
 > **Status (Sep 30, 2026): live on the Pi as an interim setup.** Every phase is done and the go-live checklist passed. Where the build differs from the steps below, an **As built** note follows the phase; the original steps are kept unchanged, since a more official setup may follow once IT responds. Switching back to the pre-Pi setup is covered in [Switching back](#switching-back-to-the-pre-pi-setup). The installed service and nginx files are in `deploy/pi/`.
 
+> **HTTPS (Oct 1, 2026):** the app moved from `http://10.200.61.211` to **`https://app.cplabmanager.com`**. The steps below describe the plain HTTP setup as it went live. What changed:
+> - **Name:** `cplabmanager.com` is registered at Cloudflare, with `app` pointing at the Pi's campus address. The campus DNS resolver returns that private address, so the name works on campus without anything from IT.
+> - **Certificate:** from Let's Encrypt, obtained by `certbot` through a Cloudflare DNS challenge, renewed automatically.
+> - **nginx:** answers on 443 and redirects port 80. The old IP address and `http://localhost/` on the Pi both redirect to the name.
+> - **Firewall:** `sudo ufw allow 443/tcp`. Phase 1 opened only 22 and 80, and with 443 closed the redirect led to a timeout.
+> - **`backend/.env`:** `ALLOWED_HOSTS=app.cplabmanager.com,10.200.61.211,localhost`, `FRONTEND_ORIGIN=https://app.cplabmanager.com`, `TRUST_PROXY_HEADERS=True`, and `COOKIE_SECURE=False` removed. `bridge/.env` has the same `FRONTEND_ORIGIN`.
+>
+> Setup, renewal and going back to HTTP are in [deploy/pi/README.md](../deploy/pi/README.md#https).
+
 ## Goal and architecture
 
 The goal is to move Lab Manager off the dev laptop onto a Raspberry Pi in the stockroom. There, it serves the whole lab from one address, and the balance plugs straight into it. nginx serves all three parts from one origin, so the CORS and per-IP `.env` juggling of the dev setup goes away.
@@ -340,4 +349,6 @@ The balance change (sending `P`) was tested only on the Pi. It's the same balanc
 
 > **As built:** IT approved the Pi on the wired network, but as a personal device whose traffic to the printer is blocked. The printer is on USB until that changes. The printer's DHCP reservation isn't needed while it's on USB. Nightly off-device backups are in place.
 
-No hostname from IT, so the app lives at the Pi's reserved IP. Still to decide: who else gets SSH access, and when to schedule the cut-over from the Notion import to the Pi as the live system.
+The plain HTTP risk is closed as of Oct 1, 2026: see the HTTPS note at the top. It needed neither an IT-issued certificate nor an internal CA.
+
+No hostname from IT, so the app lived at the Pi's reserved IP until the move to `app.cplabmanager.com`. Still to decide: who else gets SSH access, and when to schedule the cut-over from the Notion import to the Pi as the live system.

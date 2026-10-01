@@ -65,7 +65,7 @@ Hooks live in `.githooks/` and need `git config core.hooksPath .githooks` once p
 
 ### Branching
 
-Work branches are `cp/<type>/<snake_name>`, branched from and merged into `develop`. `develop` is merged into `main` for releases, which are tagged (`v1.0.3`). CI runs on push to `develop`/`main` and on pull requests into `main`.
+Work branches are `cp/<type>/<snake_name>`, branched from and merged into `develop`. `develop` is merged into `main` for releases, which are tagged (`v1.1.0`). The Pi deploys from `main`, so a change is not live until it is released and `deploy/pi/deploy.sh` is run. CI runs on push to `develop`/`main` and on pull requests into `main`.
 
 ## Architecture
 
@@ -84,7 +84,7 @@ The bridge has no authentication of its own. `frontend/src/api/bridge.ts` is a s
 - **Label printer** (Brother PT-P950NW): `bridge/app/printer.py`, using the printer's P-touch Template command language. No Brother SDK, b-PAC or Windows dependency. Label layouts live on the printer as numbered templates (transferred once from P-touch Editor on Windows); the bridge selects a template, fills named objects, and prints. Transport is a raw TCP socket on port 9100 or the USB device (`PRINTER_CONNECTION=usb`, what the Pi uses). Status comes from `^SR` over USB or SNMP over the network. Protocol notes are in [bridge/PRINTER_PLAN.md](bridge/PRINTER_PLAN.md).
 - **Label template registry:** the `LabelTemplate` / `LabelTemplateField` tables record which templates are on the printer. The frontend (`components/shared/printTemplates.ts`) picks the template whose `media_width_mm` matches the tape the printer reports, then prints and checks printer status afterwards.
 - **Bluetooth barcode scanner:** an HID keyboard, no integration. Labels encode JSON such as `{"id":"CHEM-0292"}` or `{"id":"LOC-12"}`. `ScannableFieldRow` / `parseBarcode.ts` detect a scan by content and swallow the scanner's trailing Enter.
-- Not built: phone-camera scanning (needs HTTPS) and Brady waste labels (Milestone 3).
+- Not built: phone-camera scanning and Brady waste labels (Milestone 3).
 
 ### External services
 
@@ -132,4 +132,4 @@ MVP has been achieved and full LLM usage is now allowed.
 
 The MVP (Milestone 1, Inventory + Locations) was signed off on 7 July 2026. Since then Milestone 2 (labels, barcodes, scanning) and Milestone 4 (balance) have largely been built, along with SDS upload to Drive, roles, storage-conflict warnings and bug reporting. Not started: Milestone 3 (waste), 5 (lab information and scheduling), 6 (personnel and forms). The roadmap is in [docs/Lab-Manager-App-Project-Plan.md](docs/Lab-Manager-App-Project-Plan.md).
 
-[docs/Post-MVP-Code-Review.md](docs/Post-MVP-Code-Review.md) reviews everything added since sign-off and lists known problems in its section 2. Read the relevant category there before changing that area. Findings 1 to 4 are fixed, and 7 (HTTPS) is addressed in `deploy/pi/`. The largest open ones: the container list is unpaginated and slow (finding 5), the bridge has no authentication (6), and location update is not role-gated (8).
+[docs/Post-MVP-Code-Review.md](docs/Post-MVP-Code-Review.md) reviews everything added since sign-off and lists known problems in its section 2. Read the relevant category there before changing that area. Findings 1 to 4 and 7 (HTTPS) are fixed. The largest open ones: the container list is unpaginated and slow (finding 5), the bridge has no authentication (6), and location update is not role-gated (8).
