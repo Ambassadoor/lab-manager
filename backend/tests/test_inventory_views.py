@@ -11,9 +11,13 @@ from rest_framework.test import APIClient
 from apps.inventory.models import (
     Chemical,
     ChemicalStorageCategories,
+    CheckoutEvent,
+    Container,
     Location,
     LocationTypes,
+    WeightReading,
 )
+from apps.inventory.views.containers import normalize_container_slug
 from apps.users.models import User
 from apps.users.permissions import role_at_least
 
@@ -766,3 +770,232 @@ class TestStorageCategories:
         # Longer than the old 50-char limit allowed
         assert by_code["I6"]["description"].endswith("Peroxides, Hydrogen Peroxide")
         assert by_code["I11"]["description"] == "Inorganic Miscellaneous"
+
+
+class TestNormalizeContainerSlug:
+    @pytest.mark.parametrize(
+        "raw, expected",
+        [
+            ("chem-292", "chem-292"),
+            ("CHEM-292", "chem-292"),
+            ("CHEM-0292", "chem-292"),
+            ("  Chem-00292 ", "chem-292"),
+            ("chem-1000", "chem-1000"),
+            ("chem-0", "chem-0"),
+            # Not a container id: only trimmed and lowercased
+            (" Does-Not-Exist ", "does-not-exist"),
+            ("LOC-0012", "loc-0012"),
+        ],
+    )
+    def test_maps_every_scanned_form_to_the_stored_slug(self, raw, expected):
+        assert normalize_container_slug(raw) == expected
+
+
+# Regression tests: Container.label is zero-padded to the width of the
+# highest id ("CHEM-0292") and that's what gets printed in the barcode, but
+# the slug is "chem-292" — so a scan was "not found" for every container
+# with a shorter id than the newest one.
+@pytest.mark.django_db
+class TestScannedContainerIds:
+    @pytest.fixture
+    def container(self, make_container):
+        container = make_container("tmp")
+        # Same slug ContainerView.create() assigns
+        container.slug = f"chem-{container.id}"
+        container.save()
+        return container
+
+    @pytest.fixture
+    def padded(self, container):
+        return f"CHEM-{container.id:06d}"
+
+    def test_the_label_the_app_prints_is_accepted(self, client, container, make_container):
+        # A much higher id elsewhere is what makes this container's own
+        # label zero-padded.
+        make_container("newest", id=container.id + 1000)
+        assert container.label.startswith("CHEM-0")
+
+        response = client.post(
+            "/api/inventory/containers/check_out/", [container.label], format="json"
+        )
+
+        assert response.status_code == 201
+        assert CheckoutEvent.objects.filter(container=container, action="out").exists()
+
+    def test_check_out_and_check_in_accept_a_padded_id(self, client, container, padded):
+        out = client.post("/api/inventory/containers/check_out/", [padded], format="json")
+        back = client.post("/api/inventory/containers/check_in/", [padded], format="json")
+
+        assert out.status_code == 201
+        assert back.status_code == 201
+        assert list(
+            CheckoutEvent.objects.filter(container=container)
+            .order_by("id")
+            .values_list("action", flat=True)
+        ) == ["out", "in"]
+
+    def test_transfer_accepts_a_padded_id(self, client, container, padded, make_location):
+        destination = make_location("destination")
+
+        response = client.patch(
+            "/api/inventory/containers/transfer/",
+            {"containers": [{"slug": padded}], "location": destination.id},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        container.refresh_from_db()
+        assert container.location_id == destination.id
+
+    def test_weigh_in_bulk_accepts_a_padded_id(self, client, container, padded):
+        response = client.post(
+            "/api/inventory/containers/weigh_in_bulk/",
+            {"checkin": [{"slug": padded, "weight": "42.5", "tare_weight": "10"}]},
+            format="json",
+        )
+
+        assert response.status_code == 201
+        assert WeightReading.objects.get(container=container).weight == Decimal("42.5")
+        container.refresh_from_db()
+        assert container.tare_weight == Decimal("10")
+
+    def test_detail_routes_accept_a_padded_id(self, client, container, padded):
+        response = client.get(f"/api/inventory/containers/{padded}/is_discarded/")
+
+        assert response.status_code == 200
+        assert response.data["is_discarded"] is False
+
+    @pytest.mark.parametrize("action", ["check_out", "check_in"])
+    def test_unknown_id_is_a_400(self, client, action):
+        # check_in used to answer 200 with the body `400`: the status code
+        # was passed as the response data.
+        response = client.post(
+            f"/api/inventory/containers/{action}/", ["chem-999999"], format="json"
+        )
+
+        assert response.status_code == 400
+
+
+# Regression tests: a container for a chemical not yet on file went through
+# hand-assigned fields, so the form's blank molecular weight or storage
+# category ("") crashed with a 500 instead of saving as empty.
+@pytest.mark.django_db
+class TestContainerCreate:
+    NEW_CAS = "67-63-0"
+
+    @pytest.fixture
+    def payload(self, make_location):
+        location = make_location("shelf")
+
+        def _make(chemical, **overrides):
+            data = {
+                "name": "Isopropanol, 500 mL",
+                "multiple_cas": False,
+                "chemicals": [chemical],
+                "mixture_id": "",
+                "location": location.id,
+                "manufacturer": "Acme",
+                "initial_quantity": 100,
+                "quantity_unit": "g",
+                "product_num": "P-1",
+                "date_received": "2026-09-01",
+                "density": "",
+                "expiration_date": None,
+                "initial_weight": "150",
+                "tare_weight": "50",
+            }
+            data.update(overrides)
+            return data
+
+        return _make
+
+    def test_new_chemical_with_blank_optional_fields(self, client, payload):
+        # Exactly what the form sends when both fields are left empty
+        chemical = {
+            "cas": self.NEW_CAS,
+            "name": "Isopropanol",
+            "molecular_weight": "",
+            "storage_category": "",
+        }
+
+        response = client.post("/api/inventory/containers/", payload(chemical), format="json")
+
+        assert response.status_code == 201
+        created = Chemical.objects.get(cas=self.NEW_CAS)
+        assert created.name == "Isopropanol"
+        assert created.molecular_weight is None
+        assert created.storage_category is None
+        container = Container.objects.get(chemical=created)
+        assert response.data["slug"] == container.slug == f"chem-{container.id}"
+        assert WeightReading.objects.get(container=container).weight == Decimal("150")
+
+    def test_new_chemical_keeps_the_fields_that_are_filled_in(self, client, payload):
+        category = ChemicalStorageCategories.objects.get(shorthand="O2")
+        chemical = {
+            "cas": self.NEW_CAS,
+            "name": "Isopropanol",
+            "molecular_weight": "60.096",
+            "storage_category": category.id,
+        }
+
+        response = client.post("/api/inventory/containers/", payload(chemical), format="json")
+
+        assert response.status_code == 201
+        created = Chemical.objects.get(cas=self.NEW_CAS)
+        assert created.molecular_weight == Decimal("60.096")
+        assert created.storage_category == category
+
+    def test_existing_chemical_is_reused_unchanged(self, client, payload, chemical):
+        submitted = {
+            "cas": chemical.cas,
+            "name": "A different name",
+            "molecular_weight": "",
+            "storage_category": "",
+        }
+
+        response = client.post("/api/inventory/containers/", payload(submitted), format="json")
+
+        assert response.status_code == 201
+        assert response.data["chemical"] == chemical.id
+        assert Chemical.objects.filter(cas=chemical.cas).count() == 1
+        chemical.refresh_from_db()
+        assert chemical.name == "Water"
+
+    def test_invalid_cas_is_rejected_and_nothing_is_saved(self, client, payload):
+        chemical = {
+            "cas": "67-63-9",  # wrong check digit
+            "name": "Isopropanol",
+            "molecular_weight": "",
+            "storage_category": "",
+        }
+
+        response = client.post("/api/inventory/containers/", payload(chemical), format="json")
+
+        assert response.status_code == 400
+        assert "cas" in response.data
+        assert not Chemical.objects.filter(name="Isopropanol").exists()
+        assert not Container.objects.exists()
+
+    def test_a_failed_container_does_not_leave_its_new_chemical_behind(self, client, payload):
+        chemical = {
+            "cas": self.NEW_CAS,
+            "name": "Isopropanol",
+            "molecular_weight": "",
+            "storage_category": "",
+        }
+
+        response = client.post(
+            "/api/inventory/containers/", payload(chemical, location=999999), format="json"
+        )
+
+        assert response.status_code == 400
+        assert not Chemical.objects.filter(cas=self.NEW_CAS).exists()
+
+    def test_missing_chemicals_is_a_400(self, client, payload):
+        data = payload({})
+        data["chemicals"] = []
+
+        response = client.post("/api/inventory/containers/", data, format="json")
+
+        assert response.status_code == 400
+        assert "chemicals" in response.data

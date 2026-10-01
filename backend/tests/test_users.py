@@ -42,23 +42,38 @@ class TestNewUserSerializerEmailValidation:
 
 @pytest.mark.django_db
 class TestRegisterView:
-    def test_creates_a_user_that_actually_passes_role_at_least_lab_manager(self):
-        # Regression test: RegisterView used to pass role="Lab Manager" (the
-        # choice's display label) instead of "lab_manager" (the stored
-        # value), so every self-registered user silently failed every
-        # role_at_least(LAB_MANAGER) check forever. Assert on the real
-        # permission check, not just the raw field, so this can't regress
-        # the same way again.
+    def test_new_account_starts_at_the_lowest_role(self):
+        # Regression test: RegisterView used to save every new account as
+        # Lab Manager, so anyone who could reach the sign-up page got full
+        # access. Assert on the real permission checks, not just the raw
+        # field, so a role stored in the wrong form can't pass unnoticed.
         client = APIClient()
         response = client.post("/api/auth/register/", _valid_registration(), format="json")
 
         assert response.status_code == 201
+        assert response.data["role"] == User.Role.LAB_ASSISTANT
         user = User.objects.get(username="student")
-        assert user.role == User.Role.LAB_MANAGER
+        assert user.role == User.Role.LAB_ASSISTANT
 
         request = type("Request", (), {"user": user})()
-        permission = role_at_least(User.Role.LAB_MANAGER)()
-        assert permission.has_permission(request, view=None) is True
+        assert role_at_least(User.Role.LAB_ASSISTANT)().has_permission(request, view=None) is True
+        assert role_at_least(User.Role.STOCKROOM)().has_permission(request, view=None) is False
+
+    def test_new_account_cannot_reach_user_management(self):
+        client = APIClient()
+        client.post("/api/auth/register/", _valid_registration(), format="json")
+        assert client.login(username="student", password="S3curePassword!")
+
+        assert client.get("/api/auth/users/").status_code == 403
+
+    def test_role_in_the_request_body_is_ignored(self):
+        client = APIClient()
+        response = client.post(
+            "/api/auth/register/", _valid_registration(role="lab_manager"), format="json"
+        )
+
+        assert response.status_code == 201
+        assert User.objects.get(username="student").role == User.Role.LAB_ASSISTANT
 
     def test_rejects_non_lipscomb_email(self):
         client = APIClient()

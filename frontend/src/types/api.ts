@@ -560,27 +560,11 @@ export interface paths {
     };
     get: operations['inventory_dashboard_list'];
     put?: never;
-    post: operations['inventory_dashboard_create'];
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
-    trace?: never;
-  };
-  '/api/inventory/dashboard/{id}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: operations['inventory_dashboard_retrieve'];
-    put: operations['inventory_dashboard_update'];
-    post?: never;
-    delete: operations['inventory_dashboard_destroy'];
-    options?: never;
-    head?: never;
-    patch: operations['inventory_dashboard_partial_update'];
     trace?: never;
   };
   '/api/inventory/label_templates/': {
@@ -2637,130 +2621,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['Container'][];
-        };
-      };
-    };
-  };
-  inventory_dashboard_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Container'];
-        'application/x-www-form-urlencoded': components['schemas']['Container'];
-        'multipart/form-data': components['schemas']['Container'];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Container'];
-        };
-      };
-    };
-  };
-  inventory_dashboard_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description A unique integer value identifying this container. */
-        id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Container'];
-        };
-      };
-    };
-  };
-  inventory_dashboard_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description A unique integer value identifying this container. */
-        id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Container'];
-        'application/x-www-form-urlencoded': components['schemas']['Container'];
-        'multipart/form-data': components['schemas']['Container'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Container'];
-        };
-      };
-    };
-  };
-  inventory_dashboard_destroy: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description A unique integer value identifying this container. */
-        id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description No response body */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  inventory_dashboard_partial_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description A unique integer value identifying this container. */
-        id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        'application/json': components['schemas']['PatchedContainer'];
-        'application/x-www-form-urlencoded': components['schemas']['PatchedContainer'];
-        'multipart/form-data': components['schemas']['PatchedContainer'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Container'];
         };
       };
     };

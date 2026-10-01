@@ -127,11 +127,11 @@ class RegisterView(APIView):
         req_body = request.data
         serializer = NewUserSerializer(data=req_body)
         serializer.is_valid(raise_exception=True)
-        # TODO: Implement actual role determination logic
-        # role/user_type must be the TextChoices *value* ("lab_manager"), not
-        # the display label ("Lab Manager") — the two differ, and permission
-        # checks like role_at_least compare against the value.
-        new_user = serializer.save(role=User.Role.LAB_MANAGER, user_type=User.UserType.FULL)
+        # No role is passed: the model default (Lab Assistant, the lowest
+        # tier) applies. Registration is open to anyone with a Lipscomb
+        # address, so elevated access is granted afterward by a Lab Manager
+        # through UserView, never at sign-up.
+        new_user = serializer.save(user_type=User.UserType.FULL)
 
         return Response(UserSerializer(new_user).data, status=status.HTTP_201_CREATED)
 
