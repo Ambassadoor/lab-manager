@@ -1,3 +1,5 @@
+import re
+
 from django.db import transaction
 from django.db.models.functions import Lower
 from django.http import Http404
@@ -22,6 +24,19 @@ from ..serializers import (
     WeightReadingReadSerializer,
     WeightReadingSerializer,
 )
+
+_PADDED_CONTAINER_ID = re.compile(r"chem-0*(\d+)")
+
+
+# Turns any form a container id arrives in into its stored slug. Printed
+# barcodes carry Container.label, which is uppercase and zero-padded to the
+# width of the highest id ("CHEM-0292"), while the slug is "chem-292" — so
+# without this, a scan misses every container with a shorter id. Anything
+# that isn't a container id is only trimmed and lowercased.
+def normalize_container_slug(raw) -> str:
+    slug = str(raw).strip().lower()
+    match = _PADDED_CONTAINER_ID.fullmatch(slug)
+    return f"chem-{int(match.group(1))}" if match else slug
 
 
 class ContainerView(ModelViewSet):
@@ -86,6 +101,11 @@ class ContainerView(ModelViewSet):
         else:
             return ContainerSerializer
 
+    # Detail routes (/containers/<slug>/...) accept a scanned label too.
+    def get_object(self):
+        self.kwargs["slug"] = normalize_container_slug(self.kwargs["slug"])
+        return super().get_object()
+
     # Chemical storage compatibility (see ../storage_rules.py) is advisory,
     # not enforced at the DB level — a request that sets/changes a
     # container's location and would trigger a warning gets a 409 instead
@@ -130,7 +150,7 @@ class ContainerView(ModelViewSet):
         events = []
         for slug in data:
             try:
-                container = Container.objects.get(slug=slug)
+                container = Container.objects.get(slug=normalize_container_slug(slug))
                 events.append({"container": container.id, "action": "out"})
             except Container.DoesNotExist:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -149,7 +169,7 @@ class ContainerView(ModelViewSet):
         events = []
         for slug in data:
             try:
-                container = Container.objects.get(slug=slug)
+                container = Container.objects.get(slug=normalize_container_slug(slug))
                 # Adds a relation to the most recent event only if it is a checkout
                 # event that hasn't already been checked in (a "related_event" is
                 # only ever set on "in" events, so checking it on the "out" event
@@ -170,7 +190,7 @@ class ContainerView(ModelViewSet):
                     }
                 )
             except Container.DoesNotExist:
-                return Response(status.HTTP_400_BAD_REQUEST)
+                return Response(status=status.HTTP_400_BAD_REQUEST)
         serializer = CheckoutEventWriteSerializer(
             data=events, many=True, context={"request": request}
         )
@@ -327,10 +347,10 @@ class ContainerView(ModelViewSet):
     def transfer(self, request):
         processed = []
         data = request.data
-        # Case-insensitive: barcodes encode Container.label (uppercase,
-        # e.g. "CHEM-1161"), but slug is stored lowercase — a raw slug__in
-        # match against scanned input would false-negative on every scan.
-        slugs = [c["slug"].strip().lower() for c in data["containers"]]
+        # Barcodes encode Container.label (uppercase and zero-padded, e.g.
+        # "CHEM-0292"), but the slug is "chem-292" — a raw slug__in match
+        # against scanned input would false-negative on every scan.
+        slugs = [normalize_container_slug(c["slug"]) for c in data["containers"]]
         location = data["location"]
         containers = list(
             Container.objects.annotate(slug_lower=Lower("slug"))
@@ -391,18 +411,16 @@ class ContainerView(ModelViewSet):
     def weigh_in_bulk(self, request):
         data = request.data
         checkin = data["checkin"]
-        # Case-insensitive: barcodes encode Container.label (uppercase,
-        # e.g. "CHEM-1161"), but slug is stored lowercase — a raw slug__in
-        # match against scanned input would false-negative on every scan.
-        slugs = [c["slug"].strip().lower() for c in checkin]
-        weights_by_slug = {c["slug"].strip().lower(): c["weight"] for c in checkin}
+        # See transfer above for why scanned ids are normalized first.
+        slugs = [normalize_container_slug(c["slug"]) for c in checkin]
+        weights_by_slug = {normalize_container_slug(c["slug"]): c["weight"] for c in checkin}
         # Optional per-item backfill for containers that don't have a real
         # tare weight yet (see Container.has_estimated_usage) — the
         # frontend only ever sends this for a container it already knows
         # needs one, but it's re-checked against has_estimated_usage below
         # regardless, rather than trusted blindly.
         tare_weights_by_slug = {
-            c["slug"].strip().lower(): c["tare_weight"]
+            normalize_container_slug(c["slug"]): c["tare_weight"]
             for c in checkin
             if c.get("tare_weight") not in (None, "")
         }
