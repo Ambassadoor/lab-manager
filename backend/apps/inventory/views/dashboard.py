@@ -1,14 +1,17 @@
 from django.db.models import Subquery
-from rest_framework import status
+from rest_framework import mixins, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import GenericViewSet
 
 from ..models import Container, most_recent_checkout_event_subquery
 from ..serializers import ContainerSerializer
 
 
-class DashboardView(ModelViewSet):
+# List only. As a ModelViewSet this also exposed create/update/destroy on
+# Container at /dashboard/<pk>/ behind nothing but IsAuthenticated, bypassing
+# ContainerView's role checks.
+class DashboardView(mixins.ListModelMixin, GenericViewSet):
     queryset = Container.objects.all()
     serializer_class = ContainerSerializer
 
