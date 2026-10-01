@@ -149,7 +149,7 @@ The **Brady printer** requires no integration: Django generates an `.xlsx` file 
 > **As built:** everything runs on one Raspberry Pi in the stockroom, not on a hosted server plus the lab PC. nginx serves the React app, the Django API and the bridge from one address; the balance and the printer are plugged into the Pi by USB.
 > - The bridge is reached at `/bridge/` on the Pi from any browser on the network, not at `http://localhost` on the machine next to the hardware. A consequence: weighing from another room reads whatever is on the stockroom balance.
 > - The bridge does not use the Brother SDK. It sends P-touch Template commands over USB (or a network socket).
-> - The site is served over plain HTTP, so the `localhost` secure-context point above does not currently apply.
+> - The site is served over HTTPS at `https://app.cplabmanager.com` (since October 1, 2026), and the bridge is on that same origin, so the `localhost` secure-context point above is not needed.
 > - The Brady `.xlsx` export is not built (Milestone 3).
 >
 > Details are in the [deployment plan](Lab%20Manager%20on%20a%20Raspberry%20Pi%20—%20Deployment%20Plan.md) and `deploy/pi/`. The bridge can still run on a Windows lab PC with the printer on the network; see [bridge/README.md](../bridge/README.md).
@@ -158,7 +158,7 @@ The **Brady printer** requires no integration: Django generates an `.xlsx` file 
 
 Browser camera access only works in a **secure context**. Only `localhost` is exempt. Therefore, phone-camera scanning requires the application to be served over real TLS — a proper hostname and a valid certificate. This is an IT decision and must be resolved before Milestone 2 (see Section 6). Do not architect the camera feature until TLS availability is confirmed.
 
-> **As built:** still unresolved. IT gave the Pi a reserved IP address but no hostname, so there is no certificate and the app runs over HTTP. Milestone 2 went ahead with the Bluetooth scanner only. Camera scanning stays blocked on this.
+> **As built:** resolved on October 1, 2026, without IT. IT gave the Pi a reserved IP address but no hostname, so Milestone 2 went ahead over HTTP with the Bluetooth scanner only. The app now has its own domain and a Let's Encrypt certificate (see [deploy/pi/README.md](../deploy/pi/README.md#https)), so TLS no longer blocks camera scanning. What remains unconfirmed for that feature is whether phones on campus Wi-Fi can reach the Pi.
 
 ---
 
@@ -177,7 +177,7 @@ Hosting is unresolved and depends on what university IT permits. Before architec
 
 > **Where these stand (Oct 1, 2026):**
 > - **Hosting:** a lab-owned Raspberry Pi on the stockroom's wired network, approved by IT as a personal device. An interim setup; a more official one may follow.
-> - **Hostname and TLS:** no hostname. The app is reached at the Pi's reserved IP over HTTP.
+> - **Hostname and TLS:** nothing from IT. The project has its own domain instead: the app is at `https://app.cplabmanager.com`, which resolves to the Pi's reserved campus IP, with a Let's Encrypt certificate.
 > - **Reachability:** lab computers reach the Pi on the campus network. Whether phones on campus Wi-Fi can has not been recorded. IT blocks the Pi from reaching the printer over the network, which is why the printer is on USB.
 > - **SSO:** not integrated. Standalone accounts, restricted to Lipscomb email addresses.
 > - **Backups:** owned by the app. A nightly dump is kept on the Pi and copied to Google Drive, 14 days of each.
