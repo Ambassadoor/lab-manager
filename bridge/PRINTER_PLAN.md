@@ -1,8 +1,18 @@
 # Brother PT-P950NW integration — planning notes
 
-Research/decision notes from a planning session, for picking this back up
-later. Nothing here is implemented yet — `main.py`'s `/print/label` is
-still the original stub.
+Research/decision notes from the planning and build sessions (July to
+September 2026), kept as a record of why the printer integration looks the
+way it does and of the protocol details behind it.
+
+> **Status (Oct 1, 2026): everything planned here is built and in use.**
+> `app/printer.py` prints and reads status over the network or USB. The
+> frontend has the status indicator, print feedback on every page that
+> prints, and a template registry (`LabelTemplate` in the backend, managed
+> at `/label-templates`). On the stockroom Pi the printer is connected by
+> USB (`PRINTER_CONNECTION=usb`), which these notes predate; see
+> [README.md](README.md). The sections below are written in the order
+> things were learned, so earlier ones describe states that later ones
+> supersede.
 
 ## Decision: P-touch Template mode over network, not b-PAC
 
@@ -296,11 +306,17 @@ a fresh angle rather than a third guess at documented command wording:
 possibly Web Based Management's job-queue view (if it has one), or
 asking Brother support directly the same way the status OID was obtained.
 
-## TODO — frontend/backend wiring (next session)
+## Frontend/backend wiring — done
+
+> **Done (Sep 14, 2026).** All five items below were built. Item 1 is
+> `PrinterStatusIndicator.tsx`, item 2 is `PrintResultSnackbar.tsx`, item 3
+> is `LabelTemplate`/`LabelTemplateField` with the print flow matching the
+> loaded media width automatically (`printTemplates.ts`), and item 5 was
+> fixed in CLAUDE.md on Oct 1. The list is kept for its design notes.
 
 `/print/label` and `/print/status` are both implemented and confirmed
-working against real hardware (see above). Nothing on the frontend or in
-Django consumes them yet. In priority order:
+working against real hardware (see above). When this list was written,
+nothing on the frontend or in Django consumed them yet. In priority order:
 
 1. **Printer status component.** Frontend component (bridge client
    functions already stubbed in `api/bridge.ts` per
