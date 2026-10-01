@@ -1,9 +1,32 @@
+# Plain HTTP only redirects. default_server, so a request by IP address or
+# to localhost (the Pi's own browser) lands on the real name too.
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
+    return 301 https://app.cplabmanager.com$request_uri;
+}
+
+server {
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    server_name app.cplabmanager.com;
+
+    # Let's Encrypt certificate, issued and renewed by certbot through a
+    # Cloudflare DNS challenge (see README.md, HTTPS).
+    ssl_certificate     /etc/letsencrypt/live/app.cplabmanager.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/app.cplabmanager.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    # Tells a browser to refuse plain HTTP for this name for the next day.
+    # Kept short so going back to HTTP stays possible; raise to 31536000
+    # (a year) once HTTPS has run cleanly for a while.
+    add_header Strict-Transport-Security "max-age=86400" always;
+
     client_max_body_size 25m;   # SDS PDF uploads
     root /opt/lab-manager/frontend/dist;
 
+    # proxy_params sends X-Forwarded-Proto, which Django trusts when
+    # TRUST_PROXY_HEADERS=True to know the browser's request was HTTPS.
     location /api/    { proxy_pass http://127.0.0.1:8000; include proxy_params; }
     location /admin/  { proxy_pass http://127.0.0.1:8000; include proxy_params; }
     location /static/ { alias /opt/lab-manager/backend/staticfiles/; }
