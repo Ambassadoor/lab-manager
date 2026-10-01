@@ -146,3 +146,6 @@ otherwise equivalent for this purpose.
 | `/balance/tare` | POST | Zero the USB balance |
 | `/print/label` | POST | Print a label from a pre-loaded template |
 | `/print/status` | GET | Printer's media, battery, and error status |
+
+The bridge has no login. In development it only answers on `localhost`; on
+the Pi, nginx exposes it at `/bridge/` to anyone who can reach the Pi.

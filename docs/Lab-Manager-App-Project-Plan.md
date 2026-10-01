@@ -2,8 +2,11 @@
 
 **Author:** Caleb (Lab Manager)
 **Date:** May 20, 2026
-**Status:** Planning — pre-development
+**Status:** In use. Milestone 1 (MVP) signed off July 7, 2026; live on a Raspberry Pi in the stockroom since September 30, 2026. Milestones 2 and 4 are largely built. See [Section 4](#4-roadmap--milestones).
+**Last reconciled with the code:** October 1, 2026
 **Document purpose:** Define the project clearly enough that any future developer or lab manager can understand what is being built, why, and in what order.
+
+> **How to read this document.** It is the original plan from May 2026, and the reasoning in it still stands. Where the build went a different way, an **As built** note says so and the original text is left in place. For how the code works today, read [CLAUDE.md](../CLAUDE.md) and the [Post-MVP Code Review](Post-MVP-Code-Review.md).
 
 ---
 
@@ -30,6 +33,8 @@ Three application roles are proposed:
 - **Lab manager** — full access, including personnel data and configuration.
 - **Stockroom** — inventory, waste, labels, and scanning; no personnel access.
 - **Viewer** — read-only access plus calendar/scheduling.
+
+> **As built:** six roles in four ranks. Admin and Lab Manager share the top rank, Coordinator and Faculty the next, then Stockroom Worker, then Lab Assistant (read-only, the default for a new account). The full matrix is in [Roles_and_Permissions.md](Roles_and_Permissions.md).
 
 ---
 
@@ -76,15 +81,17 @@ The MVP is **Inventory Management, minus the hardware** — a fully usable inven
 
 The guiding principle: **inventory is the spine**, and almost everything else hangs off it. Waste containers hold chemicals; labels are printed for chemicals, waste, and locations; barcodes scan chemicals and locations; lab info estimates chemical usage. Build the spine first and every later feature is an addition rather than a rewrite.
 
-| # | Milestone | Depends on | Notes |
-|---|-----------|-----------|-------|
-| 0 | **Spikes / de-risking** | — | Mostly complete — see below |
-| 1 | **MVP: Inventory + Locations** | 0 | Deployed and replacing Notion |
-| 2 | **Labels + Barcodes + Scanning** | 1 | Delivered together; they only deliver value as a bundle |
-| 3 | **Chemical Waste Management** | 1 | Waste containers reference chemicals |
-| 4 | **USB-balance usage tracking** | 1, 2 | Scanning helps identify which container is on the balance |
-| 5 | **Lab Information + Scheduling** | 1 | Built together; scheduling links to lab info |
-| 6 | **Personnel Manager + Forms** | 1 | Last — sensitive data, lowest workflow urgency |
+| # | Milestone | Depends on | Notes | Status (Oct 1, 2026) |
+|---|-----------|-----------|-------|----------------------|
+| 0 | **Spikes / de-risking** | — | Mostly complete — see below | Done, except phone-camera scanning and the Brady workflow |
+| 1 | **MVP: Inventory + Locations** | 0 | Deployed and replacing Notion | Built, signed off July 7 and deployed September 30. The cut-over from Notion had not been scheduled as of that date, so the "Notion is no longer opened" test in Section 9 is not yet met |
+| 2 | **Labels + Barcodes + Scanning** | 1 | Delivered together; they only deliver value as a bundle | Largely built: container and location labels, Bluetooth scanning for check-out, check-in, transfer and move. Phone-camera scanning is not built |
+| 3 | **Chemical Waste Management** | 1 | Waste containers reference chemicals | Not started |
+| 4 | **USB-balance usage tracking** | 1, 2 | Scanning helps identify which container is on the balance | Largely built: balance read and tare, weigh-in on check-in, percent remaining |
+| 5 | **Lab Information + Scheduling** | 1 | Built together; scheduling links to lab info | Not started |
+| 6 | **Personnel Manager + Forms** | 1 | Last — sensitive data, lowest workflow urgency | Not started |
+
+Also built, outside the original milestones: SDS upload to Google Drive with a public SDS viewer, storage-conflict warnings based on the Flinn storage pattern, in-app bug reports sent to GitHub, and nightly database backups.
 
 ### Milestone 0 status
 
@@ -100,6 +107,11 @@ Remaining milestone-0 work is small:
 - Confirm the **Brady waste-label workflow** — generate the Excel file in the format the Brady software expects and print one label.
 - Note for the balance: confirm whether it streams weight continuously or requires a poll command, and record its serial protocol. (If this was established during testing, document it.)
 - Note for the Brother printer: confirm the exact model and that the chosen SDK path matches it; record the SDK version used.
+
+> **As built:**
+> - **Balance:** an Adam CKT8UH over RS-232 through a USB-to-serial cable. It prints a reading every couple of seconds and also answers a `P` command with a full report; the bridge uses the command. The protocol is recorded in [bridge/README.md](../bridge/README.md) and `bridge/app/balance.py`.
+> - **Brother printer:** a PT-P950NW. The SDK (b-PAC) is Windows-only, so it was dropped in favour of the printer's own P-touch Template commands, which work from Linux. See [bridge/PRINTER_PLAN.md](../bridge/PRINTER_PLAN.md).
+> - **Phone-camera scanning** and the **Brady workflow** are still unproven.
 
 ### Definition of "shippable" per milestone
 
@@ -134,9 +146,19 @@ The **Bluetooth barcode scanner** behaves as an HID keyboard — it simply "type
 
 The **Brady printer** requires no integration: Django generates an `.xlsx` file and the user feeds it to Brady's own software.
 
+> **As built:** everything runs on one Raspberry Pi in the stockroom, not on a hosted server plus the lab PC. nginx serves the React app, the Django API and the bridge from one address; the balance and the printer are plugged into the Pi by USB.
+> - The bridge is reached at `/bridge/` on the Pi from any browser on the network, not at `http://localhost` on the machine next to the hardware. A consequence: weighing from another room reads whatever is on the stockroom balance.
+> - The bridge does not use the Brother SDK. It sends P-touch Template commands over USB (or a network socket).
+> - The site is served over plain HTTP, so the `localhost` secure-context point above does not currently apply.
+> - The Brady `.xlsx` export is not built (Milestone 3).
+>
+> Details are in the [deployment plan](Lab%20Manager%20on%20a%20Raspberry%20Pi%20—%20Deployment%20Plan.md) and `deploy/pi/`. The bridge can still run on a Windows lab PC with the printer on the network; see [bridge/README.md](../bridge/README.md).
+
 ### 5.3 Critical constraint — HTTPS for camera scanning
 
 Browser camera access only works in a **secure context**. Only `localhost` is exempt. Therefore, phone-camera scanning requires the application to be served over real TLS — a proper hostname and a valid certificate. This is an IT decision and must be resolved before Milestone 2 (see Section 6). Do not architect the camera feature until TLS availability is confirmed.
+
+> **As built:** still unresolved. IT gave the Pi a reserved IP address but no hostname, so there is no certificate and the app runs over HTTP. Milestone 2 went ahead with the Bluetooth scanner only. Camera scanning stays blocked on this.
 
 ---
 
@@ -152,6 +174,15 @@ Hosting is unresolved and depends on what university IT permits. Before architec
 - The personnel module will store student-worker pay and contact information — are there **data-handling or privacy rules** that must be followed?
 
 **Recommendation:** put the source code in a **university-owned git repository**, not a personal account, to protect continuity.
+
+> **Where these stand (Oct 1, 2026):**
+> - **Hosting:** a lab-owned Raspberry Pi on the stockroom's wired network, approved by IT as a personal device. An interim setup; a more official one may follow.
+> - **Hostname and TLS:** no hostname. The app is reached at the Pi's reserved IP over HTTP.
+> - **Reachability:** lab computers reach the Pi on the campus network. Whether phones on campus Wi-Fi can has not been recorded. IT blocks the Pi from reaching the printer over the network, which is why the printer is on USB.
+> - **SSO:** not integrated. Standalone accounts, restricted to Lipscomb email addresses.
+> - **Backups:** owned by the app. A nightly dump is kept on the Pi and copied to Google Drive, 14 days of each.
+> - **Privacy rules for personnel data:** open. Milestone 6 has not started.
+> - **Repository:** still in a personal GitHub account.
 
 ---
 
@@ -218,6 +249,18 @@ Usage is **derived** from the deltas between weight readings — never stored as
 
 **User** — Django's built-in user plus a `role` field (lab manager / stockroom / viewer).
 
+> **As built:** the two locked decisions held. The entities differ from the lists above in these ways:
+> - **Location:** `location_type` is a foreign key to a `LocationTypes` table, so types can be added without a code change. There is no `notes` field. The barcode is `LOC-<id>`.
+> - **Chemical:** manufacturer and catalog number moved to Container, since they describe a bottle. `physical_state`, GHS hazard classes, `default_unit` and `notes` were not built. Added: IUPAC name, formula, PubChem id, molecular weight, a storage category, and mixtures (an `Ingredient` table linking a mixture to its components).
+> - **SDS:** belongs to a **Container**, not a Chemical, because the same chemical from two manufacturers has two different documents. The file is stored in Google Drive and the row keeps its Drive id. GHS pictograms are recorded here.
+> - **Container:** there is no `status` or `current_holder` field. Checked-out state comes from the latest CheckoutEvent, and discarded from `date_discarded`. There is no `lot_number`. Current weight is not stored; it is the latest WeightReading.
+> - **CheckoutEvent:** no `notes`. A check-in records which check-out it closes.
+> - **WeightReading:** there is no `source` field, so a typed weight and a balance reading are not distinguished.
+> - **User:** six roles (see Section 2).
+> - **Added:** `ChemicalStorageCategories`, `LabelTemplate` and `LabelTemplateField` (which templates are on the label printer), `BugReport` and `Feedback`.
+>
+> The two histories are append-only by intent, but the API still allows a weight reading to be edited. That is finding 10 in the code review.
+
 ### 7.2 Future entities (not built in the MVP, but anticipated)
 
 The schema above is designed so that later features are additions, not rewrites:
@@ -231,13 +274,15 @@ The schema above is designed so that later features are additions, not rewrites:
 
 The existing Notion database has a usable API and its current schema is effectively a first draft of the data model. Treat migration as its own task: write a re-runnable script, clean and validate the data during migration, and spot-check the result against Notion.
 
+> **As built:** done with two scripts in `backend/scripts/onetime/`. `import_notion_data.py` was the original one-time import. `reconcile_notion_data.py` brings Postgres up to date with later Notion changes without wiping it.
+
 ---
 
 ## 8. Risks & Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Hardware integration unknowns | **Reduced** — balance, Brother SDK, and scanner are all tested and working | Document the working configurations; only phone-camera scanning and the Brady/Excel workflow remain to prove |
+| Hardware integration unknowns | **Reduced** — balance, Brother printer (P-touch Template, not the SDK), and scanner are all built and in use | Document the working configurations; only phone-camera scanning and the Brady/Excel workflow remain to prove |
 | Abandonment / loss of momentum — large project built around a full-time job | High | Keep milestones small; each must reach real daily use; "deployed and used" beats "feature complete" |
 | Continuity / bus factor — solo developer building something meant to outlive them | High | Boring, documented stack (done); university-owned git repo; write the README and setup steps as you go |
 | IT dependency unresolved — hosting and TLS | Medium | Complete the IT conversation in Section 6 before Milestone 2; do not build the camera feature before TLS is confirmed |
@@ -256,7 +301,7 @@ Write acceptance criteria **before** each milestone, not after.
 - Every chemical from the Notion database is migrated and spot-checked for accuracy.
 - Chemicals and their containers can be added, edited, and searched.
 - Storage locations exist as a working hierarchical tree.
-- SDS files are attached to chemicals.
+- SDS files are attached to chemicals. *(As built: attached to containers; a chemical shows the SDS of its containers.)*
 - Manual check-in / check-out works.
 - The application is deployed and reachable at a real URL.
 - **Notion is no longer opened for inventory.** When the old tool goes unused, the milestone has truly shipped.

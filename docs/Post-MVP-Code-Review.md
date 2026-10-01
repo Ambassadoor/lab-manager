@@ -1515,6 +1515,17 @@ The gaps are the ones that LLM-assisted development tends to leave. The code tha
 
 CLAUDE.md matters most, because it is what an LLM reads before working on the project. A stale description there produces confidently wrong suggestions.
 
+**Status, 1 October 2026:** every row above is fixed on the branch `cp/docs/stale_documentation`.
+
+- CLAUDE.md was rewritten against the code: hardware, deployment, roles, the data model as built, external services, the git hooks and the current milestone state.
+- Roles_and_Permissions.md is now the permission matrix the code enforces, with the open gaps (findings 6, 8 and 10) and the unbuilt ideas from the old notes listed separately.
+- The project plan keeps its original text and gained a status header, a milestone status column and "As built" notes.
+- The backend README lists every API area, the management commands and the scripts. The root README covers the git hooks.
+
+Four things outside the table were also stale and were fixed: [bridge/PRINTER_PLAN.md](../bridge/PRINTER_PLAN.md) opened with "nothing here is implemented yet" and carried a finished TODO list, [frontend/README.md](../frontend/README.md) did not mention `VITE_BRIDGE_URL` or `.env.production`, and the bridge's module docstring and `.env.example` still said it runs on the lab PC.
+
+The rest of this review was left as written, so its remarks about these documents (for example in sections 5.5, 5.7 and 6) describe them as they were at commit `68b27ea`.
+
 ---
 
 ## 8. Appendix: every commit, by category
