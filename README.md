@@ -11,12 +11,13 @@ at a small university.
 | `frontend/` | Single-page web app (desktop + phone) | React, Vite, TypeScript, MUI |
 | `backend/`  | REST API and database | Django, DRF, PostgreSQL |
 | `bridge/`   | Local hardware service next to the balance and printer | FastAPI, pyserial |
-| `deploy/`   | Server configuration (systemd, nginx) for the Raspberry Pi | — |
-| `docs/`     | Planning and reference documents | — |
+| `deploy/`   | Server configuration (systemd, nginx) and the deploy script for the Raspberry Pi | — |
+| `docs/`     | Planning and reference documents; start with `docs/README.md` | — |
 
-The frontend talks to the backend over HTTP. It also talks to the bridge on
-`http://localhost` to reach the USB balance and Brother label printer —
-hardware a browser cannot access directly.
+The frontend talks to the backend over HTTP. It also talks to the bridge to
+reach the USB balance and Brother label printer — hardware a browser cannot
+access directly. In development the bridge is at `http://localhost:8200`;
+on the live Pi it is at `/bridge/` on the same address as the app.
 
 ## Prerequisites
 
@@ -25,6 +26,21 @@ hardware a browser cannot access directly.
 - PostgreSQL 14+
 
 ## First-time setup
+
+### Git hooks
+Run this once in every clone:
+```bash
+git config core.hooksPath .githooks
+```
+Without it the hooks in `.githooks/` never run, and the generated API files
+go out of date.
+
+- **pre-commit** regenerates `backend/openapi.json` from the Django API and
+  `frontend/src/types/api.ts` from that, formats the frontend, and adds both
+  files to the commit. It needs the backend and frontend set up first (the
+  steps below), and it makes each commit take several seconds.
+- **pre-push** runs the Prettier, ESLint and Ruff checks that CI runs, and
+  stops the push if one fails.
 
 ### Backend
 ```bash
@@ -60,6 +76,17 @@ No Windows-only packages are needed; the printer is driven over the network
 The app uses Django session authentication. The frontend calls
 `/api/auth/csrf/` once on load, then `/api/auth/login/`, `/api/auth/me/`,
 and `/api/auth/logout/`.
+
+Anyone with a Lipscomb email address can register, and starts as a Lab
+Assistant (read-only). A Lab Manager raises the role on the Users page. To
+make the first Lab Manager, create a superuser and set its role in Django
+admin (`/admin/`). Roles are described in `docs/Roles_and_Permissions.md`.
+
+## Branches
+
+Work happens on `cp/<type>/<name>` branches, merged into `develop` by pull
+request. `develop` is merged into `main` for a release, which gets a version
+tag.
 
 ## Deployment
 

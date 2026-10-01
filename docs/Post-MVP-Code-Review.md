@@ -99,6 +99,8 @@ A caveat on finding 3: the test confirms the server rejects a padded id and that
 | 16 | "Latest SDS" sorts the revision number as text, so revision `10` sorts below revision `9`. | Verified (read) | [serializers/containers.py:62-65](../backend/apps/inventory/serializers/containers.py#L62-L65) | Low |
 | 17 | Smaller items: a missing React `key` in Move, a delete dialog that promises to remove child locations when the server refuses, dead endpoints, a router rebuilt on each render. | Verified (read) | See sections 5.4, 5.12, 5.13 | Low |
 
+**Status, 1 October 2026, finding 7:** the repo side is done on the branch `cp/feature/https`. nginx serves `https://app.cplabmanager.com` with a Let's Encrypt certificate obtained through a Cloudflare DNS challenge, which needs neither a hostname from IT nor the Pi being reachable from the internet. Port 80 redirects, and the deploy script's health checks follow the configured address. The switch on the Pi itself (certificate, `.env` values, nginx file) is a manual runbook in [deploy/pi/README.md](../deploy/pi/README.md#https) and had not been run when this note was written. Finding 6 is unchanged: the bridge is now encrypted in transit but still has no login.
+
 ---
 
 ## 3. Baseline: what existed at sign-off
@@ -1514,6 +1516,17 @@ The gaps are the ones that LLM-assisted development tends to leave. The code tha
 | [README.md](../README.md) | Does not mention `git config core.hooksPath .githooks`. |
 
 CLAUDE.md matters most, because it is what an LLM reads before working on the project. A stale description there produces confidently wrong suggestions.
+
+**Status, 1 October 2026:** every row above is fixed on the branch `cp/docs/stale_documentation`.
+
+- CLAUDE.md was rewritten against the code: hardware, deployment, roles, the data model as built, external services, the git hooks and the current milestone state.
+- Roles_and_Permissions.md is now the permission matrix the code enforces, with the open gaps (findings 6, 8 and 10) and the unbuilt ideas from the old notes listed separately.
+- The project plan keeps its original text and gained a status header, a milestone status column and "As built" notes.
+- The backend README lists every API area, the management commands and the scripts. The root README covers the git hooks.
+
+Four things outside the table were also stale and were fixed: [bridge/PRINTER_PLAN.md](../bridge/PRINTER_PLAN.md) opened with "nothing here is implemented yet" and carried a finished TODO list, [frontend/README.md](../frontend/README.md) did not mention `VITE_BRIDGE_URL` or `.env.production`, and the bridge's module docstring and `.env.example` still said it runs on the lab PC.
+
+The rest of this review was left as written, so its remarks about these documents (for example in sections 5.5, 5.7 and 6) describe them as they were at commit `68b27ea`.
 
 ---
 

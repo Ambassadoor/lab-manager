@@ -15,10 +15,37 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TARGET="${1:-}"
-# The address the app is reached by. Health checks go through nginx with
-# this as the Host, since Django rejects hosts not in ALLOWED_HOSTS
-# (localhost included).
-HEALTH_HOST="${DEPLOY_HOST:-$(hostname -I | awk '{print $1}')}"
+# The address the app is reached by, for the health checks at the end:
+# DEPLOY_URL if set, else FRONTEND_ORIGIN from backend/.env (in production
+# that is the app's own address, e.g. https://app.cplabmanager.com), else
+# plain HTTP on the Pi's first IP. The checks need the real name, since
+# Django rejects hosts not in ALLOWED_HOSTS (localhost included) and plain
+# HTTP only answers with a redirect once HTTPS is on.
+env_origin() {
+  [[ -f "$REPO/backend/.env" ]] || return 0
+  sed -n 's/^FRONTEND_ORIGIN=//p' "$REPO/backend/.env" | tail -n 1 | tr -d "\"'\r[:space:]"
+}
+BASE_URL="${DEPLOY_URL:-$(env_origin)}"
+BASE_URL="${BASE_URL:-http://$(hostname -I | awk '{print $1}')}"
+BASE_URL="${BASE_URL%/}"
+
+# Send the checks to this machine's nginx whatever DNS says, while still
+# asking for the real name (which the certificate and Django both check).
+# An IP address needs no lookup, so it is left alone.
+CURL_RESOLVE=()
+url_host="${BASE_URL#*://}"
+url_host="${url_host%%/*}"
+if [[ "$url_host" == *:* ]]; then
+  url_port="${url_host##*:}"
+  url_host="${url_host%%:*}"
+elif [[ "$BASE_URL" == https://* ]]; then
+  url_port=443
+else
+  url_port=80
+fi
+if [[ ! "$url_host" =~ ^[0-9.]+$ ]]; then
+  CURL_RESOLVE=(--resolve "$url_host:$url_port:127.0.0.1")
+fi
 
 # A non-interactive SSH session skips most of the login profile, so
 # poetry (~/.local/bin) and an nvm-installed node may not be on PATH.
@@ -128,11 +155,13 @@ step "Restarting services"
 sudo systemctl restart labmanager-api labmanager-bridge
 RESTARTED=true
 
-step "Checking the app responds at http://$HEALTH_HOST"
+step "Checking the app responds at $BASE_URL"
 check() {
   # gunicorn takes a few seconds to start its workers, so retry briefly.
   for _ in {1..15}; do
-    if curl -fsS -o /dev/null "http://$HEALTH_HOST$1"; then
+    # Exactly 200: a redirect (plain HTTP once HTTPS is on) proves nothing.
+    code="$(curl -sS -o /dev/null -w '%{http_code}' "${CURL_RESOLVE[@]}" "$BASE_URL$1" || true)"
+    if [[ "$code" == 200 ]]; then
       echo "  ok  $1"
       return 0
     fi

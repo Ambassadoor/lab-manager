@@ -1,8 +1,9 @@
 """Local hardware bridge for the Lab Manager app.
 
-Runs on the lab PC. The React frontend calls it on localhost to reach
-hardware the browser cannot touch directly: the USB balance and the
-Brother label printer. Keep this service small and dependency-light.
+Runs on the machine the hardware is attached to (the stockroom Pi, behind
+nginx at /bridge/). The React frontend calls it to reach hardware the
+browser cannot touch directly: the USB balance and the Brother label
+printer. Keep this service small and dependency-light.
 
 Run:  poetry run uvicorn app.main:app --port 8200 --reload
 """
