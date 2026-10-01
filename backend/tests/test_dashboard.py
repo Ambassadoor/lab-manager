@@ -104,3 +104,28 @@ class TestDashboardRestockSoon:
 
         labels = [c["label"] for c in response.data["restock_soon"]]
         assert labels.index(emptier.label) < labels.index(fuller.label)
+
+
+# Regression tests: DashboardView was a ModelViewSet over Container, so its
+# router also served create/update/destroy at /dashboard/ and
+# /dashboard/<pk>/ to any logged-in user, past ContainerView's role checks.
+@pytest.mark.django_db
+class TestDashboardIsReadOnly:
+    @pytest.mark.parametrize("role", [User.Role.LAB_ASSISTANT, User.Role.LAB_MANAGER])
+    def test_has_no_detail_routes(self, client_as, make_container, role):
+        container = make_container("keep-me")
+        client = client_as(role)
+        url = f"/api/inventory/dashboard/{container.pk}/"
+
+        assert client.delete(url).status_code == 404
+        assert client.patch(url, {"name": "changed"}, format="json").status_code == 404
+        assert client.get(url).status_code == 404
+        container.refresh_from_db()
+        assert container.name == "keep-me"
+
+    def test_list_route_rejects_writes(self, client_as):
+        client = client_as(User.Role.LAB_MANAGER)
+
+        response = client.post("/api/inventory/dashboard/", {"name": "new"}, format="json")
+
+        assert response.status_code == 405

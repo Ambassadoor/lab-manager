@@ -111,6 +111,11 @@ export function ScannableFieldRow<
               }
             }}
             slotProps={{
+              // Keeps iOS/iPadOS from rewriting what the scanner types
+              // (capitalising, autocorrecting). Smart Punctuation's curly
+              // quotes can't be switched off per input — parseBarcode
+              // handles those.
+              htmlInput: { autoCapitalize: 'none', autoCorrect: 'off', spellCheck: false },
               input: {
                 endAdornment: (
                   <InputAdornment position="end">
