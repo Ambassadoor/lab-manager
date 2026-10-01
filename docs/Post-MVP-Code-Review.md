@@ -99,6 +99,8 @@ A caveat on finding 3: the test confirms the server rejects a padded id and that
 | 16 | "Latest SDS" sorts the revision number as text, so revision `10` sorts below revision `9`. | Verified (read) | [serializers/containers.py:62-65](../backend/apps/inventory/serializers/containers.py#L62-L65) | Low |
 | 17 | Smaller items: a missing React `key` in Move, a delete dialog that promises to remove child locations when the server refuses, dead endpoints, a router rebuilt on each render. | Verified (read) | See sections 5.4, 5.12, 5.13 | Low |
 
+**Status, 1 October 2026, finding 7:** the repo side is done on the branch `cp/feature/https`. nginx serves `https://app.cplabmanager.com` with a Let's Encrypt certificate obtained through a Cloudflare DNS challenge, which needs neither a hostname from IT nor the Pi being reachable from the internet. Port 80 redirects, and the deploy script's health checks follow the configured address. The switch on the Pi itself (certificate, `.env` values, nginx file) is a manual runbook in [deploy/pi/README.md](../deploy/pi/README.md#https) and had not been run when this note was written. Finding 6 is unchanged: the bridge is now encrypted in transit but still has no login.
+
 ---
 
 ## 3. Baseline: what existed at sign-off
