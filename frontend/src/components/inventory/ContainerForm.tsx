@@ -26,6 +26,7 @@ import { getBalanceWeight } from '../../api/bridge';
 import { createSds, type PendingSdsSelection } from '../../api/sds';
 import { containerKeys, dashboardKeys, printerKeys } from '../../api/queryKeys';
 import { setPendingActionResult, type PendingActionResult } from '../shared/pendingActionResult';
+import { applyApiErrors } from '../shared/applyApiErrors';
 import { printContainerLabel } from '../shared/printTemplates';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { useStorageConflictConfirm } from '../shared/useStorageConflictConfirm';
@@ -69,6 +70,7 @@ const convertUnits = (defaultUnit: string, currentUnit: string, quantity: string
 export const ContainerForm = () => {
   const [cas, setCas] = useState<CasCheck | undefined>();
   const [bridgeError, setBridgeError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Kept outside RHF (unlike the rest of the form): a File can't survive
   // JSON.stringify, which the session-storage form-memory effect below
@@ -129,6 +131,7 @@ export const ContainerForm = () => {
     clearErrors,
     formState: { errors, isSubmitting, isValidating },
     setValue,
+    setError,
     trigger,
     handleSubmit,
     reset,
@@ -286,14 +289,18 @@ export const ContainerForm = () => {
     }
 
     let response;
+    setSubmitError(null);
     try {
       response = await submitNewContainerForm(data, confirmed);
     } catch (e) {
       // Storage-conflict 409s are handled here (show the warnings, offer
-      // to proceed anyway) rather than as a normal submit failure — any
-      // other error just propagates like it did before this existed.
+      // to proceed anyway) rather than as a normal submit failure.
       if (storageConflict.intercept(e, () => doSubmit(data, true))) return;
-      throw e;
+      // Anything else is shown: on its field when the server names one the
+      // form has, otherwise in the alert by the Submit button. (Re-throwing
+      // here used to make react-hook-form drop the error silently, #111.)
+      setSubmitError(applyApiErrors(e, data, setError));
+      return;
     }
     sessionStorage.removeItem('container_form_cache');
     queryClient.invalidateQueries({ queryKey: containerKeys.list() });
@@ -595,6 +602,11 @@ export const ContainerForm = () => {
                 />
               </Stack>
               <Divider />
+              {submitError && (
+                <Alert severity="error" onClose={() => setSubmitError(null)}>
+                  {submitError}
+                </Alert>
+              )}
               <Stack direction={'row'} spacing={2} sx={{ justifyContent: 'right' }}>
                 <Button variant="contained" type="submit" loading={isSubmitting || isValidating}>
                   Submit

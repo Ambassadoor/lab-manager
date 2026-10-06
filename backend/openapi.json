@@ -4451,7 +4451,7 @@
                     "density": {
                         "type": "string",
                         "format": "decimal",
-                        "pattern": "^-?\\d{0,2}(?:\\.\\d{0,2})?$",
+                        "pattern": "^-?\\d{0,3}(?:\\.\\d{0,4})?$",
                         "nullable": true,
                         "title": "Density/specific gravity"
                     },
@@ -4656,7 +4656,7 @@
                     "density": {
                         "type": "string",
                         "format": "decimal",
-                        "pattern": "^-?\\d{0,2}(?:\\.\\d{0,2})?$",
+                        "pattern": "^-?\\d{0,3}(?:\\.\\d{0,4})?$",
                         "nullable": true,
                         "title": "Density/specific gravity"
                     },
@@ -5395,7 +5395,7 @@
                     "density": {
                         "type": "string",
                         "format": "decimal",
-                        "pattern": "^-?\\d{0,2}(?:\\.\\d{0,2})?$",
+                        "pattern": "^-?\\d{0,3}(?:\\.\\d{0,4})?$",
                         "nullable": true,
                         "title": "Density/specific gravity"
                     },

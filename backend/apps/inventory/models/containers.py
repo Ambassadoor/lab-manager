@@ -84,10 +84,12 @@ class Container(models.Model):
     date_received = models.DateField("received on", default=timezone.now, null=True, blank=True)
     date_opened = models.DateField("opened on", null=True, blank=True)
     date_discarded = models.DateField("discarded on", null=True, blank=True)
+    # Four decimal places: densities are commonly given as 1.0493 g/mL.
+    # Seven digits leaves room for the densest liquids (mercury, 13.534).
     density = models.DecimalField(
         "density/specific gravity",
-        max_digits=4,
-        decimal_places=2,
+        max_digits=7,
+        decimal_places=4,
         null=True,
         blank=True,
     )
