@@ -995,6 +995,32 @@ class TestContainerCreate:
         assert response.data["slug"] == container.slug == f"chem-{container.id}"
         assert WeightReading.objects.get(container=container).weight == Decimal("150")
 
+    def test_density_keeps_four_decimal_places(self, client, payload):
+        # Issue #111: density was limited to two decimal places, so a
+        # common value like 1.0493 was rejected.
+        chemical = {"cas": self.NEW_CAS, "name": "Isopropanol"}
+
+        response = client.post(
+            "/api/inventory/containers/",
+            payload(chemical, density="1.0493", quantity_unit="mL"),
+            format="json",
+        )
+
+        assert response.status_code == 201
+        assert Container.objects.get(slug=response.data["slug"]).density == Decimal("1.0493")
+
+    def test_density_beyond_four_decimal_places_is_a_field_error(self, client, payload):
+        chemical = {"cas": self.NEW_CAS, "name": "Isopropanol"}
+
+        response = client.post(
+            "/api/inventory/containers/",
+            payload(chemical, density="1.04935", quantity_unit="mL"),
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "density" in response.json()
+
     def test_new_chemical_keeps_the_fields_that_are_filled_in(self, client, payload):
         category = ChemicalStorageCategories.objects.get(shorthand="O2")
         chemical = {
