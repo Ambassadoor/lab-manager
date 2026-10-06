@@ -21,6 +21,8 @@ type RhfTextFieldProps<TFieldValues extends FieldValues, TName extends FieldPath
   helperText?: string;
   // Browser autofill hint, e.g. "given-name", "email"
   autoComplete?: string;
+  // Rewrites what's typed before it's stored, e.g. dropping spaces
+  normalize?: (value: string) => string;
 };
 
 // Controller-wired TextField for the common case: bare field, its own
@@ -40,6 +42,7 @@ export function RhfTextField<
   fullWidth,
   helperText,
   autoComplete,
+  normalize,
 }: RhfTextFieldProps<TFieldValues, TName>) {
   return (
     <Controller
@@ -55,7 +58,7 @@ export function RhfTextField<
           error={!!error}
           helperText={error?.message || helperText || ''}
           onChange={(e) => {
-            field.onChange(e);
+            field.onChange(normalize ? normalize(e.target.value) : e);
             clearErrors(name);
           }}
           slotProps={
