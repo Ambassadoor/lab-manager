@@ -5,6 +5,7 @@ from .containers import (
     GHSPictogram,
     SDS,
     WeightReading,
+    highest_container_pk_subquery,
     most_recent_checkout_event_subquery,
 )
 from .labels import LabelTemplate, LabelTemplateField
@@ -23,6 +24,7 @@ __all__ = [
     "LocationTypes",
     "SDS",
     "WeightReading",
+    "highest_container_pk_subquery",
     "most_recent_checkout_event_subquery",
     "validate_cas",
 ]

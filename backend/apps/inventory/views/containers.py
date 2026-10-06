@@ -103,6 +103,15 @@ class ContainerView(ModelViewSet):
         else:
             return ContainerSerializer
 
+    # Reads load everything ContainerSerializer needs in a fixed number of
+    # queries (finding 5). Writes and custom actions don't serialize a list,
+    # so they keep the plain queryset.
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.action in {"list", "retrieve"}:
+            return queryset.for_display()
+        return queryset
+
     # Detail routes (/containers/<slug>/...) accept a scanned label too.
     def get_object(self):
         self.kwargs["slug"] = normalize_container_slug(self.kwargs["slug"])
