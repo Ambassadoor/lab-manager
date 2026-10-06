@@ -13,7 +13,7 @@ def _valid_registration(**overrides):
         "first_name": "New",
         "last_name": "Student",
         "password": "S3curePassword!",
-        "lipscomb_id": "12345678901",
+        "lipscomb_id": "L12345678",
     }
     data.update(overrides)
     return data
@@ -112,6 +112,45 @@ def client(user):
 
 
 @pytest.mark.django_db
+@pytest.mark.django_db
+class TestLipscombIdNormalization:
+    # Issue #89: spaces in the L# weren't removed, so "L1234 5678" failed the
+    # format check or was stored with the spaces in it.
+
+    @pytest.mark.parametrize("typed", ["L1234 5678", " l12345678 ", "L 1234\t5678"])
+    def test_registration_stores_the_id_without_spaces(self, typed):
+        response = APIClient().post(
+            "/api/auth/register/", _valid_registration(lipscomb_id=typed), format="json"
+        )
+
+        assert response.status_code == 201
+        assert User.objects.get(username="student").lipscomb_id == "L12345678"
+
+    @pytest.mark.parametrize("typed", ["12345678", "L1234567", "X12345678", "L1234567A"])
+    def test_registration_rejects_other_formats(self, typed):
+        response = APIClient().post(
+            "/api/auth/register/", _valid_registration(lipscomb_id=typed), format="json"
+        )
+
+        assert response.status_code == 400
+        assert "lipscomb_id" in response.data
+
+    def test_blank_ids_are_stored_as_null_so_they_dont_collide(self, client, user):
+        # lipscomb_id is unique: two accounts saved with "" would conflict.
+        response = client.patch("/api/auth/me/", {"lipscomb_id": "   "}, format="json")
+
+        assert response.status_code == 200
+        user.refresh_from_db()
+        assert user.lipscomb_id is None
+
+    def test_profile_edit_is_normalized_too(self, client, user):
+        response = client.patch("/api/auth/me/", {"lipscomb_id": "l0000 0002"}, format="json")
+
+        assert response.status_code == 200
+        user.refresh_from_db()
+        assert user.lipscomb_id == "L00000002"
+
+
 class TestMeView:
     def test_get_returns_own_profile_with_a_readable_role_label(self, client, user):
         response = client.get("/api/auth/me/")

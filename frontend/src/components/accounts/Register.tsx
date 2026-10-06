@@ -16,7 +16,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../api/client';
-import { LIPSCOMB_EMAIL_PATTERN, LIPSCOMB_ID_PATTERN } from '../shared/formRules';
+import {
+  LIPSCOMB_EMAIL_PATTERN,
+  LIPSCOMB_ID_PATTERN,
+  normalizeLipscombId,
+} from '../shared/formRules';
 
 type Inputs = {
   username: string;
@@ -339,7 +343,7 @@ export const Register = () => {
                     error={!!errors.lipscomb_id}
                     helperText={errors.lipscomb_id ? errors.lipscomb_id.message : ''}
                     onChange={(e) => {
-                      field.onChange(e);
+                      field.onChange(normalizeLipscombId(e.target.value));
                       clearErrors('lipscomb_id');
                     }}
                   />

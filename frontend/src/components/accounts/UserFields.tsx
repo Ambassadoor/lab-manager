@@ -1,6 +1,10 @@
 import { Stack } from '@mui/material';
 import type { Control, UseFormClearErrors } from 'react-hook-form';
-import { LIPSCOMB_EMAIL_PATTERN, LIPSCOMB_ID_PATTERN } from '../shared/formRules';
+import {
+  LIPSCOMB_EMAIL_PATTERN,
+  LIPSCOMB_ID_PATTERN,
+  normalizeLipscombId,
+} from '../shared/formRules';
 import { RhfTextField } from '../shared/RhfTextField';
 import type { UserFormValues } from './userForm';
 
@@ -59,6 +63,7 @@ export const UserFields = ({ control, clearErrors }: UserFieldsProps) => (
       control={control}
       name="lipscomb_id"
       label="Lipscomb ID"
+      normalize={normalizeLipscombId}
       rules={{
         validate: (value) =>
           !value || LIPSCOMB_ID_PATTERN.test(value) || 'Please match L12345678 format',
