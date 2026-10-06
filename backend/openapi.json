@@ -895,7 +895,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ChemicalWrite'
+                $ref: '#/components/schemas/Chemical'
           description: ''
   /api/inventory/chemicals/{id}/:
     get:
@@ -933,13 +933,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Chemical'
+              $ref: '#/components/schemas/ChemicalWrite'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Chemical'
+              $ref: '#/components/schemas/ChemicalWrite'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Chemical'
+              $ref: '#/components/schemas/ChemicalWrite'
         required: true
       security:
       - cookieAuth: []
@@ -965,13 +965,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedChemical'
+              $ref: '#/components/schemas/PatchedChemicalWrite'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedChemical'
+              $ref: '#/components/schemas/PatchedChemicalWrite'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedChemical'
+              $ref: '#/components/schemas/PatchedChemicalWrite'
       security:
       - cookieAuth: []
       responses:
@@ -3060,42 +3060,6 @@ components:
     NullEnum:
       enum:
       - null
-    PatchedChemical:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        sds:
-          type: string
-          readOnly: true
-        name:
-          type: string
-          maxLength: 200
-        iupac:
-          type: string
-          nullable: true
-          maxLength: 300
-        cas:
-          type: string
-          nullable: true
-          maxLength: 13
-        formula:
-          type: string
-          nullable: true
-          maxLength: 50
-        molecular_weight:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,4}(?:\.\d{0,3})?$
-          nullable: true
-        is_organic:
-          type: boolean
-          nullable: true
-        storage_category:
-          allOf:
-          - $ref: '#/components/schemas/Nested'
-          readOnly: true
     PatchedChemicalStorageCategories:
       type: object
       properties:
@@ -3115,6 +3079,28 @@ components:
           items:
             type: string
             maxLength: 100
+    PatchedChemicalWrite:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        cas:
+          type: string
+          nullable: true
+          maxLength: 13
+        formula:
+          type: string
+          nullable: true
+          maxLength: 50
+        molecular_weight:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,3})?$
+          nullable: true
+        storage_category:
+          type: integer
+          nullable: true
     PatchedContainer:
       type: object
       properties:

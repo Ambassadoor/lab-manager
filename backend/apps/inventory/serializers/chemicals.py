@@ -105,10 +105,18 @@ class ChemicalSerializer(serializers.ModelSerializer):
         return SDSSerializer(sds, many=True).data
 
 
+# Create and edit. ChemicalSerializer can't be used for writes: its
+# depth = 1 turns storage_category into a read-only nested object, so DRF
+# silently drops a new category from a PATCH (issue #94).
 class ChemicalWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Chemical
         fields = ["name", "cas", "formula", "molecular_weight", "storage_category"]
+
+    # Respond with the full chemical, including its id (issue #113: the
+    # Add Chemical page navigates to the new chemical by that id).
+    def to_representation(self, instance):
+        return ChemicalSerializer(instance, context=self.context).data
 
 
 class ChemicalStorageCategoriesSerializer(serializers.ModelSerializer):

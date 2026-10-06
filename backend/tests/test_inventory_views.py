@@ -772,6 +772,72 @@ class TestStorageCategories:
         assert by_code["I11"]["description"] == "Inorganic Miscellaneous"
 
 
+@pytest.mark.django_db
+class TestChemicalWrites:
+    # Edits used to go through ChemicalSerializer, whose depth = 1 makes
+    # storage_category read-only: the PATCH returned 200 and changed nothing
+    # (issue #94). Creates responded without an id (issue #113).
+
+    def test_patch_changes_storage_category(self, client, chemical):
+        category = ChemicalStorageCategories.objects.get(shorthand="I1")
+
+        response = client.patch(
+            f"/api/inventory/chemicals/{chemical.id}/",
+            {"storage_category": category.id},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        chemical.refresh_from_db()
+        assert chemical.storage_category == category
+        assert response.json()["storage_category"]["shorthand"] == "I1"
+
+    def test_patch_with_the_edit_forms_blank_fields_clears_them(self, client, chemical):
+        chemical.storage_category = ChemicalStorageCategories.objects.get(shorthand="I1")
+        chemical.molecular_weight = Decimal("18.015")
+        chemical.save()
+
+        # What ChemicalEditForm sends for empty fields
+        response = client.patch(
+            f"/api/inventory/chemicals/{chemical.id}/",
+            {
+                "name": chemical.name,
+                "cas": chemical.cas,
+                "molecular_weight": "",
+                "formula": "",
+                "storage_category": "",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200
+        chemical.refresh_from_db()
+        assert chemical.storage_category is None
+        assert chemical.molecular_weight is None
+
+    def test_responses_are_the_full_chemical(self, client):
+        category = ChemicalStorageCategories.objects.get(shorthand="O4")
+
+        created = client.post(
+            "/api/inventory/chemicals/",
+            {"name": "Acetone", "cas": "67-64-1", "storage_category": category.id},
+            format="json",
+        )
+        assert created.status_code == 201
+        body = created.json()
+        assert body["id"] == Chemical.objects.get(cas="67-64-1").id
+        assert body["storage_category"]["shorthand"] == "O4"
+        assert body["sds"] == []
+        assert body["ingredients"] == []
+
+        updated = client.patch(
+            f"/api/inventory/chemicals/{body['id']}/", {"name": "Acetone (ACS)"}, format="json"
+        )
+        assert updated.status_code == 200
+        assert updated.json()["id"] == body["id"]
+        assert updated.json()["name"] == "Acetone (ACS)"
+
+
 class TestNormalizeContainerSlug:
     @pytest.mark.parametrize(
         "raw, expected",
