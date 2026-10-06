@@ -1,4 +1,5 @@
 from django.db.models import Count, F, Q
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from natsort import natsorted
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -17,6 +18,13 @@ from ..serializers import (
 )
 
 
+# Writes go through ChemicalWriteSerializer but respond with the full
+# chemical; tell the schema so the generated frontend types match.
+@extend_schema_view(
+    create=extend_schema(responses={201: ChemicalSerializer}),
+    update=extend_schema(responses=ChemicalSerializer),
+    partial_update=extend_schema(responses=ChemicalSerializer),
+)
 class ChemicalView(ModelViewSet):
     serializer_class = ChemicalSerializer
     queryset = Chemical.objects.all()
@@ -36,7 +44,7 @@ class ChemicalView(ModelViewSet):
         return super().get_permissions()
 
     def get_serializer_class(self):
-        if self.action == "create":
+        if self.action in {"create", "update", "partial_update"}:
             return ChemicalWriteSerializer
         return super().get_serializer_class()
 

@@ -1107,24 +1107,20 @@ export interface components {
     };
     /** @enum {unknown} */
     NullEnum: null;
-    PatchedChemical: {
-      readonly id?: number;
-      readonly sds?: string;
-      name?: string;
-      iupac?: string | null;
-      cas?: string | null;
-      formula?: string | null;
-      /** Format: decimal */
-      molecular_weight?: string | null;
-      is_organic?: boolean | null;
-      readonly storage_category?: components['schemas']['Nested'];
-    };
     PatchedChemicalStorageCategories: {
       readonly id?: number;
       shorthand?: string;
       description?: string;
       help_text?: string;
       families?: string[];
+    };
+    PatchedChemicalWrite: {
+      name?: string;
+      cas?: string | null;
+      formula?: string | null;
+      /** Format: decimal */
+      molecular_weight?: string | null;
+      storage_category?: number | null;
     };
     PatchedContainer: {
       readonly id?: number;
@@ -2119,7 +2115,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ChemicalWrite'];
+          'application/json': components['schemas']['Chemical'];
         };
       };
     };
@@ -2158,9 +2154,9 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['Chemical'];
-        'application/x-www-form-urlencoded': components['schemas']['Chemical'];
-        'multipart/form-data': components['schemas']['Chemical'];
+        'application/json': components['schemas']['ChemicalWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['ChemicalWrite'];
+        'multipart/form-data': components['schemas']['ChemicalWrite'];
       };
     };
     responses: {
@@ -2207,9 +2203,9 @@ export interface operations {
     };
     requestBody?: {
       content: {
-        'application/json': components['schemas']['PatchedChemical'];
-        'application/x-www-form-urlencoded': components['schemas']['PatchedChemical'];
-        'multipart/form-data': components['schemas']['PatchedChemical'];
+        'application/json': components['schemas']['PatchedChemicalWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedChemicalWrite'];
+        'multipart/form-data': components['schemas']['PatchedChemicalWrite'];
       };
     };
     responses: {
