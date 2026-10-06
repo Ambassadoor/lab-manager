@@ -74,7 +74,7 @@ class UserCheckoutEventSerializer(serializers.ModelSerializer):
         model = User
         fields = ["full_name"]
 
-    def get_full_name(self, obj):
+    def get_full_name(self, obj) -> str:
         return f"{obj.first_name} {obj.last_name}"
 
 

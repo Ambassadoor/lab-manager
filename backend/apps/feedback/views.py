@@ -1,4 +1,5 @@
 from django.db import transaction
+from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
@@ -48,6 +49,7 @@ class ReportViewMixin:
         user = self.request.user if self.request.user.is_authenticated else None
         return serializer.save(user=user, **extra)
 
+    @extend_schema(request=None)
     @action(detail=True, methods=["post"])
     def promote(self, request, pk=None):
         """Create (or retry) the GitHub issue for this row."""

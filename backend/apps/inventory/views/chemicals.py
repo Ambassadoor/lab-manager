@@ -1,5 +1,11 @@
 from django.db.models import Count, F, Q
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+    inline_serializer,
+)
 from natsort import natsorted
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -60,6 +66,23 @@ class ChemicalView(ModelViewSet):
         )
 
     # Returns any mixtures or chemicals associated with the provided cas nums
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="cas",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Comma-separated CAS numbers",
+            )
+        ],
+        responses=inline_serializer(
+            name="CasCheck",
+            fields={
+                "mixtures": ChemicalSerializer(many=True),
+                "chemicals": ChemicalSerializer(many=True),
+            },
+        ),
+    )
     @action(detail=False, methods=["get"])
     def check_cas(self, request):
         q = self.get_queryset()

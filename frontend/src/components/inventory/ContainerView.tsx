@@ -62,7 +62,7 @@ export const ContainerView = ({ container, showCurrentWeight }: ContainerViewPro
             most needs showing */}
         {container.percent_remaining != null && (
           <DetailRow label="Remaining">
-            <RemainingBar percent={Number(container.percent_remaining)} />
+            <RemainingBar percent={container.percent_remaining} />
           </DetailRow>
         )}
         <DetailRow label="SDS">
