@@ -110,7 +110,7 @@ class LocationMenuSerializer(serializers.ModelSerializer):
         model = Location
         fields = ["id", "name", "full_path"]
 
-    def get_full_path(self, obj):
+    def get_full_path(self, obj) -> str:
         # A flat list has no natural top-down order to walk (unlike
         # LocationSerializer's tree recursion, where a parent's full_path is
         # always computed before its children's), so this memoizes each id's

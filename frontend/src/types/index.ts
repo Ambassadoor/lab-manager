@@ -37,7 +37,6 @@ export interface PreValidation {
   };
 }
 
-type ApiContainer = components['schemas']['Container'];
 type ApiLocation = components['schemas']['Location'];
 
 export type ContainerWrite = components['schemas']['ContainerWrite'];
@@ -65,31 +64,17 @@ export type SDS = components['schemas']['SDS'];
 // re-exported for that use.
 export type GHSPictogram = components['schemas']['GhsPictogramsEnum'];
 
-type ApiChemical = components['schemas']['Chemical'];
-// `sds` is a SerializerMethodField — the generated schema can't infer its
-// real type and defaults to `string` (same reason Container does this for
-// latest_reading/checkout_status/latest_sds below).
-export interface Chemical extends Omit<ApiChemical, 'sds'> {
-  readonly sds: SDS[];
-}
+export type Chemical = components['schemas']['Chemical'];
 export type StorageCategory = components['schemas']['ChemicalStorageCategories'];
 export type UnitEnums = components['schemas']['QuantityUnitEnum'];
 export type CheckoutEvent = components['schemas']['CheckoutEvent'];
 export type WeightReading = components['schemas']['WeightReading'];
 export type LocationType = components['schemas']['LocationType'];
-export type Dashboard = {
-  recently_added: Container[];
-  restock_soon: Container[];
-  checked_out: Container[];
-};
-export interface Container extends Omit<
-  ApiContainer,
-  'latest_reading' | 'checkout_status' | 'latest_sds'
-> {
-  readonly latest_reading: WeightReading;
-  readonly checkout_status: CheckoutEvent;
-  readonly latest_sds: SDS | null;
-}
+export type Dashboard = components['schemas']['Dashboard'];
+// The computed fields (latest_reading, checkout_status, latest_sds,
+// percent_remaining) are typed by @extend_schema_field on the backend, so
+// these come straight from the generated schema, nulls included.
+export type Container = components['schemas']['Container'];
 
 export interface Location extends Omit<ApiLocation, 'children'> {
   children: Location[];
@@ -107,10 +92,7 @@ export type WeighInDefaults = {
   }[];
 };
 
-export interface CasCheck {
-  mixtures: Chemical[];
-  chemicals: Chemical[];
-}
+export type CasCheck = components['schemas']['CasCheck'];
 
 export interface ContainerFormDefaults {
   print: boolean;

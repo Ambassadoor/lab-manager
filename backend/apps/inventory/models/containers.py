@@ -126,7 +126,7 @@ class Container(models.Model):
         return self.initial_weight - self.initial_content_mass
 
     @property
-    def has_estimated_usage(self):
+    def has_estimated_usage(self) -> bool:
         # A container's tare weight is the weight of the empty container —
         # physically always > 0. Treating a non-positive value the same as
         # "missing" guards against the exact placeholder-zero bug fixed in

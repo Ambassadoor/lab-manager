@@ -1,4 +1,6 @@
 from django.db.models import Subquery
+from drf_spectacular.openapi import AutoSchema
+from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import mixins, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -6,6 +8,14 @@ from rest_framework.viewsets import GenericViewSet
 
 from ..models import Container, most_recent_checkout_event_subquery
 from ..serializers import ContainerSerializer
+
+
+# drf-spectacular assumes a `list` action answers with an array of whatever
+# serializer it's given. This one answers with a single object of three
+# lists, so the schema must be told it isn't a list view.
+class _SingleObjectSchema(AutoSchema):
+    def _is_list_view(self, serializer=None):
+        return False
 
 
 # List only. As a ModelViewSet this also exposed create/update/destroy on
@@ -16,10 +26,21 @@ class DashboardView(mixins.ListModelMixin, GenericViewSet):
     serializer_class = ContainerSerializer
 
     permission_classes = [IsAuthenticated]
+    schema = _SingleObjectSchema()
 
     most_recent_event = most_recent_checkout_event_subquery("timestamp")
     most_recent_event_action = most_recent_checkout_event_subquery("action")
 
+    @extend_schema(
+        responses=inline_serializer(
+            name="Dashboard",
+            fields={
+                "recently_added": ContainerSerializer(many=True),
+                "checked_out": ContainerSerializer(many=True),
+                "restock_soon": ContainerSerializer(many=True),
+            },
+        )
+    )
     def list(self, request):
         queryset = self.get_queryset()
         recently_added = (

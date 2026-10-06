@@ -2,7 +2,13 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import ProtectedError
 from django.db.models.functions import Lower
-from rest_framework import status
+from drf_spectacular.utils import (
+    PolymorphicProxySerializer,
+    extend_schema,
+    extend_schema_view,
+    inline_serializer,
+)
+from rest_framework import serializers, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -12,6 +18,7 @@ from apps.users.models import User
 from apps.users.permissions import role_at_least
 
 from ..filters import LocationFilter
+from ..schema import ERROR_DETAIL
 from ..models import Location, LocationTypes
 from ..serializers import (
     LocationContainersSerializer,
@@ -22,6 +29,23 @@ from ..serializers import (
 )
 
 
+# Schema only: LocationWriteSerializer answers with `parent` nested rather
+# than as an id (see its to_representation), and destroy can refuse.
+_LOCATION_UPDATED = inline_serializer(
+    name="LocationUpdated",
+    fields={
+        "name": serializers.CharField(),
+        "type": serializers.IntegerField(),
+        "parent": LocationSerializer(allow_null=True),
+    },
+)
+
+
+@extend_schema_view(
+    update=extend_schema(responses=_LOCATION_UPDATED),
+    partial_update=extend_schema(responses=_LOCATION_UPDATED),
+    destroy=extend_schema(responses={204: None, 400: ERROR_DETAIL}),
+)
 class LocationView(ModelViewSet):
     queryset = Location.objects.all()
     filterset_class = LocationFilter
@@ -67,6 +91,26 @@ class LocationView(ModelViewSet):
     # several siblings at once (responds with a list) — all sharing the same
     # parent/type, created in one transaction so a bad name partway through
     # doesn't leave half the batch (or a new type with no locations) behind.
+    @extend_schema(
+        request=inline_serializer(
+            name="LocationCreate",
+            fields={
+                "name": serializers.CharField(required=False),
+                "names": serializers.ListField(child=serializers.CharField(), required=False),
+                "parent": serializers.IntegerField(allow_null=True, required=False),
+                "type": serializers.IntegerField(required=False),
+                "new_type": LocationTypeSerializer(required=False, allow_null=True),
+            },
+        ),
+        responses={
+            201: PolymorphicProxySerializer(
+                component_name="LocationCreated",
+                serializers=[LocationSerializer, LocationSerializer(many=True)],
+                resource_type_field_name=None,
+                many=False,
+            )
+        },
+    )
     @transaction.atomic
     def create(self, request):
         data = request.data
@@ -111,6 +155,7 @@ class LocationView(ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     # Adds a new child location
+    @extend_schema(responses={201: LocationSerializer})
     @action(detail=True, methods=["POST"])
     @transaction.atomic
     def add_child(self, request, pk=None):
@@ -133,6 +178,19 @@ class LocationView(ModelViewSet):
     # descendant of any location being moved (the same cycle Location.clean()
     # rejects) before touching the database, so a rejected move never
     # partially commits.
+    @extend_schema(
+        request=inline_serializer(
+            name="LocationMove",
+            fields={
+                # Location barcodes ("LOC-12"), as scanned
+                "childLocations": inline_serializer(
+                    name="LocationBarcode", fields={"slug": serializers.CharField()}, many=True
+                ),
+                "parentLocation": serializers.CharField(),
+            },
+        ),
+        responses={200: LocationSerializer(many=True), 400: ERROR_DETAIL},
+    )
     @action(detail=False, methods=["PATCH"])
     def move(self, request):
         data = request.data
@@ -201,6 +259,7 @@ class LocationView(ModelViewSet):
         return Response(LocationSerializer(locations, many=True).data, status=status.HTTP_200_OK)
 
     # Returns all containers for a given location, including nested child locations
+    @extend_schema(responses=LocationContainersSerializer)
     @action(detail=True, methods=["GET"])
     def containers(self, request, pk=None):
         location = self.get_object()
