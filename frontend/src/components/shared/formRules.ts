@@ -21,6 +21,10 @@ export const casRules = {
 // Lipscomb account formats — shared by Register, Profile, and UserEditForm
 export const LIPSCOMB_EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@(mail\.)?lipscomb\.edu$/;
 export const LIPSCOMB_ID_PATTERN = /^L[0-9]{8}$/;
+// "l1234 5678" -> "L12345678": spaces dropped and the L capitalised as the
+// user types, so a pasted or spaced-out ID still matches. The backend
+// applies the same rule (apps/users/serializers.py).
+export const normalizeLipscombId = (value: string) => value.replace(/\s+/g, '').toUpperCase();
 
 export const decimalPatternRule = (message = 'Please input integer or decimal value.') => ({
   value: /^\d+(\.\d+)?$/,

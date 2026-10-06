@@ -1,17 +1,29 @@
 #!/bin/sh
-#Check formatting
-echo "Running format checks" >&2
+# Runs the same checks as CI before anything leaves this machine.
+#
+# The checks read the files on disk, so uncommitted changes would mean
+# testing something other than the commits being pushed: a broken commit
+# could pass, or a good one fail. Refuse instead of guessing.
+dirty="$(git status --porcelain -- frontend backend bridge)"
+if [ -n "$dirty" ]; then
+    echo "Uncommitted changes in frontend/, backend/ or bridge/:" >&2
+    echo "$dirty" >&2
+    echo "Commit them, or set them aside with 'git stash -u', then push again." >&2
+    exit 1
+fi
+
 RESULT=0
 echo "Running prettier checks" >&2
 (cd frontend && pnpm format:check) || { echo "Prettier check failed - run pnpm format" >&2; RESULT=1; }
 echo "Running lint checks" >&2
 (cd frontend && pnpm lint) || { echo "Lint check failed" >&2; RESULT=1; }
+echo "Running type checks" >&2
+(cd frontend && pnpm exec tsc -b) || { echo "TypeScript check failed" >&2; RESULT=1; }
 echo "Running ruff checks" >&2
-(cd backend && poetry run ruff format --check ) || { echo "Ruff format check failed - run poetry run ruff format" >&2; RESULT=1; }
+(cd backend && poetry run ruff format --check .) || { echo "Ruff format check failed - run poetry run ruff format" >&2; RESULT=1; }
 (cd backend && poetry run ruff check .) || { echo "Ruff lint check failed" >&2; RESULT=1; }
 
 if [ $RESULT -gt 0 ]; then
-    echo "Formatting needed before you can push" >&2
-    echo "Exiting with code 1" >&2
-     exit 1 
+    echo "Fix the problems above before pushing" >&2
+    exit 1
 fi

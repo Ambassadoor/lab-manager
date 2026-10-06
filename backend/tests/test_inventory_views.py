@@ -691,6 +691,65 @@ class TestRolePermissions:
         # ...while Container delete stays Manager/Admin-only.
         assert client.delete(f"/api/inventory/containers/{container.slug}/").status_code == 403
 
+    def test_lab_assistant_can_read_locations_but_not_change_them(
+        self, client_as, make_location, location_type
+    ):
+        # Finding 8: update and partial_update weren't gated, so any
+        # logged-in user could rename or re-parent a location.
+        client = client_as(User.Role.LAB_ASSISTANT)
+        parent = make_location("parent")
+        location = make_location("shelf")
+        url = f"/api/inventory/locations/{location.id}/"
+
+        for read in [
+            "/api/inventory/locations/",
+            url,
+            "/api/inventory/locations/menu/",
+            f"{url}containers/",
+        ]:
+            assert client.get(read).status_code == 200, read
+
+        writes = [
+            client.patch(url, {"name": "renamed"}, format="json"),
+            client.put(
+                url, {"name": "renamed", "type": location_type.id, "parent": None}, format="json"
+            ),
+            client.patch(url, {"parent": parent.id}, format="json"),
+            client.post(
+                "/api/inventory/locations/",
+                {"name": "new", "type": location_type.id},
+                format="json",
+            ),
+            client.post(
+                f"{url}add_child/", {"name": "child", "type": location_type.id}, format="json"
+            ),
+            client.patch(
+                "/api/inventory/locations/move/",
+                {"childLocations": [{"slug": location.barcode}], "parentLocation": parent.barcode},
+                format="json",
+            ),
+            client.delete(url),
+        ]
+        assert [r.status_code for r in writes] == [403] * len(writes)
+        location.refresh_from_db()
+        assert location.name == "shelf"
+        assert location.parent is None
+
+    def test_stockroom_can_rename_and_re_parent_a_location(self, client_as, make_location):
+        client = client_as(User.Role.STOCKROOM)
+        parent = make_location("parent")
+        location = make_location("shelf")
+
+        response = client.patch(
+            f"/api/inventory/locations/{location.id}/",
+            {"name": "renamed", "parent": parent.id},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        location.refresh_from_db()
+        assert (location.name, location.parent) == ("renamed", parent)
+
     def test_coordinator_can_delete_locations_but_not_containers_or_chemicals(
         self, client_as, make_location, make_container, chemical
     ):
@@ -770,6 +829,92 @@ class TestStorageCategories:
         # Longer than the old 50-char limit allowed
         assert by_code["I6"]["description"].endswith("Peroxides, Hydrogen Peroxide")
         assert by_code["I11"]["description"] == "Inorganic Miscellaneous"
+
+
+@pytest.mark.django_db
+class TestChemicalWrites:
+    # Edits used to go through ChemicalSerializer, whose depth = 1 makes
+    # storage_category read-only: the PATCH returned 200 and changed nothing
+    # (issue #94). Creates responded without an id (issue #113).
+
+    def test_patch_changes_storage_category(self, client, chemical):
+        category = ChemicalStorageCategories.objects.get(shorthand="I1")
+
+        response = client.patch(
+            f"/api/inventory/chemicals/{chemical.id}/",
+            {"storage_category": category.id},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        chemical.refresh_from_db()
+        assert chemical.storage_category == category
+        assert response.json()["storage_category"]["shorthand"] == "I1"
+
+    def test_patch_with_the_edit_forms_blank_fields_clears_them(self, client, chemical):
+        chemical.storage_category = ChemicalStorageCategories.objects.get(shorthand="I1")
+        chemical.molecular_weight = Decimal("18.015")
+        chemical.save()
+
+        # What ChemicalEditForm sends for empty fields
+        response = client.patch(
+            f"/api/inventory/chemicals/{chemical.id}/",
+            {
+                "name": chemical.name,
+                "cas": chemical.cas,
+                "molecular_weight": "",
+                "formula": "",
+                "storage_category": "",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200
+        chemical.refresh_from_db()
+        assert chemical.storage_category is None
+        assert chemical.molecular_weight is None
+
+    def test_responses_are_the_full_chemical(self, client):
+        category = ChemicalStorageCategories.objects.get(shorthand="O4")
+
+        created = client.post(
+            "/api/inventory/chemicals/",
+            {"name": "Acetone", "cas": "67-64-1", "storage_category": category.id},
+            format="json",
+        )
+        assert created.status_code == 201
+        body = created.json()
+        assert body["id"] == Chemical.objects.get(cas="67-64-1").id
+        assert body["storage_category"]["shorthand"] == "O4"
+        assert body["sds"] == []
+        assert body["ingredients"] == []
+
+        updated = client.patch(
+            f"/api/inventory/chemicals/{body['id']}/", {"name": "Acetone (ACS)"}, format="json"
+        )
+        assert updated.status_code == 200
+        assert updated.json()["id"] == body["id"]
+        assert updated.json()["name"] == "Acetone (ACS)"
+
+
+@pytest.mark.django_db
+class TestCheckCas:
+    def test_without_cas_numbers_matches_nothing(self, client, chemical):
+        # Used to return None from the view, which DRF turns into a 500.
+        for url in [
+            "/api/inventory/chemicals/check_cas/",
+            "/api/inventory/chemicals/check_cas/?cas=",
+        ]:
+            response = client.get(url)
+
+            assert response.status_code == 200
+            assert response.json() == {"mixtures": [], "chemicals": []}
+
+    def test_finds_a_chemical_by_cas(self, client, chemical):
+        response = client.get(f"/api/inventory/chemicals/check_cas/?cas={chemical.cas}")
+
+        assert response.status_code == 200
+        assert [c["id"] for c in response.json()["chemicals"]] == [chemical.id]
 
 
 class TestNormalizeContainerSlug:
@@ -928,6 +1073,32 @@ class TestContainerCreate:
         container = Container.objects.get(chemical=created)
         assert response.data["slug"] == container.slug == f"chem-{container.id}"
         assert WeightReading.objects.get(container=container).weight == Decimal("150")
+
+    def test_density_keeps_four_decimal_places(self, client, payload):
+        # Issue #111: density was limited to two decimal places, so a
+        # common value like 1.0493 was rejected.
+        chemical = {"cas": self.NEW_CAS, "name": "Isopropanol"}
+
+        response = client.post(
+            "/api/inventory/containers/",
+            payload(chemical, density="1.0493", quantity_unit="mL"),
+            format="json",
+        )
+
+        assert response.status_code == 201
+        assert Container.objects.get(slug=response.data["slug"]).density == Decimal("1.0493")
+
+    def test_density_beyond_four_decimal_places_is_a_field_error(self, client, payload):
+        chemical = {"cas": self.NEW_CAS, "name": "Isopropanol"}
+
+        response = client.post(
+            "/api/inventory/containers/",
+            payload(chemical, density="1.04935", quantity_unit="mL"),
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "density" in response.json()
 
     def test_new_chemical_keeps_the_fields_that_are_filled_in(self, client, payload):
         category = ChemicalStorageCategories.objects.get(shorthand="O2")

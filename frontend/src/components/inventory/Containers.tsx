@@ -59,9 +59,7 @@ function isContainersViewKey(value: string | null): value is ContainersViewKey {
 function filterByView(containers: ContainerType[], view: ContainersViewKey | null) {
   switch (view) {
     case 'restock_soon':
-      return containers.filter(
-        (c) => c.percent_remaining != null && Number(c.percent_remaining) <= 10
-      );
+      return containers.filter((c) => c.percent_remaining != null && c.percent_remaining <= 10);
     case 'recently_added':
       // The backend already orders by -date_received, but Postgres sorts
       // NULLs *first* on a DESC order — so a container with no

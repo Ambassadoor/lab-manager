@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.users.serializers import UserCheckoutEventSerializer
@@ -6,6 +7,37 @@ from ..models import Chemical, CheckoutEvent, Container, Location, WeightReading
 from ..storage_rules import check_storage_conflicts
 from .chemicals import SDSSerializer
 from .locations import LocationSerializer, LocationTypeSerializer
+
+
+# Serializer for weight reading writes
+class WeightReadingSerializer(serializers.ModelSerializer):
+    recorded_by = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = WeightReading
+        fields = ["id", "weight", "recorded_at", "recorded_by", "container"]
+
+
+class WeightReadingReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WeightReading
+        fields = "__all__"
+
+
+class CheckoutEventSerializer(serializers.ModelSerializer):
+    user = UserCheckoutEventSerializer(read_only=True)
+
+    class Meta:
+        model = CheckoutEvent
+        exclude = ["container"]
+
+
+class CheckoutEventWriteSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = CheckoutEvent
+        fields = "__all__"
 
 
 class ContainerSerializer(serializers.ModelSerializer):
@@ -54,6 +86,7 @@ class ContainerSerializer(serializers.ModelSerializer):
     # falls back to one query (see Container.latest_reading and friends).
 
     # Returns the most recent weight reading
+    @extend_schema_field(WeightReadingSerializer(allow_null=True))
     def get_latest_reading(self, obj):
         latest = obj.latest_reading()
         if latest:
@@ -63,6 +96,7 @@ class ContainerSerializer(serializers.ModelSerializer):
     # container with none should fall back to its chemical's other SDS
     # (see ChemicalSerializer.get_sds), which the frontend fetches
     # separately rather than this serializer guessing at a substitute.
+    @extend_schema_field(SDSSerializer(allow_null=True))
     def get_latest_sds(self, obj):
         latest = obj.latest_sds()
         if latest:
@@ -72,10 +106,13 @@ class ContainerSerializer(serializers.ModelSerializer):
     # computed, so DashboardView's restock_soon can use the exact same
     # logic instead of a second, independently-drifting implementation
     # (see that property's docstring for the bug this caused).
+    # A Decimal, which the JSON renderer writes as a number
+    @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_percent_remaining(self, obj):
         return obj.percent_remaining
 
     # Returns the current checkout status ("in/out")
+    @extend_schema_field(CheckoutEventSerializer(allow_null=True))
     def get_checkout_status(self, obj):
         latest = obj.latest_event()
         if latest:
@@ -143,37 +180,6 @@ class ContainerWriteSerializer(serializers.ModelSerializer):
         return attrs
 
 
-# Serializer for weight reading writes
-class WeightReadingSerializer(serializers.ModelSerializer):
-    recorded_by = serializers.HiddenField(default=serializers.CurrentUserDefault())
-
-    class Meta:
-        model = WeightReading
-        fields = ["id", "weight", "recorded_at", "recorded_by", "container"]
-
-
-class WeightReadingReadSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = WeightReading
-        fields = "__all__"
-
-
-class CheckoutEventSerializer(serializers.ModelSerializer):
-    user = UserCheckoutEventSerializer(read_only=True)
-
-    class Meta:
-        model = CheckoutEvent
-        exclude = ["container"]
-
-
-class CheckoutEventWriteSerializer(serializers.ModelSerializer):
-    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
-
-    class Meta:
-        model = CheckoutEvent
-        fields = "__all__"
-
-
 # Lives here rather than serializers/locations.py: it needs ContainerSerializer
 # (defined above), and ContainerSerializer needs LocationSerializer — keeping
 # both directions of that dependency in one file avoids a locations <-> containers
@@ -193,6 +199,7 @@ class LocationContainersSerializer(serializers.ModelSerializer):
     # map in Python, then a plain BFS over that map to collect descendant
     # ids — versus the previous obj.children.all() recursion, which fired
     # one query per node visited.
+    @extend_schema_field(ContainerSerializer(many=True))
     def get_containers(self, obj):
         children_by_parent: dict[int | None, list[int]] = {}
         for child_id, parent_id in Location.objects.values_list("id", "parent_id"):

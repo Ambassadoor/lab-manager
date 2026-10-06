@@ -478,7 +478,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get: operations['inventory_containers_weigh_in_retrieve'];
+    get: operations['inventory_containers_weigh_in_list'];
     put?: never;
     post: operations['inventory_containers_weigh_in_create'];
     delete?: never;
@@ -558,7 +558,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get: operations['inventory_dashboard_list'];
+    get: operations['inventory_dashboard_retrieve'];
     put?: never;
     post?: never;
     delete?: never;
@@ -834,6 +834,10 @@ export interface components {
       /** Format: uri */
       readonly github_issue_url: string;
     };
+    CasCheck: {
+      mixtures: components['schemas']['Chemical'][];
+      chemicals: components['schemas']['Chemical'][];
+    };
     /**
      * @description * `confusing` - Something was confusing
      *     * `tedious` - Something is slow or tedious
@@ -850,9 +854,20 @@ export interface components {
       readonly timestamp: string;
       related_event?: number | null;
     };
+    CheckoutEventWrite: {
+      readonly id: number;
+      action: components['schemas']['ActionEnum'];
+      /** Format: date-time */
+      readonly timestamp: string;
+      container: number;
+      related_event?: number | null;
+    };
+    CheckoutEvents: {
+      events: components['schemas']['CheckoutEventWrite'][];
+    };
     Chemical: {
       readonly id: number;
-      readonly sds: string;
+      readonly sds: components['schemas']['SDS'][];
       name: string;
       iupac?: string | null;
       cas?: string | null;
@@ -917,11 +932,23 @@ export interface components {
        */
       tare_weight?: string | null;
       /** Has Estimated Usage? */
-      readonly has_estimated_usage: string;
-      readonly latest_reading: string;
-      readonly percent_remaining: string;
-      readonly checkout_status: string;
-      readonly latest_sds: string;
+      readonly has_estimated_usage: boolean;
+      readonly latest_reading: components['schemas']['WeightReading'] | null;
+      /** Format: double */
+      readonly percent_remaining: number | null;
+      readonly checkout_status: components['schemas']['CheckoutEvent'] | null;
+      readonly latest_sds: components['schemas']['SDS'] | null;
+    };
+    ContainerDiscardStatus: {
+      is_discarded?: boolean;
+      has_estimated_usage?: boolean;
+      is_valid?: boolean;
+    };
+    ContainerSlug: {
+      slug: string;
+    };
+    ContainerValidity: {
+      is_valid: boolean;
     };
     ContainerWrite: {
       name: string;
@@ -961,6 +988,14 @@ export interface components {
        * Format: decimal
        */
       tare_weight?: string | null;
+    };
+    Dashboard: {
+      recently_added: components['schemas']['Container'][];
+      checked_out: components['schemas']['Container'][];
+      restock_soon: components['schemas']['Container'][];
+    };
+    ErrorDetail: {
+      detail: string;
     };
     Feedback: {
       readonly id: number;
@@ -1061,6 +1096,24 @@ export interface components {
       children: number[];
       readonly full_path: string;
     };
+    LocationBarcode: {
+      slug: string;
+    };
+    LocationContainers: {
+      readonly id: number;
+      name: string;
+      type: components['schemas']['LocationType'];
+      readonly full_path: string;
+      readonly containers: components['schemas']['Container'][];
+    };
+    LocationCreate: {
+      name?: string;
+      names?: string[];
+      parent?: number | null;
+      type?: number;
+      new_type?: components['schemas']['LocationType'] | null;
+    };
+    LocationCreated: components['schemas']['Location'] | components['schemas']['Location'][];
     LocationMenu: {
       readonly id: number;
       name: string;
@@ -1072,6 +1125,11 @@ export interface components {
       slug: string;
       description?: string | null;
       icon?: string | null;
+    };
+    LocationUpdated: {
+      name: string;
+      type: number;
+      parent: components['schemas']['Location'] | null;
     };
     LocationWrite: {
       name: string;
@@ -1107,18 +1165,6 @@ export interface components {
     };
     /** @enum {unknown} */
     NullEnum: null;
-    PatchedChemical: {
-      readonly id?: number;
-      readonly sds?: string;
-      name?: string;
-      iupac?: string | null;
-      cas?: string | null;
-      formula?: string | null;
-      /** Format: decimal */
-      molecular_weight?: string | null;
-      is_organic?: boolean | null;
-      readonly storage_category?: components['schemas']['Nested'];
-    };
     PatchedChemicalStorageCategories: {
       readonly id?: number;
       shorthand?: string;
@@ -1126,51 +1172,18 @@ export interface components {
       help_text?: string;
       families?: string[];
     };
-    PatchedContainer: {
-      readonly id?: number;
-      /** ID */
-      readonly label?: string;
-      slug?: string;
+    PatchedChemicalWrite: {
       name?: string;
-      readonly chemical?: number;
-      /**
-       * Density/specific gravity
-       * Format: decimal
-       */
-      density?: string | null;
-      location?: components['schemas']['Location'];
-      manufacturer?: string | null;
-      readonly quantity?: string;
-      /** Quantity */
-      initial_quantity?: number | null;
-      /** Unit */
-      quantity_unit?:
-        | (
-            | components['schemas']['QuantityUnitEnum']
-            | components['schemas']['BlankEnum']
-            | components['schemas']['NullEnum']
-          )
-        | null;
-      /** Product # */
-      product_num?: string | null;
-      /**
-       * Received on
-       * Format: date
-       */
-      date_received?: string | null;
-      /** Opened? */
-      readonly is_opened?: boolean;
-      /**
-       * Container weight
-       * Format: decimal
-       */
-      tare_weight?: string | null;
-      /** Has Estimated Usage? */
-      readonly has_estimated_usage?: string;
-      readonly latest_reading?: string;
-      readonly percent_remaining?: string;
-      readonly checkout_status?: string;
-      readonly latest_sds?: string;
+      cas?: string | null;
+      formula?: string | null;
+      /** Format: decimal */
+      molecular_weight?: string | null;
+      storage_category?: number | null;
+    };
+    PatchedContainerTransfer: {
+      containers?: components['schemas']['ContainerSlug'][];
+      location?: number;
+      confirm_storage_conflicts?: boolean;
     };
     PatchedContainerWrite: {
       name?: string;
@@ -1238,12 +1251,9 @@ export interface components {
       media_width_mm?: components['schemas']['MediaWidthMmEnum'];
       fields?: components['schemas']['LabelTemplateField'][];
     };
-    PatchedLocation: {
-      readonly id?: number;
-      name?: string;
-      type?: components['schemas']['LocationType'];
-      children?: number[];
-      readonly full_path?: string;
+    PatchedLocationMove: {
+      childLocations?: components['schemas']['LocationBarcode'][];
+      parentLocation?: string;
     };
     PatchedLocationType: {
       readonly id?: number;
@@ -1342,6 +1352,10 @@ export interface components {
      * @enum {string}
      */
     StatusEnum: 'new' | 'triaged' | 'done';
+    StorageConflict: {
+      warnings: string[];
+      requires_confirmation: boolean;
+    };
     SuccessMessage: {
       detail: string;
     };
@@ -1372,6 +1386,24 @@ export interface components {
     UserCheckoutEvent: {
       readonly full_name: string;
     };
+    WeighIn: {
+      /** Format: decimal */
+      weight: string;
+    };
+    WeighInBulk: {
+      checkin: components['schemas']['WeighInBulkRow'][];
+    };
+    WeighInBulkResult: {
+      readings: components['schemas']['WeightReading'][];
+      events: components['schemas']['CheckoutEventWrite'][];
+    };
+    WeighInBulkRow: {
+      slug: string;
+      /** Format: decimal */
+      weight: string;
+      /** Format: decimal */
+      tare_weight?: string | null;
+    };
     WeightReading: {
       readonly id: number;
       /** Format: decimal */
@@ -1379,6 +1411,15 @@ export interface components {
       /** Format: date-time */
       readonly recorded_at: string;
       container: number;
+    };
+    WeightReadingRead: {
+      readonly id: number;
+      /** Format: decimal */
+      weight: string;
+      /** Format: date-time */
+      readonly recorded_at: string;
+      container: number;
+      recorded_by: number;
     };
   };
   responses: never;
@@ -1792,13 +1833,7 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody?: {
-      content: {
-        'application/json': components['schemas']['Feedback'];
-        'application/x-www-form-urlencoded': components['schemas']['Feedback'];
-        'multipart/form-data': components['schemas']['Feedback'];
-      };
-    };
+    requestBody?: never;
     responses: {
       200: {
         headers: {
@@ -1904,13 +1939,7 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody?: {
-      content: {
-        'application/json': components['schemas']['BugReport'];
-        'application/x-www-form-urlencoded': components['schemas']['BugReport'];
-        'multipart/form-data': components['schemas']['BugReport'];
-      };
-    };
+    requestBody?: never;
     responses: {
       200: {
         headers: {
@@ -2119,7 +2148,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ChemicalWrite'];
+          'application/json': components['schemas']['Chemical'];
         };
       };
     };
@@ -2158,9 +2187,9 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['Chemical'];
-        'application/x-www-form-urlencoded': components['schemas']['Chemical'];
-        'multipart/form-data': components['schemas']['Chemical'];
+        'application/json': components['schemas']['ChemicalWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['ChemicalWrite'];
+        'multipart/form-data': components['schemas']['ChemicalWrite'];
       };
     };
     responses: {
@@ -2207,9 +2236,9 @@ export interface operations {
     };
     requestBody?: {
       content: {
-        'application/json': components['schemas']['PatchedChemical'];
-        'application/x-www-form-urlencoded': components['schemas']['PatchedChemical'];
-        'multipart/form-data': components['schemas']['PatchedChemical'];
+        'application/json': components['schemas']['PatchedChemicalWrite'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedChemicalWrite'];
+        'multipart/form-data': components['schemas']['PatchedChemicalWrite'];
       };
     };
     responses: {
@@ -2225,7 +2254,10 @@ export interface operations {
   };
   inventory_chemicals_check_cas_retrieve: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Comma-separated CAS numbers */
+        cas?: string;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -2237,7 +2269,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Chemical'];
+          'application/json': components['schemas']['CasCheck'];
         };
       };
     };
@@ -2311,7 +2343,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ContainerWrite'];
+          'application/json': components['schemas']['Container'];
         };
       };
     };
@@ -2362,6 +2394,14 @@ export interface operations {
           'application/json': components['schemas']['ContainerWrite'];
         };
       };
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StorageConflict'];
+        };
+      };
     };
   };
   inventory_containers_destroy: {
@@ -2409,6 +2449,14 @@ export interface operations {
           'application/json': components['schemas']['ContainerWrite'];
         };
       };
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StorageConflict'];
+        };
+      };
     };
   };
   inventory_containers_is_discarded_retrieve: {
@@ -2427,7 +2475,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Container'];
+          'application/json': components['schemas']['ContainerDiscardStatus'];
         };
       };
     };
@@ -2448,14 +2496,44 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Container'];
+          'application/json': components['schemas']['ContainerValidity'];
         };
       };
     };
   };
-  inventory_containers_weigh_in_retrieve: {
+  inventory_containers_weigh_in_list: {
     parameters: {
-      query?: never;
+      query?: {
+        /**
+         * @description * `in` - Check In
+         *     * `out` - Check Out
+         */
+        checkout_status?: 'in' | 'out';
+        chemical?: number;
+        date_received_after?: string;
+        date_received_before?: string;
+        expiration_date_after?: string;
+        expiration_date_before?: string;
+        has_estimated_usage?: boolean;
+        is_discarded?: boolean;
+        is_opened?: boolean;
+        location?: number;
+        manufacturer?: string;
+        name?: string;
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+        product_num?: string;
+        /**
+         * @description * `mL` - mL
+         *     * `L` - L
+         *     * `mg` - mg
+         *     * `g` - g
+         *     * `kg` - kg
+         */
+        quantity_unit?: 'L' | 'g' | 'kg' | 'mL' | 'mg' | null;
+        /** @description A search term. */
+        search?: string;
+      };
       header?: never;
       path: {
         slug: string;
@@ -2469,7 +2547,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Container'];
+          'application/json': components['schemas']['WeightReadingRead'][];
         };
       };
     };
@@ -2485,18 +2563,18 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['Container'];
-        'application/x-www-form-urlencoded': components['schemas']['Container'];
-        'multipart/form-data': components['schemas']['Container'];
+        'application/json': components['schemas']['WeighIn'];
+        'application/x-www-form-urlencoded': components['schemas']['WeighIn'];
+        'multipart/form-data': components['schemas']['WeighIn'];
       };
     };
     responses: {
-      200: {
+      201: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Container'];
+          'application/json': components['schemas']['WeightReading'];
         };
       };
     };
@@ -2508,21 +2586,26 @@ export interface operations {
       path?: never;
       cookie?: never;
     };
-    requestBody: {
+    requestBody?: {
       content: {
-        'application/json': components['schemas']['CheckoutEvent'];
-        'application/x-www-form-urlencoded': components['schemas']['CheckoutEvent'];
-        'multipart/form-data': components['schemas']['CheckoutEvent'];
+        'application/json': string[];
       };
     };
     responses: {
-      200: {
+      201: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['CheckoutEvent'];
+          'application/json': components['schemas']['CheckoutEvents'];
         };
+      };
+      /** @description No response body */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -2533,36 +2616,71 @@ export interface operations {
       path?: never;
       cookie?: never;
     };
-    requestBody: {
+    requestBody?: {
       content: {
-        'application/json': components['schemas']['CheckoutEvent'];
-        'application/x-www-form-urlencoded': components['schemas']['CheckoutEvent'];
-        'multipart/form-data': components['schemas']['CheckoutEvent'];
+        'application/json': string[];
       };
     };
     responses: {
-      200: {
+      201: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['CheckoutEvent'];
+          'application/json': components['schemas']['CheckoutEvents'];
         };
+      };
+      /** @description No response body */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
   inventory_containers_transfer_partial_update: {
     parameters: {
-      query?: never;
+      query?: {
+        /**
+         * @description * `in` - Check In
+         *     * `out` - Check Out
+         */
+        checkout_status?: 'in' | 'out';
+        chemical?: number;
+        date_received_after?: string;
+        date_received_before?: string;
+        expiration_date_after?: string;
+        expiration_date_before?: string;
+        has_estimated_usage?: boolean;
+        is_discarded?: boolean;
+        is_opened?: boolean;
+        location?: number;
+        manufacturer?: string;
+        name?: string;
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+        product_num?: string;
+        /**
+         * @description * `mL` - mL
+         *     * `L` - L
+         *     * `mg` - mg
+         *     * `g` - g
+         *     * `kg` - kg
+         */
+        quantity_unit?: 'L' | 'g' | 'kg' | 'mL' | 'mg' | null;
+        /** @description A search term. */
+        search?: string;
+      };
       header?: never;
       path?: never;
       cookie?: never;
     };
     requestBody?: {
       content: {
-        'application/json': components['schemas']['PatchedContainer'];
-        'application/x-www-form-urlencoded': components['schemas']['PatchedContainer'];
-        'multipart/form-data': components['schemas']['PatchedContainer'];
+        'application/json': components['schemas']['PatchedContainerTransfer'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedContainerTransfer'];
+        'multipart/form-data': components['schemas']['PatchedContainerTransfer'];
       };
     };
     responses: {
@@ -2571,7 +2689,23 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Container'];
+          'application/json': components['schemas']['Container'][];
+        };
+      };
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorDetail'];
+        };
+      };
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StorageConflict'];
         };
       };
     };
@@ -2585,30 +2719,33 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['Container'];
-        'application/x-www-form-urlencoded': components['schemas']['Container'];
-        'multipart/form-data': components['schemas']['Container'];
+        'application/json': components['schemas']['WeighInBulk'];
+        'application/x-www-form-urlencoded': components['schemas']['WeighInBulk'];
+        'multipart/form-data': components['schemas']['WeighInBulk'];
       };
     };
     responses: {
-      200: {
+      201: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Container'];
+          'application/json': components['schemas']['WeighInBulkResult'];
+        };
+      };
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorDetail'];
         };
       };
     };
   };
-  inventory_dashboard_list: {
+  inventory_dashboard_retrieve: {
     parameters: {
-      query?: {
-        /** @description Which field to use when ordering the results. */
-        ordering?: string;
-        /** @description A search term. */
-        search?: string;
-      };
+      query?: never;
       header?: never;
       path?: never;
       cookie?: never;
@@ -2620,7 +2757,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Container'][];
+          'application/json': components['schemas']['Dashboard'];
         };
       };
     };
@@ -2968,11 +3105,11 @@ export interface operations {
       path?: never;
       cookie?: never;
     };
-    requestBody: {
+    requestBody?: {
       content: {
-        'application/json': components['schemas']['LocationWrite'];
-        'application/x-www-form-urlencoded': components['schemas']['LocationWrite'];
-        'multipart/form-data': components['schemas']['LocationWrite'];
+        'application/json': components['schemas']['LocationCreate'];
+        'application/x-www-form-urlencoded': components['schemas']['LocationCreate'];
+        'multipart/form-data': components['schemas']['LocationCreate'];
       };
     };
     responses: {
@@ -2981,7 +3118,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['LocationWrite'];
+          'application/json': components['schemas']['LocationCreated'];
         };
       };
     };
@@ -3031,7 +3168,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['LocationWrite'];
+          'application/json': components['schemas']['LocationUpdated'];
         };
       };
     };
@@ -3054,6 +3191,14 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorDetail'];
+        };
       };
     };
   };
@@ -3080,7 +3225,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['LocationWrite'];
+          'application/json': components['schemas']['LocationUpdated'];
         };
       };
     };
@@ -3103,12 +3248,12 @@ export interface operations {
       };
     };
     responses: {
-      200: {
+      201: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['LocationWrite'];
+          'application/json': components['schemas']['Location'];
         };
       };
     };
@@ -3130,7 +3275,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Location'];
+          'application/json': components['schemas']['LocationContainers'];
         };
       };
     };
@@ -3156,16 +3301,23 @@ export interface operations {
   };
   inventory_locations_move_partial_update: {
     parameters: {
-      query?: never;
+      query?: {
+        name?: string;
+        /** @description Which field to use when ordering the results. */
+        ordering?: string;
+        /** @description A search term. */
+        search?: string;
+        type?: number;
+      };
       header?: never;
       path?: never;
       cookie?: never;
     };
     requestBody?: {
       content: {
-        'application/json': components['schemas']['PatchedLocation'];
-        'application/x-www-form-urlencoded': components['schemas']['PatchedLocation'];
-        'multipart/form-data': components['schemas']['PatchedLocation'];
+        'application/json': components['schemas']['PatchedLocationMove'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedLocationMove'];
+        'multipart/form-data': components['schemas']['PatchedLocationMove'];
       };
     };
     responses: {
@@ -3174,7 +3326,15 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Location'];
+          'application/json': components['schemas']['Location'][];
+        };
+      };
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorDetail'];
         };
       };
     };

@@ -26,6 +26,7 @@ import { getBalanceWeight } from '../../api/bridge';
 import { createSds, type PendingSdsSelection } from '../../api/sds';
 import { containerKeys, dashboardKeys, printerKeys } from '../../api/queryKeys';
 import { setPendingActionResult, type PendingActionResult } from '../shared/pendingActionResult';
+import { applyApiErrors } from '../shared/applyApiErrors';
 import { printContainerLabel } from '../shared/printTemplates';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { useStorageConflictConfirm } from '../shared/useStorageConflictConfirm';
@@ -69,6 +70,7 @@ const convertUnits = (defaultUnit: string, currentUnit: string, quantity: string
 export const ContainerForm = () => {
   const [cas, setCas] = useState<CasCheck | undefined>();
   const [bridgeError, setBridgeError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Kept outside RHF (unlike the rest of the form): a File can't survive
   // JSON.stringify, which the session-storage form-memory effect below
@@ -129,6 +131,7 @@ export const ContainerForm = () => {
     clearErrors,
     formState: { errors, isSubmitting, isValidating },
     setValue,
+    setError,
     trigger,
     handleSubmit,
     reset,
@@ -155,6 +158,14 @@ export const ContainerForm = () => {
   }, [formValues]);
 
   const casRef = useRef(cas);
+  // Which CAS number filled each chemical row's name, molecular weight and
+  // storage category, keyed by the row's field id (stable when rows are
+  // removed). Lets a row whose CAS changes drop the details it was filled
+  // with, instead of keeping the first chemical's (#112).
+  const autofilledFrom = useRef<Record<string, string>>({});
+  // Only the newest lookup may fill the form; an older response that
+  // arrives late would otherwise overwrite it.
+  const lookupSeq = useRef(0);
 
   //Check db for input cas nums and update fields with info if already in system
   useEffect(() => {
@@ -165,6 +176,19 @@ export const ContainerForm = () => {
       if (!errors.chemicals?.[i]?.cas && c && cas_is_valid(c)) {
         validCasNum.push({ index: i, cas: c });
       }
+    });
+    // A row filled from a CAS it no longer shows: clear what was filled.
+    // Fields the user typed themselves are never touched. Forgetting the
+    // last lookup makes retyping the original CAS look it up (and fill the
+    // row) again.
+    fields.forEach((field, i) => {
+      const filledFrom = autofilledFrom.current[field.rhfId];
+      if (filledFrom === undefined || allCas[i] === filledFrom) return;
+      setValue(`chemicals.${i}.name`, '');
+      setValue(`chemicals.${i}.molecular_weight`, '');
+      setValue(`chemicals.${i}.storage_category`, '');
+      delete autofilledFrom.current[field.rhfId];
+      casRef.current = undefined;
     });
     if (
       casRef.current &&
@@ -177,8 +201,10 @@ export const ContainerForm = () => {
       already_processed = true;
     if (already_processed) return;
     const casString = validCasNum?.map((v) => v.cas).join(',');
-    if (casString.length > 0)
+    if (casString.length > 0) {
+      const seq = ++lookupSeq.current;
       getChemicalByCas(casString).then((res) => {
+        if (seq !== lookupSeq.current) return;
         res.chemicals.forEach((c) => {
           const name = validCasNum.find((o) => {
             return o.cas === c.cas;
@@ -189,12 +215,15 @@ export const ContainerForm = () => {
               setValue(`chemicals.${name.index}.molecular_weight`, c.molecular_weight);
             if (c.storage_category)
               setValue(`chemicals.${name.index}.storage_category`, c.storage_category.id);
+            const rowId = fields[name.index]?.rhfId;
+            if (rowId && c.cas) autofilledFrom.current[rowId] = c.cas;
           }
         });
         setCas(res);
         casRef.current = res;
       });
-  }, [errors.chemicals, setValue, allCas]);
+    }
+  }, [errors.chemicals, setValue, allCas, fields]);
 
   //Calculate and populate the tare weight field using previously input fields
   useEffect(() => {
@@ -286,14 +315,18 @@ export const ContainerForm = () => {
     }
 
     let response;
+    setSubmitError(null);
     try {
       response = await submitNewContainerForm(data, confirmed);
     } catch (e) {
       // Storage-conflict 409s are handled here (show the warnings, offer
-      // to proceed anyway) rather than as a normal submit failure — any
-      // other error just propagates like it did before this existed.
+      // to proceed anyway) rather than as a normal submit failure.
       if (storageConflict.intercept(e, () => doSubmit(data, true))) return;
-      throw e;
+      // Anything else is shown: on its field when the server names one the
+      // form has, otherwise in the alert by the Submit button. (Re-throwing
+      // here used to make react-hook-form drop the error silently, #111.)
+      setSubmitError(applyApiErrors(e, data, setError));
+      return;
     }
     sessionStorage.removeItem('container_form_cache');
     queryClient.invalidateQueries({ queryKey: containerKeys.list() });
@@ -595,6 +628,11 @@ export const ContainerForm = () => {
                 />
               </Stack>
               <Divider />
+              {submitError && (
+                <Alert severity="error" onClose={() => setSubmitError(null)}>
+                  {submitError}
+                </Alert>
+              )}
               <Stack direction={'row'} spacing={2} sx={{ justifyContent: 'right' }}>
                 <Button variant="contained" type="submit" loading={isSubmitting || isValidating}>
                   Submit

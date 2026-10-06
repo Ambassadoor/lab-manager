@@ -4,6 +4,7 @@ import re
 
 
 LIPSCOMB_EMAIL_REGEX = r"^[a-zA-Z0-9._%+-]+@(mail\.)?lipscomb\.edu$"
+LIPSCOMB_ID_REGEX = r"^L[0-9]{8}$"
 
 
 def validate_lipscomb_email(value):
@@ -13,6 +14,22 @@ def validate_lipscomb_email(value):
     """
     if not re.match(LIPSCOMB_EMAIL_REGEX, value):
         raise serializers.ValidationError("You must use your lipscomb email address.")
+    return value
+
+
+def validate_lipscomb_id(value):
+    """Shared by registration and both profile edit serializers, like the
+    email check above. "l1234 5678" is saved as "L12345678" (issue #89),
+    and a blank ID as NULL: lipscomb_id is unique, so two accounts stored
+    with "" would collide.
+    """
+    if value is None:
+        return None
+    value = re.sub(r"\s+", "", value).upper()
+    if not value:
+        return None
+    if not re.match(LIPSCOMB_ID_REGEX, value):
+        raise serializers.ValidationError("Please match L12345678 format.")
     return value
 
 
@@ -38,6 +55,9 @@ class UserSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         return validate_lipscomb_email(value)
+
+    def validate_lipscomb_id(self, value):
+        return validate_lipscomb_id(value)
 
 
 # Used by UserView (Admin/Lab Manager editing *another* user's account) —
@@ -65,6 +85,9 @@ class UserAdminSerializer(serializers.ModelSerializer):
     def validate_email(self, value):
         return validate_lipscomb_email(value)
 
+    def validate_lipscomb_id(self, value):
+        return validate_lipscomb_id(value)
+
 
 # Returns users full name for display in checkout events
 class UserCheckoutEventSerializer(serializers.ModelSerializer):
@@ -74,7 +97,7 @@ class UserCheckoutEventSerializer(serializers.ModelSerializer):
         model = User
         fields = ["full_name"]
 
-    def get_full_name(self, obj):
+    def get_full_name(self, obj) -> str:
         return f"{obj.first_name} {obj.last_name}"
 
 
@@ -93,6 +116,9 @@ class NewUserSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         return validate_lipscomb_email(value)
+
+    def validate_lipscomb_id(self, value):
+        return validate_lipscomb_id(value)
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)

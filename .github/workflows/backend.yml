@@ -4,9 +4,10 @@ on:
   push:
     branches: [main, develop]
     paths: ["backend/**", ".github/workflows/backend.yml"]
+  # No paths filter here: this is a required check, and a required check
+  # that never starts leaves the pull request waiting forever.
   pull_request:
-    branches: [main]
-    paths: ["backend/**", ".github/workflows/backend.yml"]
+    branches: [main, develop]
 
 defaults:
   run:

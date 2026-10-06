@@ -1,5 +1,6 @@
 import re
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from ..drive import DriveUploadError, upload_sds_file
@@ -36,6 +37,36 @@ def _build_sds_filename(container, revision_date, revision_number) -> str:
     if revision_date is not None:
         parts.append(str(revision_date))
     return "_".join(parts) + ".pdf"
+
+
+class SDSContainerSerializer(serializers.ModelSerializer):
+    label = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Container
+        fields = ["id", "label", "name"]
+
+
+class SDSSerializer(serializers.ModelSerializer):
+    container = SDSContainerSerializer(read_only=True)
+    view_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SDS
+        fields = [
+            "id",
+            "container",
+            "file_name",
+            "drive_id",
+            "revision_date",
+            "revision_number",
+            "ghs_pictograms",
+            "view_url",
+        ]
+
+    # Drive's inline-preview endpoint — the frontend never builds this itself.
+    def get_view_url(self, obj) -> str:
+        return f"https://drive.google.com/file/d/{obj.drive_id}/preview"
 
 
 def _chemical_sds_queryset():
@@ -96,6 +127,7 @@ class ChemicalSerializer(serializers.ModelSerializer):
     # rather than a plain reverse accessor.
     #
     # In a list, ChemicalListSerializer has already loaded them all.
+    @extend_schema_field(SDSSerializer(many=True))
     def get_sds(self, obj):
         sds_by_chemical = getattr(self, "sds_by_chemical", None)
         if sds_by_chemical is not None:
@@ -105,46 +137,24 @@ class ChemicalSerializer(serializers.ModelSerializer):
         return SDSSerializer(sds, many=True).data
 
 
+# Create and edit. ChemicalSerializer can't be used for writes: its
+# depth = 1 turns storage_category into a read-only nested object, so DRF
+# silently drops a new category from a PATCH (issue #94).
 class ChemicalWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Chemical
         fields = ["name", "cas", "formula", "molecular_weight", "storage_category"]
+
+    # Respond with the full chemical, including its id (issue #113: the
+    # Add Chemical page navigates to the new chemical by that id).
+    def to_representation(self, instance):
+        return ChemicalSerializer(instance, context=self.context).data
 
 
 class ChemicalStorageCategoriesSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChemicalStorageCategories
         fields = "__all__"
-
-
-class SDSContainerSerializer(serializers.ModelSerializer):
-    label = serializers.ReadOnlyField()
-
-    class Meta:
-        model = Container
-        fields = ["id", "label", "name"]
-
-
-class SDSSerializer(serializers.ModelSerializer):
-    container = SDSContainerSerializer(read_only=True)
-    view_url = serializers.SerializerMethodField()
-
-    class Meta:
-        model = SDS
-        fields = [
-            "id",
-            "container",
-            "file_name",
-            "drive_id",
-            "revision_date",
-            "revision_number",
-            "ghs_pictograms",
-            "view_url",
-        ]
-
-    # Drive's inline-preview endpoint — the frontend never builds this itself.
-    def get_view_url(self, obj):
-        return f"https://drive.google.com/file/d/{obj.drive_id}/preview"
 
 
 class SDSWriteSerializer(serializers.ModelSerializer):

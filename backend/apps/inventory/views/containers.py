@@ -3,7 +3,8 @@ import re
 from django.db import transaction
 from django.db.models.functions import Lower
 from django.http import Http404
-from rest_framework import status
+from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -14,6 +15,7 @@ from apps.users.models import User
 from apps.users.permissions import role_at_least
 
 from ..filters import ContainerFilter
+from ..schema import ERROR_DETAIL, STORAGE_CONFLICT
 from ..models import Chemical, CheckoutEvent, Container, WeightReading
 from ..serializers import (
     ChemicalSerializer,
@@ -29,6 +31,13 @@ from ..serializers import (
 
 _PADDED_CONTAINER_ID = re.compile(r"chem-0*(\d+)")
 
+# Schema only, shared by check_out and check_in: the body is a bare list of
+# container ids as scanned, and the answer wraps the created events.
+SLUG_LIST = {"application/json": {"type": "array", "items": {"type": "string"}}}
+CHECKOUT_EVENTS = inline_serializer(
+    name="CheckoutEvents", fields={"events": CheckoutEventWriteSerializer(many=True)}
+)
+
 
 # Turns any form a container id arrives in into its stored slug. Printed
 # barcodes carry Container.label, which is uppercase and zero-padded to the
@@ -41,6 +50,13 @@ def normalize_container_slug(raw) -> str:
     return f"chem-{int(match.group(1))}" if match else slug
 
 
+# Schema only: create builds its response with ContainerSerializer, and an
+# edit that moves a container can 409 (see _storage_conflict_response).
+@extend_schema_view(
+    create=extend_schema(responses={201: ContainerSerializer}),
+    update=extend_schema(responses={200: ContainerWriteSerializer, 409: STORAGE_CONFLICT}),
+    partial_update=extend_schema(responses={200: ContainerWriteSerializer, 409: STORAGE_CONFLICT}),
+)
 class ContainerView(ModelViewSet):
     queryset = Container.objects.all()
     filterset_class = ContainerFilter
@@ -139,6 +155,17 @@ class ContainerView(ModelViewSet):
     # already validates the container in WeighIn.tsx, so the frontend can
     # decide whether to show its tare-weight backfill field without a
     # second round trip.
+    @extend_schema(
+        responses=inline_serializer(
+            name="ContainerDiscardStatus",
+            fields={
+                "is_discarded": serializers.BooleanField(required=False),
+                "has_estimated_usage": serializers.BooleanField(required=False),
+                # Only {"is_valid": false}, when the container doesn't exist
+                "is_valid": serializers.BooleanField(required=False),
+            },
+        )
+    )
     @action(detail=True, methods=["get"])
     def is_discarded(self, request, slug=None):
         try:
@@ -154,6 +181,7 @@ class ContainerView(ModelViewSet):
             return Response({"is_valid": False}, status=status.HTTP_200_OK)
 
     # Creates checkout events for the provided containers
+    @extend_schema(request=SLUG_LIST, responses={201: CHECKOUT_EVENTS, 400: None})
     @action(detail=False, methods=["POST"])
     def check_out(self, request):
         data = request.data
@@ -173,6 +201,7 @@ class ContainerView(ModelViewSet):
             return Response({"events": serializer.data}, status=status.HTTP_201_CREATED)
 
     # Creates check in events for the provided containers
+    @extend_schema(request=SLUG_LIST, responses={201: CHECKOUT_EVENTS, 400: None})
     @action(detail=False, methods=["POST"])
     def check_in(self, request):
         data = request.data
@@ -210,6 +239,11 @@ class ContainerView(ModelViewSet):
             return Response({"events": serializer.data}, status=status.HTTP_201_CREATED)
 
     # Returns if the provided container is valid or not
+    @extend_schema(
+        responses=inline_serializer(
+            name="ContainerValidity", fields={"is_valid": serializers.BooleanField()}
+        )
+    )
     @action(detail=True, methods=["GET"])
     def is_valid(self, request, slug=None):
         try:
@@ -340,6 +374,15 @@ class ContainerView(ModelViewSet):
         return Response(ContainerSerializer(container).data, status=status.HTTP_201_CREATED)
 
     # Creates new weigh in event
+    @extend_schema(methods=["GET"], responses=WeightReadingReadSerializer(many=True))
+    @extend_schema(
+        methods=["POST"],
+        request=inline_serializer(
+            name="WeighIn",
+            fields={"weight": serializers.DecimalField(max_digits=8, decimal_places=4)},
+        ),
+        responses={201: WeightReadingSerializer},
+    )
     @action(detail=True, methods=["GET", "POST"])
     def weigh_in(self, request, slug=None):
         container = self.get_object()
@@ -362,6 +405,23 @@ class ContainerView(ModelViewSet):
             serializer = WeightReadingReadSerializer(events, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @extend_schema(
+        request=inline_serializer(
+            name="ContainerTransfer",
+            fields={
+                "containers": inline_serializer(
+                    name="ContainerSlug", fields={"slug": serializers.CharField()}, many=True
+                ),
+                "location": serializers.IntegerField(),
+                "confirm_storage_conflicts": serializers.BooleanField(required=False),
+            },
+        ),
+        responses={
+            200: ContainerSerializer(many=True),
+            400: ERROR_DETAIL,
+            409: STORAGE_CONFLICT,
+        },
+    )
     @action(detail=False, methods=["PATCH"])
     @transaction.atomic
     def transfer(self, request):
@@ -426,6 +486,35 @@ class ContainerView(ModelViewSet):
     # atomic request — consolidates what used to be two separate actions
     # (weigh_in per container, check_in as a bulk slug list) into the single
     # form flow the frontend's WeighIn page presents.
+    @extend_schema(
+        request=inline_serializer(
+            name="WeighInBulk",
+            fields={
+                "checkin": inline_serializer(
+                    name="WeighInBulkRow",
+                    fields={
+                        "slug": serializers.CharField(),
+                        "weight": serializers.DecimalField(max_digits=8, decimal_places=4),
+                        # Only for a container without a real tare weight yet
+                        "tare_weight": serializers.DecimalField(
+                            max_digits=8, decimal_places=4, required=False, allow_null=True
+                        ),
+                    },
+                    many=True,
+                )
+            },
+        ),
+        responses={
+            201: inline_serializer(
+                name="WeighInBulkResult",
+                fields={
+                    "readings": WeightReadingSerializer(many=True),
+                    "events": CheckoutEventWriteSerializer(many=True),
+                },
+            ),
+            400: ERROR_DETAIL,
+        },
+    )
     @action(detail=False, methods=["POST"], url_path="weigh_in_bulk")
     @transaction.atomic
     def weigh_in_bulk(self, request):

@@ -34,7 +34,7 @@ Anyone with an `@lipscomb.edu` or `@mail.lipscomb.edu` address can register. The
 | Containers | Any user | Stockroom | Lab Manager |
 | Container actions: check out, check in, weigh in, transfer | — | Stockroom | — |
 | Weight readings | Any user | Stockroom | Lab Manager |
-| Locations | Any user | Create, add child, move: Stockroom. **Edit (rename, re-parent): any user** | Stockroom |
+| Locations | Any user | Stockroom (create, add child, rename, re-parent, move) | Stockroom |
 | Location types | Any user | Stockroom | Lab Manager |
 | SDS | **Visitor** | Stockroom (create only; an SDS cannot be edited) | Not possible |
 | Label templates | Any user | Lab Manager | Lab Manager |
@@ -68,7 +68,6 @@ The bridge (balance read and tare, label print, printer status) has **no login o
 
 These are open findings in the [Post-MVP Code Review](Post-MVP-Code-Review.md), listed here so the matrix above is not read as the intended design.
 
-- **Location edit is not role-gated** (finding 8). A Lab Assistant can rename or re-parent a location through the API.
 - **The bridge is unauthenticated** (finding 6).
 - **Weight readings and checkout events can be edited** although they are meant to be append-only (finding 10).
 - **Email addresses are not verified** at registration.

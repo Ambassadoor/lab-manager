@@ -1,4 +1,11 @@
 from django.db.models import Count, F, Q
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+    inline_serializer,
+)
 from natsort import natsorted
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -17,6 +24,13 @@ from ..serializers import (
 )
 
 
+# Writes go through ChemicalWriteSerializer but respond with the full
+# chemical; tell the schema so the generated frontend types match.
+@extend_schema_view(
+    create=extend_schema(responses={201: ChemicalSerializer}),
+    update=extend_schema(responses=ChemicalSerializer),
+    partial_update=extend_schema(responses=ChemicalSerializer),
+)
 class ChemicalView(ModelViewSet):
     serializer_class = ChemicalSerializer
     queryset = Chemical.objects.all()
@@ -36,7 +50,7 @@ class ChemicalView(ModelViewSet):
         return super().get_permissions()
 
     def get_serializer_class(self):
-        if self.action == "create":
+        if self.action in {"create", "update", "partial_update"}:
             return ChemicalWriteSerializer
         return super().get_serializer_class()
 
@@ -52,28 +66,48 @@ class ChemicalView(ModelViewSet):
         )
 
     # Returns any mixtures or chemicals associated with the provided cas nums
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="cas",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Comma-separated CAS numbers",
+            )
+        ],
+        responses=inline_serializer(
+            name="CasCheck",
+            fields={
+                "mixtures": ChemicalSerializer(many=True),
+                "chemicals": ChemicalSerializer(many=True),
+            },
+        ),
+    )
     @action(detail=False, methods=["get"])
     def check_cas(self, request):
         q = self.get_queryset()
         cas_param = request.query_params.get("cas")
-        if cas_param:
-            cas = cas_param.split(",")
-            mixtures = q.annotate(
-                total_ingredients=Count("ingredients", distinct=True),
-                matching_ingredients=Count(
-                    "ingredients",
-                    filter=Q(ingredients__ingredient__cas__in=cas),
-                    distinct=True,
-                ),
-            ).filter(
-                total_ingredients=len(cas),
-                matching_ingredients=F("total_ingredients"),
-            )
-            chemicals = q
-            chemicals = chemicals.filter(cas__in=cas)
-            mixtures = ChemicalSerializer(mixtures, many=True).data
-            chemicals = ChemicalSerializer(chemicals, many=True).data
-            return Response({"mixtures": mixtures, "chemicals": chemicals})
+        # No CAS numbers means nothing can match. Without this the view fell
+        # off the end and returned None, which DRF turns into a 500.
+        if not cas_param:
+            return Response({"mixtures": [], "chemicals": []})
+        cas = cas_param.split(",")
+        mixtures = q.annotate(
+            total_ingredients=Count("ingredients", distinct=True),
+            matching_ingredients=Count(
+                "ingredients",
+                filter=Q(ingredients__ingredient__cas__in=cas),
+                distinct=True,
+            ),
+        ).filter(
+            total_ingredients=len(cas),
+            matching_ingredients=F("total_ingredients"),
+        )
+        chemicals = q
+        chemicals = chemicals.filter(cas__in=cas)
+        mixtures = ChemicalSerializer(mixtures, many=True).data
+        chemicals = ChemicalSerializer(chemicals, many=True).data
+        return Response({"mixtures": mixtures, "chemicals": chemicals})
 
 
 class ChemicalStorageCategoryView(ModelViewSet):

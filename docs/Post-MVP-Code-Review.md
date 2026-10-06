@@ -99,7 +99,7 @@ A caveat on finding 3: the test confirms the server rejects a padded id and that
 | 16 | "Latest SDS" sorts the revision number as text, so revision `10` sorts below revision `9`. | Verified (read) | [serializers/containers.py:62-65](../backend/apps/inventory/serializers/containers.py#L62-L65) | Low |
 | 17 | Smaller items: a missing React `key` in Move, a delete dialog that promises to remove child locations when the server refuses, dead endpoints, a router rebuilt on each render. | Verified (read) | See sections 5.4, 5.12, 5.13 | Low |
 
-**Status, 6 October 2026, finding 5:** fixed on the branch `cp/bugfix/list_query_counts`, together with the chemical list from section 5.8. Measured locally against a copy of production data (1,131 containers, 707 chemicals), through the full view:
+**Status, 6 October 2026, finding 5:** fixed in release `v1.1.1` (PR #114), together with the chemical list from section 5.8. On the Pi, in the browser, the Containers page now loads in about 1.5 s (22.6 s before, measured in a Django shell) and the Chemicals page in about 1 s. The query counts and local timings below were measured against a copy of production data (1,131 containers, 707 chemicals), through the full view:
 
 | Endpoint | Queries before | Queries after | Time before | Time after |
 |---|---|---|---|---|
@@ -109,6 +109,8 @@ A caveat on finding 3: the test confirms the server rejects a padded id and that
 | Dashboard | 551 | 15 | 0.3 s | 0.05 s |
 
 The query count no longer depends on the number of rows: `Container.objects.for_display()` loads the newest reading, checkout event and SDS for a whole list with one `DISTINCT ON` query each, and computes the label padding once. Half of the remaining time turned out not to be the database: the nested location serializer built a new serializer for every node of every container's location subtree, about 20,700 per request. The response bodies for the two container lists are byte-identical to before. The chemical list and dashboard differ only where rows were tied (SDS with the same revision, containers with the same percentage), which are now ordered by id instead of by chance. No pagination was added; the full container list is still about 4.4 MB, mostly the nested location subtrees.
+
+**Status, 6 October 2026, finding 8:** fixed. `LocationView` now lists the actions that are open (list, retrieve, menu, containers) and requires Stockroom for everything else, the allow-list pattern recommended in section 5.7, so a new action is gated by default. Tested for every location write as a Lab Assistant.
 
 **Status, 1 October 2026, finding 7:** the repo side is done on the branch `cp/feature/https`. nginx serves `https://app.cplabmanager.com` with a Let's Encrypt certificate obtained through a Cloudflare DNS challenge, which needs neither a hostname from IT nor the Pi being reachable from the internet. Port 80 redirects, and the deploy script's health checks follow the configured address. The switch on the Pi itself (certificate, firewall, `.env` values, nginx file) is a manual runbook in [deploy/pi/README.md](../deploy/pi/README.md#https). It was run the same day with release `v1.1.0`, and checked from a second machine on the campus network: the page, the API and the bridge answer over HTTPS with the Let's Encrypt certificate, port 80 redirects, and the CSRF cookie carries the `Secure` flag. Finding 6 is unchanged: the bridge is now encrypted in transit but still has no login.
 

@@ -1,8 +1,6 @@
 #!/bin/sh
-#Update openapi.json & api.ts
-echo "Updating openapi.json" >&2
-(cd backend && poetry run python manage.py spectacular --file openapi.json ) || { echo "Failed to update openapi.json" >&2; exit 1; }
-(cd frontend && pnpm openapi-typescript ../backend/openapi.json --output ./src/types/api.ts ) || { echo "Failed to update api.ts" >&2; exit 1; }
-(cd frontend && pnpm format)
-(cd backend && git add openapi.json) || { echo "Failed to stage openapi.json" >&2; exit 1; }
-(cd frontend/src/types && git add api.ts) || { echo "Failed to stage api.ts" >&2; exit 1; }
+# Regenerates openapi.json and api.ts and adds them to the commit, so the
+# frontend types always match the backend they were generated from.
+echo "Updating openapi.json and api.ts" >&2
+./scripts/generate-api-types.sh || { echo "Failed to regenerate the API types" >&2; exit 1; }
+git add backend/openapi.json frontend/src/types/api.ts || { echo "Failed to stage the API types" >&2; exit 1; }
