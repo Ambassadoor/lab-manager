@@ -87,24 +87,27 @@ class ChemicalView(ModelViewSet):
     def check_cas(self, request):
         q = self.get_queryset()
         cas_param = request.query_params.get("cas")
-        if cas_param:
-            cas = cas_param.split(",")
-            mixtures = q.annotate(
-                total_ingredients=Count("ingredients", distinct=True),
-                matching_ingredients=Count(
-                    "ingredients",
-                    filter=Q(ingredients__ingredient__cas__in=cas),
-                    distinct=True,
-                ),
-            ).filter(
-                total_ingredients=len(cas),
-                matching_ingredients=F("total_ingredients"),
-            )
-            chemicals = q
-            chemicals = chemicals.filter(cas__in=cas)
-            mixtures = ChemicalSerializer(mixtures, many=True).data
-            chemicals = ChemicalSerializer(chemicals, many=True).data
-            return Response({"mixtures": mixtures, "chemicals": chemicals})
+        # No CAS numbers means nothing can match. Without this the view fell
+        # off the end and returned None, which DRF turns into a 500.
+        if not cas_param:
+            return Response({"mixtures": [], "chemicals": []})
+        cas = cas_param.split(",")
+        mixtures = q.annotate(
+            total_ingredients=Count("ingredients", distinct=True),
+            matching_ingredients=Count(
+                "ingredients",
+                filter=Q(ingredients__ingredient__cas__in=cas),
+                distinct=True,
+            ),
+        ).filter(
+            total_ingredients=len(cas),
+            matching_ingredients=F("total_ingredients"),
+        )
+        chemicals = q
+        chemicals = chemicals.filter(cas__in=cas)
+        mixtures = ChemicalSerializer(mixtures, many=True).data
+        chemicals = ChemicalSerializer(chemicals, many=True).data
+        return Response({"mixtures": mixtures, "chemicals": chemicals})
 
 
 class ChemicalStorageCategoryView(ModelViewSet):

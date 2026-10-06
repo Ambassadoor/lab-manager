@@ -838,6 +838,26 @@ class TestChemicalWrites:
         assert updated.json()["name"] == "Acetone (ACS)"
 
 
+@pytest.mark.django_db
+class TestCheckCas:
+    def test_without_cas_numbers_matches_nothing(self, client, chemical):
+        # Used to return None from the view, which DRF turns into a 500.
+        for url in [
+            "/api/inventory/chemicals/check_cas/",
+            "/api/inventory/chemicals/check_cas/?cas=",
+        ]:
+            response = client.get(url)
+
+            assert response.status_code == 200
+            assert response.json() == {"mixtures": [], "chemicals": []}
+
+    def test_finds_a_chemical_by_cas(self, client, chemical):
+        response = client.get(f"/api/inventory/chemicals/check_cas/?cas={chemical.cas}")
+
+        assert response.status_code == 200
+        assert [c["id"] for c in response.json()["chemicals"]] == [chemical.id]
+
+
 class TestNormalizeContainerSlug:
     @pytest.mark.parametrize(
         "raw, expected",
