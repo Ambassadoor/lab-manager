@@ -26,7 +26,7 @@ import {
 } from '@mui/material';
 import type { Theme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
-import { useState, type JSX } from 'react';
+import { useLayoutEffect, useRef, useState, type JSX } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Logout } from '@mui/icons-material';
 import { DarkModeToggle } from './DarkModeToggle';
@@ -78,10 +78,37 @@ export const Navbar = (): JSX.Element | null => {
     setActionsMenuEl(null);
   };
 
-  // Mobile nav drawer — swaps in for the horizontal button row below the
-  // `sm` breakpoint (see the two Box sx={{ display: {...} }} wrappers below).
+  // Nav drawer — swaps in for the horizontal row of links whenever they
+  // don't fit beside the title and icons.
   const [mobileOpen, setMobileOpen] = useState(false);
   const closeMobileMenu = () => setMobileOpen(false);
+
+  // Whether the links fit. Measured rather than tied to a breakpoint: they
+  // need about 820 px for a Lab Assistant and 1,360 px for a Lab Manager
+  // (4 to 8 links), more when zoomed, so any fixed breakpoint is wrong for
+  // someone. Before this, links that didn't fit spilled past the bar and
+  // made the page scroll sideways (#86). The links row is always laid out
+  // at its natural width (max-content), only hidden when it doesn't fit,
+  // so it can be measured either way.
+  const linksAreaRef = useRef<HTMLDivElement>(null);
+  const linksRef = useRef<HTMLDivElement>(null);
+  const [linksFit, setLinksFit] = useState(true);
+  useLayoutEffect(() => {
+    const area = linksAreaRef.current;
+    const links = linksRef.current;
+    if (!area || !links) return;
+    const measure = () => {
+      const padding = parseFloat(getComputedStyle(area).paddingLeft) || 0;
+      setLinksFit(links.offsetWidth <= area.clientWidth - padding);
+    };
+    measure();
+    // The area resizes with the window; the links change with the user's
+    // role (logging in or out) and when the font finishes loading.
+    const observer = new ResizeObserver(measure);
+    observer.observe(area);
+    observer.observe(links);
+    return () => observer.disconnect();
+  }, [loading]);
 
   const navigate = useNavigate();
   const navigation = useNavigation();
@@ -101,7 +128,7 @@ export const Navbar = (): JSX.Element | null => {
               edge="start"
               color="inherit"
               aria-label="menu"
-              sx={{ mr: 2, display: { xs: 'inline-flex', sm: 'none' } }}
+              sx={{ mr: 2, display: linksFit ? 'none' : 'inline-flex' }}
               onClick={() => setMobileOpen((prev) => !prev)}
             >
               <MenuIcon />
@@ -114,8 +141,17 @@ export const Navbar = (): JSX.Element | null => {
             >
               Lab Manager
             </Typography>
-            <Box sx={{ flexGrow: 1, pl: 4, display: { xs: 'none', sm: 'block' } }}>
-              <Stack spacing={2} direction={'row'}>
+            {/* Takes the free space either way; overflow is clipped so links
+                that don't fit can never widen the page. */}
+            <Box ref={linksAreaRef} sx={{ flexGrow: 1, minWidth: 0, overflow: 'hidden', pl: 4 }}>
+              <Stack
+                ref={linksRef}
+                spacing={2}
+                direction={'row'}
+                // visibility (not display) keeps the row's width measurable,
+                // and still removes it from the tab order and screen readers
+                sx={{ width: 'max-content', visibility: linksFit ? 'visible' : 'hidden' }}
+              >
                 {/* Always visible, logged in or out — SDS viewing is public
                     safety information (see App.tsx's /sds routes). */}
                 <Button component={NavLink} to="/sds" color="inherit" sx={navLinkSx} end>
@@ -296,9 +332,9 @@ export const Navbar = (): JSX.Element | null => {
           "Search SDS" has to be reachable here while logged out too. */}
       <Drawer
         anchor="left"
-        open={mobileOpen}
+        // Closes by itself if the window widens until the links fit again
+        open={mobileOpen && !linksFit}
         onClose={closeMobileMenu}
-        sx={{ display: { xs: 'block', sm: 'none' } }}
       >
         <Box sx={{ width: 260 }} role="presentation">
           <List>
