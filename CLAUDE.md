@@ -60,7 +60,7 @@ poetry run ruff format .
 
 Hooks live in `.githooks/` and need `git config core.hooksPath .githooks` once per clone.
 
-- **pre-commit** runs `scripts/generate-api-types.sh`, which regenerates `backend/openapi.json` (drf-spectacular) and `frontend/src/types/api.ts` (openapi-typescript), and stages both. Never edit those two files by hand; change the serializer or view (with `@extend_schema` / `@extend_schema_field` where drf-spectacular can't infer a type) and regenerate. `tests/test_schema.py` fails on any schema warning.
+- **pre-commit** runs `scripts/generate-api-types.sh`, which regenerates `backend/openapi.json` (drf-spectacular) and `frontend/src/types/api.ts` (openapi-typescript), and stages both. Never edit those two files by hand; see [API schema and frontend types](#api-schema-and-frontend-types).
 - **pre-push** runs Prettier, ESLint, `tsc -b` and Ruff, and refuses to run while `frontend/`, `backend/` or `bridge/` have uncommitted changes.
 
 ### Branching
@@ -118,6 +118,24 @@ SDS list/retrieve and bug report/feedback creation are public (`AllowAny`).
 - **BugReport / Feedback** — in `apps/feedback`.
 
 CheckoutEvent and WeightReading are meant to be append-only, but this is not enforced yet: `WeightReadingView` is a full `ModelViewSet` and both timestamps use `auto_now=True`.
+
+### API schema and frontend types
+
+The frontend's API types are generated from the backend: drf-spectacular builds `backend/openapi.json` from the serializers and views, and openapi-typescript turns that into `frontend/src/types/api.ts`. drf-spectacular can't run a view; it infers each shape, and where it can't, it guesses (usually `string`) or uses the wrong serializer. **Any backend change that adds or changes what an endpoint accepts or returns must keep the schema exact.** In particular:
+
+- **`SerializerMethodField` / computed fields:** give every `get_<field>` method a return-type hint (`-> str`, `-> bool`) or `@extend_schema_field(...)`, e.g. `@extend_schema_field(SDSSerializer(allow_null=True))` for an object that can be `None`, `SDSSerializer(many=True)` for a list. Model properties used through `ReadOnlyField` need a return-type hint.
+- **A response that isn't the request serializer:** a custom `@action`, or a `create`/`update` that responds with a different serializer than it validates with, needs `@extend_schema(request=..., responses=...)`. Inherited actions (`create`, `update`, `partial_update`, `destroy`) are annotated from the class with `@extend_schema_view(...)`. Include non-2xx shapes the view returns (400, 409).
+- **Bodies built by hand** (`Response({...})`, or `request.data` read directly): describe them with `inline_serializer(name=..., fields=...)`. Reuse `ERROR_DETAIL` and `STORAGE_CONFLICT` from `apps/inventory/schema.py`; define a shape used twice once, at module level (two `inline_serializer`s with the same name conflict).
+- **A `list` action that returns one object** is treated as an array; see `DashboardView`'s `_SingleObjectSchema`.
+
+Existing examples: `ContainerSerializer`'s `get_*` methods, `ChemicalView` and `ContainerView` in `apps/inventory/views/`.
+
+Then, in the same change:
+
+1. `poetry run pytest tests/test_schema.py` (in `backend/`) must pass. It runs drf-spectacular with `--fail-on-warn`, so any guessed type fails it.
+2. Regenerate with `./scripts/generate-api-types.sh` (the pre-commit hook does this) and commit `openapi.json` and `api.ts` with the change. CI's `API types` check fails if they're out of date.
+3. Run `pnpm exec tsc -b` in `frontend/`. Fix what it flags rather than loosening types; a new `| null` usually means a real missing null check.
+4. In `frontend/src/types/index.ts`, use the generated type (`components['schemas']['X']`). Don't hand-write or `Omit`-patch a type the schema should describe; fix the backend annotation instead. The one deliberate exception is `Location`, whose recursive `children` is built in `to_representation`.
 
 ### Linting / formatting
 
