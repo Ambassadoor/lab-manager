@@ -691,6 +691,65 @@ class TestRolePermissions:
         # ...while Container delete stays Manager/Admin-only.
         assert client.delete(f"/api/inventory/containers/{container.slug}/").status_code == 403
 
+    def test_lab_assistant_can_read_locations_but_not_change_them(
+        self, client_as, make_location, location_type
+    ):
+        # Finding 8: update and partial_update weren't gated, so any
+        # logged-in user could rename or re-parent a location.
+        client = client_as(User.Role.LAB_ASSISTANT)
+        parent = make_location("parent")
+        location = make_location("shelf")
+        url = f"/api/inventory/locations/{location.id}/"
+
+        for read in [
+            "/api/inventory/locations/",
+            url,
+            "/api/inventory/locations/menu/",
+            f"{url}containers/",
+        ]:
+            assert client.get(read).status_code == 200, read
+
+        writes = [
+            client.patch(url, {"name": "renamed"}, format="json"),
+            client.put(
+                url, {"name": "renamed", "type": location_type.id, "parent": None}, format="json"
+            ),
+            client.patch(url, {"parent": parent.id}, format="json"),
+            client.post(
+                "/api/inventory/locations/",
+                {"name": "new", "type": location_type.id},
+                format="json",
+            ),
+            client.post(
+                f"{url}add_child/", {"name": "child", "type": location_type.id}, format="json"
+            ),
+            client.patch(
+                "/api/inventory/locations/move/",
+                {"childLocations": [{"slug": location.barcode}], "parentLocation": parent.barcode},
+                format="json",
+            ),
+            client.delete(url),
+        ]
+        assert [r.status_code for r in writes] == [403] * len(writes)
+        location.refresh_from_db()
+        assert location.name == "shelf"
+        assert location.parent is None
+
+    def test_stockroom_can_rename_and_re_parent_a_location(self, client_as, make_location):
+        client = client_as(User.Role.STOCKROOM)
+        parent = make_location("parent")
+        location = make_location("shelf")
+
+        response = client.patch(
+            f"/api/inventory/locations/{location.id}/",
+            {"name": "renamed", "parent": parent.id},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        location.refresh_from_db()
+        assert (location.name, location.parent) == ("renamed", parent)
+
     def test_coordinator_can_delete_locations_but_not_containers_or_chemicals(
         self, client_as, make_location, make_container, chemical
     ):

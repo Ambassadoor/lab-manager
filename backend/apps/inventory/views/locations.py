@@ -55,19 +55,22 @@ class LocationView(ModelViewSet):
 
     permission_classes = [IsAuthenticated]
 
-    # Location delete is the one delete Coordinator and Stockroom get (see
-    # apps/users/permissions.py) — it already has a DB-level safeguard
-    # (ProtectedError below, in destroy()) against removing a location that
-    # still has children/containers, which is exactly why it's safe to
-    # allow more broadly than Container/Chemical delete. create/add_child/
-    # move need at least Stockroom too; reads stay open to any authenticated
-    # role.
-    WRITE_ACTIONS = {"create", "add_child", "move"}
+    # Reads are open to any logged-in role; every other action needs at
+    # least Stockroom. Listed this way round (the actions that are open,
+    # not the ones that are gated) so a new action is protected by default:
+    # update and partial_update were once missing from a list of gated
+    # actions, which let any user rename or re-parent a location (finding 8
+    # in docs/Post-MVP-Code-Review.md).
+    #
+    # Delete is included in "every other action": it's the one delete
+    # Stockroom and Coordinator get, because the database already refuses to
+    # remove a location that still has children or containers (see destroy).
+    READ_ACTIONS = {"list", "retrieve", "menu", "containers"}
 
     def get_permissions(self):
-        if self.action == "destroy" or self.action in self.WRITE_ACTIONS:
-            return [role_at_least(User.Role.STOCKROOM)()]
-        return super().get_permissions()
+        if self.action in self.READ_ACTIONS:
+            return super().get_permissions()
+        return [role_at_least(User.Role.STOCKROOM)()]
 
     def get_queryset(self):
         queryset = super().get_queryset()
