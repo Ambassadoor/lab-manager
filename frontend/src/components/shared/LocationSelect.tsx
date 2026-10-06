@@ -11,6 +11,7 @@ import {
 } from 'react-hook-form';
 import { getLocationMenu } from '../../api/inventory';
 import { locationKeys } from '../../api/queryKeys';
+import { parseBarcode } from './parseBarcode';
 
 type LocationOption = { id: number; full_path: string; group: string };
 
@@ -38,7 +39,8 @@ type LocationSelectProps<
 // The one location picker for every form: a searchable Autocomplete grouped
 // by building + room. Fetches the location menu itself (a shared, cached
 // query) and stores just the selected location's id in the form, as a string
-// (every caller's form types it that way), or '' when cleared.
+// (every caller's form types it that way), or '' when cleared. Scanning a
+// location label into it selects that location.
 export function LocationSelect<
   TFieldValues extends FieldValues,
   TName extends FieldPath<TFieldValues>,
@@ -90,6 +92,21 @@ export function LocationSelect<
             clearErrors(name);
           }}
           onBlur={field.onBlur}
+          // A scanned location label types {"id":"LOC-12"} into the search
+          // box, which matches no option by name (#117). Once the scan is
+          // complete, select the location it names. Every barcode is
+          // LOC-<id>, so the id is enough to find the option.
+          onInputChange={(event, inputValue, reason) => {
+            if (reason !== 'input') return;
+            const locationId = /^loc-(\d+)$/i.exec(parseBarcode(inputValue) ?? '')?.[1];
+            const option = locationId && options.find((o) => String(o.id) === locationId);
+            if (!option) return;
+            field.onChange(String(option.id));
+            clearErrors(name);
+            // Leave the field: that closes the list, so the scanner's
+            // trailing Enter can't pick whichever option is highlighted.
+            (event?.target as HTMLElement | undefined)?.blur();
+          }}
           // Under a group heading the group's own prefix is redundant, so
           // show just the rest ("Fire Cabinet"); the room itself keeps its
           // full name. Search still matches the full path.
