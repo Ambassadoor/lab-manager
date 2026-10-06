@@ -37,6 +37,17 @@ sudo nginx -t && sudo systemctl reload nginx
 
 From a laptop (`-t` lets `sudo` ask for the Pi password when it restarts the services):
 
+`labmanager` is an SSH alias. Set it up once on each laptop by adding this to `~/.ssh/config`:
+
+```
+Host labmanager
+    HostName app.cplabmanager.com
+    User ambassadoor
+    HostKeyAlias labmanager
+```
+
+`HostKeyAlias` keeps the Pi's saved host key under the name `labmanager`, so changing `HostName` later doesn't trigger a host key warning. The name only resolves on the campus network, and not through a VPN.
+
 ```bash
 ssh -t labmanager /opt/lab-manager/deploy/pi/deploy.sh          # pull the Pi's checked-out branch
 ssh -t labmanager /opt/lab-manager/deploy/pi/deploy.sh v1.2.0   # or deploy a tag, branch or commit
