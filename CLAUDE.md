@@ -60,12 +60,12 @@ poetry run ruff format .
 
 Hooks live in `.githooks/` and need `git config core.hooksPath .githooks` once per clone.
 
-- **pre-commit** regenerates `backend/openapi.json` (drf-spectacular) and `frontend/src/types/api.ts` (openapi-typescript), runs `pnpm format`, and stages both files. Never edit those two files by hand; change the serializer or view and let the hook regenerate them.
-- **pre-push** runs Prettier, ESLint and Ruff checks and blocks the push if any fail.
+- **pre-commit** runs `scripts/generate-api-types.sh`, which regenerates `backend/openapi.json` (drf-spectacular) and `frontend/src/types/api.ts` (openapi-typescript), and stages both. Never edit those two files by hand; change the serializer or view (with `@extend_schema` / `@extend_schema_field` where drf-spectacular can't infer a type) and regenerate. `tests/test_schema.py` fails on any schema warning.
+- **pre-push** runs Prettier, ESLint, `tsc -b` and Ruff, and refuses to run while `frontend/`, `backend/` or `bridge/` have uncommitted changes.
 
 ### Branching
 
-Work branches are `cp/<type>/<snake_name>`, branched from and merged into `develop`. `develop` is merged into `main` for releases, which are tagged (`v1.1.0`). The Pi deploys from `main`, so a change is not live until it is released and `deploy/pi/deploy.sh` is run. CI runs on push to `develop`/`main` and on pull requests into `main`.
+Work branches are `cp/<type>/<snake_name>`, branched from and merged into `develop`. `develop` is merged into `main` for releases, which are tagged (`v1.1.0`). The Pi deploys from `main`, so a change is not live until it is released and `deploy/pi/deploy.sh` is run. CI runs on push to `develop`/`main` and on pull requests into either; the `API types` workflow fails if `openapi.json` or `api.ts` is out of date.
 
 ## Architecture
 

@@ -5,7 +5,7 @@ on:
     branches: [main, develop]
     paths: ["backend/**", ".github/workflows/backend.yml"]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
     paths: ["backend/**", ".github/workflows/backend.yml"]
 
 defaults:

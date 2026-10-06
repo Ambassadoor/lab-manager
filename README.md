@@ -35,12 +35,19 @@ git config core.hooksPath .githooks
 Without it the hooks in `.githooks/` never run, and the generated API files
 go out of date.
 
-- **pre-commit** regenerates `backend/openapi.json` from the Django API and
-  `frontend/src/types/api.ts` from that, formats the frontend, and adds both
-  files to the commit. It needs the backend and frontend set up first (the
-  steps below), and it makes each commit take several seconds.
-- **pre-push** runs the Prettier, ESLint and Ruff checks that CI runs, and
-  stops the push if one fails.
+- **pre-commit** runs `scripts/generate-api-types.sh`, which regenerates
+  `backend/openapi.json` from the Django API and `frontend/src/types/api.ts`
+  from that, and adds both files to the commit. It needs the backend and
+  frontend set up first (the steps below) and takes a few seconds.
+- **pre-push** runs the Prettier, ESLint, TypeScript and Ruff checks that CI
+  runs, and stops the push if one fails. It also refuses to run while
+  `frontend/`, `backend/` or `bridge/` have uncommitted changes, because it
+  checks the files on disk rather than the commits; commit or
+  `git stash -u` them first.
+
+CI checks the same things on every pull request, and also fails if
+`openapi.json` or `api.ts` is out of date, which happens when a commit is
+made without the hooks.
 
 ### Backend
 ```bash
