@@ -3,7 +3,14 @@ import re
 from rest_framework import serializers
 
 from ..drive import DriveUploadError, upload_sds_file
-from ..models import Chemical, ChemicalStorageCategories, Container, Ingredient, SDS
+from ..models import (
+    SDS,
+    Chemical,
+    ChemicalStorageCategories,
+    Container,
+    Ingredient,
+    highest_container_pk_subquery,
+)
 
 MAX_SDS_FILE_SIZE = 25 * 1024 * 1024  # 25MB
 
@@ -31,6 +38,44 @@ def _build_sds_filename(container, revision_date, revision_number) -> str:
     return "_".join(parts) + ".pdf"
 
 
+def _chemical_sds_queryset():
+    # Newest first across all of a chemical's containers. highest_pk is
+    # copied onto each SDS's container (see _with_label_width) so the nested
+    # container label costs no query of its own.
+    return (
+        SDS.objects.select_related("container")
+        .annotate(container_highest_pk=highest_container_pk_subquery())
+        .order_by(*SDS.NEWEST_FIRST)
+    )
+
+
+def _with_label_width(sds_rows):
+    for sds in sds_rows:
+        sds.container.highest_pk = sds.container_highest_pk
+    return sds_rows
+
+
+class ChemicalListSerializer(serializers.ListSerializer):
+    """Loads the SDS for every chemical in the list in one query.
+
+    Without this, ChemicalSerializer.get_sds runs once per chemical
+    (finding 5 in docs/Post-MVP-Code-Review.md). The rows are grouped in the
+    order the database returned them, not re-sorted in Python, so each
+    chemical's list matches get_sds' own query exactly.
+    """
+
+    def to_representation(self, data):
+        chemicals = list(data.all() if hasattr(data, "all") else data)
+        sds_by_chemical = {}
+        sds_rows = _chemical_sds_queryset().filter(
+            container__chemical_id__in=[chemical.id for chemical in chemicals]
+        )
+        for sds in _with_label_width(sds_rows):
+            sds_by_chemical.setdefault(sds.container.chemical_id, []).append(sds)
+        self.child.sds_by_chemical = sds_by_chemical
+        return super().to_representation(chemicals)
+
+
 class ChemicalSerializer(serializers.ModelSerializer):
     sds = serializers.SerializerMethodField()
 
@@ -38,6 +83,7 @@ class ChemicalSerializer(serializers.ModelSerializer):
         model = Chemical
         exclude = ["pubchem_cid", "synonyms"]
         depth = 1
+        list_serializer_class = ChemicalListSerializer
 
     # Handles the self-reference
     def to_representation(self, instance):
@@ -48,12 +94,14 @@ class ChemicalSerializer(serializers.ModelSerializer):
     # containers — an SDS is tied to a Container (see SDS's docstring in
     # models/containers.py), not the chemical directly, so this is a lookup
     # rather than a plain reverse accessor.
+    #
+    # In a list, ChemicalListSerializer has already loaded them all.
     def get_sds(self, obj):
-        sds = (
-            SDS.objects.filter(container__chemical=obj)
-            .select_related("container")
-            .order_by("-revision_date", "-revision_number")
-        )
+        sds_by_chemical = getattr(self, "sds_by_chemical", None)
+        if sds_by_chemical is not None:
+            sds = sds_by_chemical.get(obj.id, [])
+        else:
+            sds = _with_label_width(_chemical_sds_queryset().filter(container__chemical=obj))
         return SDSSerializer(sds, many=True).data
 
 

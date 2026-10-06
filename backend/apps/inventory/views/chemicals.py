@@ -40,10 +40,21 @@ class ChemicalView(ModelViewSet):
             return ChemicalWriteSerializer
         return super().get_serializer_class()
 
+    # The nested storage category and ingredients, loaded once for the whole
+    # list instead of once per chemical (finding 5). The SDS are loaded by
+    # ChemicalListSerializer.
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .select_related("storage_category")
+            .prefetch_related("ingredients")
+        )
+
     # Returns any mixtures or chemicals associated with the provided cas nums
     @action(detail=False, methods=["get"])
     def check_cas(self, request):
-        q = Chemical.objects.all()
+        q = self.get_queryset()
         cas_param = request.query_params.get("cas")
         if cas_param:
             cas = cas_param.split(",")
