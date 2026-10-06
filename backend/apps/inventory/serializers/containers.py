@@ -49,9 +49,13 @@ class ContainerSerializer(serializers.ModelSerializer):
             "latest_sds",
         ]
 
+    # The get_* methods below read rows that Container.objects.for_display()
+    # prefetches for a whole list; on a container fetched without it, each
+    # falls back to one query (see Container.latest_reading and friends).
+
     # Returns the most recent weight reading
     def get_latest_reading(self, obj):
-        latest = obj.readings.order_by("-recorded_at").first()
+        latest = obj.latest_reading()
         if latest:
             return WeightReadingSerializer(latest).data
 
@@ -60,7 +64,7 @@ class ContainerSerializer(serializers.ModelSerializer):
     # (see ChemicalSerializer.get_sds), which the frontend fetches
     # separately rather than this serializer guessing at a substitute.
     def get_latest_sds(self, obj):
-        latest = obj.sds.order_by("-revision_date", "-revision_number").first()
+        latest = obj.latest_sds()
         if latest:
             return SDSSerializer(latest).data
 
@@ -73,7 +77,7 @@ class ContainerSerializer(serializers.ModelSerializer):
 
     # Returns the current checkout status ("in/out")
     def get_checkout_status(self, obj):
-        latest = obj.events.order_by("-timestamp").first()
+        latest = obj.latest_event()
         if latest:
             return CheckoutEventSerializer(latest).data
 
@@ -211,6 +215,6 @@ class LocationContainersSerializer(serializers.ModelSerializer):
                 location_ids.append(child_id)
                 queue.append(child_id)
 
-        containers = Container.objects.filter(location__id__in=location_ids)
+        containers = Container.objects.for_display().filter(location__id__in=location_ids)
         serializer = ContainerSerializer(containers, many=True)
         return serializer.data

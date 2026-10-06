@@ -55,13 +55,26 @@ class LocationSerializer(serializers.ModelSerializer):
         return {
             "id": location.id,
             "name": location.name,
-            "type": LocationTypeSerializer(location.type).data,
+            "type": self._type_data(location.type),
             "children": [
                 self._serialize(child.id, by_id, children_by_parent, f"{full_path} {child.name}")
                 for child in children_by_parent.get(location_id, [])
             ],
             "full_path": full_path,
         }
+
+    # Building a serializer is the slow part, not the data: the container
+    # list nests a location (with its subtree) in every row, about 20,000
+    # nodes in all, and a new LocationTypeSerializer per node took most of
+    # the request's time. There are only a handful of types, so each is
+    # serialized once and reused, cached on `self` like the location map.
+    def _type_data(self, location_type):
+        cache = getattr(self, "_cached_type_data", None)
+        if cache is None:
+            cache = self._cached_type_data = {}
+        if location_type.id not in cache:
+            cache[location_type.id] = LocationTypeSerializer(location_type).data
+        return cache[location_type.id]
 
     def _ancestor_full_path(self, location, by_id):
         names = []

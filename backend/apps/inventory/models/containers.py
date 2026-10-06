@@ -3,11 +3,61 @@ from decimal import Decimal, DecimalException, ROUND_HALF_UP
 from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
-from django.db.models import Max, OuterRef
+from django.db.models import Max, OuterRef, Prefetch, Subquery
 from django.utils import timezone
 
 from .chemicals import Chemical
 from .locations import Location
+
+
+def highest_container_pk_subquery():
+    """The highest container id, as a Subquery to annotate onto any queryset.
+
+    It doesn't reference the outer query, so Postgres evaluates it once per
+    query rather than once per row. Container.label pads to its width.
+    """
+    return Subquery(Container.objects.order_by("-pk").values("pk")[:1])
+
+
+class ContainerQuerySet(models.QuerySet):
+    def for_display(self):
+        """Everything ContainerSerializer reads, loaded up front.
+
+        Without this, serializing a list costs several queries per container
+        (finding 5 in docs/Post-MVP-Code-Review.md). With it, the cost is a
+        fixed handful of queries however many containers there are. Each
+        Prefetch fetches only the newest row per container, using Postgres'
+        DISTINCT ON, which keeps the first row of each container_id group
+        in the given order. The orders match the fallback queries used when
+        nothing was prefetched, so both paths return the same rows.
+        """
+        return (
+            self.select_related("location")
+            .annotate(highest_pk=highest_container_pk_subquery())
+            .prefetch_related(
+                Prefetch(
+                    "readings",
+                    queryset=WeightReading.objects.order_by(
+                        "container_id", *WeightReading.NEWEST_FIRST
+                    ).distinct("container_id"),
+                    to_attr="latest_readings",
+                ),
+                Prefetch(
+                    "events",
+                    queryset=CheckoutEvent.objects.select_related("user")
+                    .order_by("container_id", *CheckoutEvent.NEWEST_FIRST)
+                    .distinct("container_id"),
+                    to_attr="latest_events",
+                ),
+                Prefetch(
+                    "sds",
+                    queryset=SDS.objects.order_by("container_id", *SDS.NEWEST_FIRST).distinct(
+                        "container_id"
+                    ),
+                    to_attr="latest_sds_rows",
+                ),
+            )
+        )
 
 
 class Container(models.Model):
@@ -49,9 +99,15 @@ class Container(models.Model):
         "container weight", max_digits=8, decimal_places=4, null=True, blank=True
     )
 
+    objects = ContainerQuerySet.as_manager()
+
     @property
     def label(self) -> str:
-        highest_pk = Container.objects.aggregate(Max("pk"))["pk__max"]
+        # Set by for_display() (or highest_container_pk_subquery() elsewhere)
+        # so a list pays for this once, not once per container.
+        highest_pk = getattr(self, "highest_pk", None)
+        if highest_pk is None:
+            highest_pk = Container.objects.aggregate(Max("pk"))["pk__max"]
         max_length = len(str(highest_pk))
         return f"CHEM-{self.id:0>{max_length}}"
 
@@ -89,6 +145,17 @@ class Container(models.Model):
             return str(self.initial_quantity)
         return f"{self.initial_quantity} {self.quantity_unit}"
 
+    # The newest related row of each kind. for_display() prefetches these
+    # for a whole list at once; without it, each is one query.
+    def latest_reading(self):
+        return _newest(self, "latest_readings", self.readings, WeightReading.NEWEST_FIRST)
+
+    def latest_event(self):
+        return _newest(self, "latest_events", self.events, CheckoutEvent.NEWEST_FIRST)
+
+    def latest_sds(self):
+        return _newest(self, "latest_sds_rows", self.sds, SDS.NEWEST_FIRST)
+
     # The one place this is computed — DashboardView's restock_soon query
     # used to reimplement this as a raw weight/initial_weight SQL division,
     # silently different from this (no tare-weight subtraction, dividing by
@@ -111,7 +178,7 @@ class Container(models.Model):
             return None
         if self.tare_weight is None or self.tare_weight <= 0:
             return None
-        latest = self.readings.order_by("-recorded_at").first()
+        latest = self.latest_reading()
         if latest is None:
             return None
         try:
@@ -127,7 +194,17 @@ class Container(models.Model):
         return self.name
 
 
+def _newest(container, prefetched_attr, related_manager, ordering):
+    prefetched = getattr(container, prefetched_attr, None)
+    if prefetched is not None:
+        return prefetched[0] if prefetched else None
+    return related_manager.order_by(*ordering).first()
+
+
 class WeightReading(models.Model):
+    # Newest first; id breaks ties between readings saved in the same instant.
+    NEWEST_FIRST = ("-recorded_at", "-id")
+
     container = models.ForeignKey(Container, on_delete=models.CASCADE, related_name="readings")
     weight = models.DecimalField(max_digits=8, decimal_places=4)
     recorded_at = models.DateTimeField(auto_now=True)
@@ -141,6 +218,7 @@ class WeightReading(models.Model):
 
 class CheckoutEvent(models.Model):
     ACTION_CHOICES = [("in", "Check In"), ("out", "Check Out")]
+    NEWEST_FIRST = ("-timestamp", "-id")
 
     container = models.ForeignKey(Container, on_delete=models.CASCADE, related_name="events")
     action = models.CharField(max_length=3, choices=ACTION_CHOICES)
@@ -187,6 +265,10 @@ class GHSPictogram(models.TextChoices):
 
 
 class SDS(models.Model):
+    # "Newest" for display. revision_number is text, so "10" sorts below
+    # "9" (finding 16 in the code review); NULL revision dates sort first.
+    NEWEST_FIRST = ("-revision_date", "-revision_number", "-id")
+
     # A safety data sheet is specific to a container's actual product (a
     # given chemical from two manufacturers can have two different SDS
     # documents) — not the Chemical in general. A Chemical's "all SDS" view

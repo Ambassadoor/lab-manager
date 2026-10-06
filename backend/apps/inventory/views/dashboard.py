@@ -22,9 +22,14 @@ class DashboardView(mixins.ListModelMixin, GenericViewSet):
 
     def list(self, request):
         queryset = self.get_queryset()
-        recently_added = queryset.filter(date_received__isnull=False).order_by("-date_received")[:5]
+        recently_added = (
+            queryset.for_display()
+            .filter(date_received__isnull=False)
+            .order_by("-date_received")[:5]
+        )
         checked_out = (
-            Container.objects.annotate(most_recent_event=Subquery(self.most_recent_event))
+            Container.objects.for_display()
+            .annotate(most_recent_event=Subquery(self.most_recent_event))
             .annotate(most_recent_event_action=Subquery(self.most_recent_event_action))
             .order_by("-most_recent_event")
             .filter(most_recent_event_action="out")[:5]
@@ -36,9 +41,16 @@ class DashboardView(mixins.ListModelMixin, GenericViewSet):
         # anyway, with a formula quietly different from the real one).
         # Narrowed to containers that could plausibly qualify before
         # evaluating the property, so this isn't done for every container
-        # in the database; still one query per candidate container, same
-        # trade-off ContainerSerializer already accepts for this field.
-        candidates = Container.objects.filter(readings__isnull=False, tare_weight__gt=0).distinct()
+        # in the database. for_display() prefetches each candidate's latest
+        # reading, so scoring them costs no query per container.
+        candidates = (
+            Container.objects.filter(readings__isnull=False, tare_weight__gt=0)
+            .distinct()
+            .for_display()
+            # Ties on percent_remaining keep this order, so which containers
+            # make the top five doesn't depend on unspecified row order.
+            .order_by("pk")
+        )
         scored = [(c, c.percent_remaining) for c in candidates]
         low_on_stock = sorted(
             (pair for pair in scored if pair[1] is not None and pair[1] <= 10),
