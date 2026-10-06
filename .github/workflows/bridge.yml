@@ -5,7 +5,7 @@ on:
     branches: [main, develop]
     paths: ["bridge/**", ".github/workflows/bridge.yml"]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
     paths: ["bridge/**", ".github/workflows/bridge.yml"]
 
 defaults:
