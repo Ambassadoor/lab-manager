@@ -68,6 +68,10 @@ Hooks live in `.githooks/` and need `git config core.hooksPath .githooks` once p
 
 Work branches are `cp/<type>/<snake_name>`, branched from and merged into `develop`. `develop` is merged into `main` for releases, which are tagged (`v1.1.0`). The Pi deploys from `main`, so a change is not live until it is released and `deploy/pi/deploy.sh` is run. CI runs on push to `develop`/`main` and on pull requests into either; the `API types` workflow fails if `openapi.json` or `api.ts` is out of date.
 
+### Commits
+
+Commit as you go, not once per PR. Each commit should be one step that builds, passes lint and tests on its own, and can be reviewed by itself: a new shared component, then each page moved onto it, then the docs. A PR is usually several commits. Use conventional prefixes (`feat(scope):`, `fix(scope):`, `docs:`, `refactor:`, `test:`) and say in the body why, not just what. Don't squash a branch's commits before pushing; the history is how a reviewer follows the change.
+
 ## Architecture
 
 ### Request flow
