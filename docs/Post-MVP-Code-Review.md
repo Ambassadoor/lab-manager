@@ -6,6 +6,8 @@
 
 Nothing in the code was changed for this review.
 
+**Status last updated:** 7 October 2026, release `v1.2.0`. Section 2 shows which findings are fixed, in which pull request and release. Everything else describes the code as it was reviewed at `68b27ea`.
+
 ## Contents
 
 1. [How to use this document](#1-how-to-use-this-document)
@@ -70,49 +72,63 @@ Your own test suite was also run: **187 passed in 28 s**.
 
 ### Fix first
 
-| # | Finding | Evidence | Where | Effort |
-|---|---------|----------|-------|--------|
-| 1 | **Every self-registered account becomes a Lab Manager.** Anyone who can reach the site and types an address ending in `@lipscomb.edu` gets full access, including user management and deletes. The address is never verified. | Verified (tested) | [users/views.py:130-134](../backend/apps/users/views.py#L130-L134) | Small |
-| 2 | **Any logged-in user can delete any container** through the dashboard URL. `DashboardView` is a full `ModelViewSet`, so `DELETE /api/inventory/dashboard/<id>/` works for the lowest role and removes the container with its weight readings, checkout events and SDS rows. | Verified (tested) | [views/dashboard.py:11-15](../backend/apps/inventory/views/dashboard.py#L11-L15) | Small |
-| 3 | **Scanning a label fails for 968 of 1,131 containers.** Labels are zero-padded (`CHEM-0292`) and the barcode carries the padded form, but check-out, check-in and transfer look up the unpadded slug (`chem-292`) and answer "not found". Typing `Chem-292` by hand works. | Verified (tested and measured) | [models/containers.py:52-56](../backend/apps/inventory/models/containers.py#L52-L56), [views/containers.py:133](../backend/apps/inventory/views/containers.py#L133), [views/containers.py:333-345](../backend/apps/inventory/views/containers.py#L333-L345) | Small |
-| 4 | **Adding a container for a brand-new chemical returns a 500** unless both molecular weight and storage category are filled in. The form allows both to be blank. | Verified (tested) | [views/containers.py:245-258](../backend/apps/inventory/views/containers.py#L245-L258) | Small |
-| 5 | **The container list takes about 23 seconds and 7,243 database queries** to build for the current 1,131 containers. There is no pagination, and each row costs six or seven queries. The Containers page and the "All locations" view both request it. | Verified (measured) | [serializers/containers.py:53-78](../backend/apps/inventory/serializers/containers.py#L53-L78) | Medium |
-| 6 | **The hardware bridge has no login.** Anyone on the network who can reach the Pi can print labels or tare the balance through `/bridge/`. | Verified (read) | [labmanager.nginx:11](../deploy/pi/labmanager.nginx#L11), [bridge/app/main.py](../bridge/app/main.py) | Medium |
-
-**Status, 1 October 2026:** findings 1 to 4 are fixed on the branch `cp/bugfix/review_findings`, each with regression tests. The `check_in` status-code bug from section 5.4 and the missing-`chemicals` 500 from finding 11 were fixed in passing. Findings 5 and 6 are open.
+| # | Finding | Evidence | Where | Effort | Status |
+|---|---------|----------|-------|--------|--------|
+| 1 | **Every self-registered account becomes a Lab Manager.** Anyone who can reach the site and types an address ending in `@lipscomb.edu` gets full access, including user management and deletes. The address is never verified. | Verified (tested) | [users/views.py:130-134](../backend/apps/users/views.py#L130-L134) | Small | **Fixed** (#101, v1.0.3) |
+| 2 | **Any logged-in user can delete any container** through the dashboard URL. `DashboardView` is a full `ModelViewSet`, so `DELETE /api/inventory/dashboard/<id>/` works for the lowest role and removes the container with its weight readings, checkout events and SDS rows. | Verified (tested) | [views/dashboard.py:11-15](../backend/apps/inventory/views/dashboard.py#L11-L15) | Small | **Fixed** (#101, v1.0.3) |
+| 3 | **Scanning a label fails for 968 of 1,131 containers.** Labels are zero-padded (`CHEM-0292`) and the barcode carries the padded form, but check-out, check-in and transfer look up the unpadded slug (`chem-292`) and answer "not found". Typing `Chem-292` by hand works. | Verified (tested and measured) | [models/containers.py:52-56](../backend/apps/inventory/models/containers.py#L52-L56), [views/containers.py:133](../backend/apps/inventory/views/containers.py#L133), [views/containers.py:333-345](../backend/apps/inventory/views/containers.py#L333-L345) | Small | **Fixed** (#101, v1.0.3) |
+| 4 | **Adding a container for a brand-new chemical returns a 500** unless both molecular weight and storage category are filled in. The form allows both to be blank. | Verified (tested) | [views/containers.py:245-258](../backend/apps/inventory/views/containers.py#L245-L258) | Small | **Fixed** (#101, v1.0.3) |
+| 5 | **The container list takes about 23 seconds and 7,243 database queries** to build for the current 1,131 containers. There is no pagination, and each row costs six or seven queries. The Containers page and the "All locations" view both request it. | Verified (measured) | [serializers/containers.py:53-78](../backend/apps/inventory/serializers/containers.py#L53-L78) | Medium | **Fixed** (#114, v1.1.1) |
+| 6 | **The hardware bridge has no login.** Anyone on the network who can reach the Pi can print labels or tare the balance through `/bridge/`. | Verified (read) | [labmanager.nginx:11](../deploy/pi/labmanager.nginx#L11), [bridge/app/main.py](../bridge/app/main.py) | Medium | Open |
 
 A caveat on finding 3: the test confirms the server rejects a padded id and that the app prints the padded label. I did not scan a physical label. Only four checkout events exist in the live database, so this path has had very little real use.
 
 ### Then these
 
-| # | Finding | Evidence | Where | Severity |
-|---|---------|----------|-------|----------|
-| 7 | The site runs over plain HTTP, so passwords and session cookies cross the campus network unencrypted. Already listed as a known risk in the deployment plan. | Verified (read) | [labmanager.nginx:2](../deploy/pi/labmanager.nginx#L2), [settings.py:113](../backend/config/settings.py#L113) | Medium |
-| 8 | Any logged-in user can rename or re-parent a location. Only create, delete, add-child and move are role-gated; update is not. | Verified (tested) | [views/locations.py:41-46](../backend/apps/inventory/views/locations.py#L41-L46) | Medium |
-| 9 | A new mixture, and any new ingredient created with it, silently loses its storage category, so the storage warnings never fire for it. | Verified (tested) | [views/containers.py:217-243](../backend/apps/inventory/views/containers.py#L217-L243), [serializers/chemicals.py:34-40](../backend/apps/inventory/serializers/chemicals.py#L34-L40) | Medium |
-| 10 | The "append-only" histories can be edited. A stockroom user can change a weight reading, and doing so rewrites its timestamp. | Verified (tested) | [models/containers.py:133](../backend/apps/inventory/models/containers.py#L133), [views/containers.py:468-479](../backend/apps/inventory/views/containers.py#L468-L479) | Medium |
-| 11 | Custom endpoints read `request.data` by hand, so malformed input gives a 500 instead of a 400. | Verified (tested) | [views/containers.py:210-300](../backend/apps/inventory/views/containers.py#L210-L300) | Medium |
-| 12 | A label containing a non-ASCII character (`°`, `µ`) crashes the print endpoint with a 500. A `^` in a value would be read by the printer as a command. | Verified (read) | [printer.py:279-285](../bridge/app/printer.py#L279-L285) | Medium |
-| 13 | No frontend tests and no bridge tests. CI does not run on pull requests into `develop`, only after they merge. | Verified (read) | [backend.yml:3-9](../.github/workflows/backend.yml#L3-L9) | Medium |
-| 14 | Nothing tells you when a nightly backup fails, and failed GitHub issue sends are never retried automatically. | Verified (read) | [labmanager-backup.service](../deploy/pi/labmanager-backup.service) | Medium |
-| 15 | `percent_remaining` ignores the unit prefix, so a container entered in `kg`, `mg` or `L` would compute wrongly. Live data only uses `g` and `mL` today. | Verified (read and measured) | [models/containers.py:62-66](../backend/apps/inventory/models/containers.py#L62-L66) | Low now |
-| 16 | "Latest SDS" sorts the revision number as text, so revision `10` sorts below revision `9`. | Verified (read) | [serializers/containers.py:62-65](../backend/apps/inventory/serializers/containers.py#L62-L65) | Low |
-| 17 | Smaller items: a missing React `key` in Move, a delete dialog that promises to remove child locations when the server refuses, dead endpoints, a router rebuilt on each render. | Verified (read) | See sections 5.4, 5.12, 5.13 | Low |
+| # | Finding | Evidence | Where | Severity | Status |
+|---|---------|----------|-------|----------|--------|
+| 7 | The site runs over plain HTTP, so passwords and session cookies cross the campus network unencrypted. Already listed as a known risk in the deployment plan. | Verified (read) | [labmanager.nginx:2](../deploy/pi/labmanager.nginx#L2), [settings.py:113](../backend/config/settings.py#L113) | Medium | **Fixed** (#106, v1.1.0) |
+| 8 | Any logged-in user can rename or re-parent a location. Only create, delete, add-child and move are role-gated; update is not. | Verified (tested) | [views/locations.py:41-46](../backend/apps/inventory/views/locations.py#L41-L46) | Medium | **Fixed** (#128, v1.2.0) |
+| 9 | A new mixture, and any new ingredient created with it, silently loses its storage category, so the storage warnings never fire for it. | Verified (tested) | [views/containers.py:217-243](../backend/apps/inventory/views/containers.py#L217-L243), [serializers/chemicals.py:34-40](../backend/apps/inventory/serializers/chemicals.py#L34-L40) | Medium | Open |
+| 10 | The "append-only" histories can be edited. A stockroom user can change a weight reading, and doing so rewrites its timestamp. | Verified (tested) | [models/containers.py:133](../backend/apps/inventory/models/containers.py#L133), [views/containers.py:468-479](../backend/apps/inventory/views/containers.py#L468-L479) | Medium | Open |
+| 11 | Custom endpoints read `request.data` by hand, so malformed input gives a 500 instead of a 400. | Verified (tested) | [views/containers.py:210-300](../backend/apps/inventory/views/containers.py#L210-L300) | Medium | Partly |
+| 12 | A label containing a non-ASCII character (`°`, `µ`) crashes the print endpoint with a 500. A `^` in a value would be read by the printer as a command. | Verified (read) | [printer.py:279-285](../bridge/app/printer.py#L279-L285) | Medium | Open |
+| 13 | No frontend tests and no bridge tests. CI does not run on pull requests into `develop`, only after they merge. | Verified (read) | [backend.yml:3-9](../.github/workflows/backend.yml#L3-L9) | Medium | Partly |
+| 14 | Nothing tells you when a nightly backup fails, and failed GitHub issue sends are never retried automatically. | Verified (read) | [labmanager-backup.service](../deploy/pi/labmanager-backup.service) | Medium | Open |
+| 15 | `percent_remaining` ignores the unit prefix, so a container entered in `kg`, `mg` or `L` would compute wrongly. Live data only uses `g` and `mL` today. | Verified (read and measured) | [models/containers.py:62-66](../backend/apps/inventory/models/containers.py#L62-L66) | Low now | Open |
+| 16 | "Latest SDS" sorts the revision number as text, so revision `10` sorts below revision `9`. | Verified (read) | [serializers/containers.py:62-65](../backend/apps/inventory/serializers/containers.py#L62-L65) | Low | Open |
+| 17 | Smaller items: a missing React `key` in Move, a delete dialog that promises to remove child locations when the server refuses, dead endpoints, a router rebuilt on each render. | Verified (read) | See sections 5.4, 5.12, 5.13 | Low | Open |
 
-**Status, 6 October 2026, finding 5:** fixed in release `v1.1.1` (PR #114), together with the chemical list from section 5.8. On the Pi, in the browser, the Containers page now loads in about 1.5 s (22.6 s before, measured in a Django shell) and the Chemicals page in about 1 s. The query counts and local timings below were measured against a copy of production data (1,131 containers, 707 chemicals), through the full view:
+### Status of each finding
 
-| Endpoint | Queries before | Queries after | Time before | Time after |
-|---|---|---|---|---|
-| Container list | 7,243 | 5 | 8.9 s | 0.7 s |
-| A location's containers | 7,246 | 8 | 9.5 s | 0.7 s |
-| Chemical list | 3,227 | 3 | 2.0 s | 0.4 s |
-| Dashboard | 551 | 15 | 0.3 s | 0.05 s |
+As of 7 October 2026 (`v1.2.0`): **7 fixed, 2 partly, 8 open.** The numbers in brackets are pull requests on GitHub.
 
-The query count no longer depends on the number of rows: `Container.objects.for_display()` loads the newest reading, checkout event and SDS for a whole list with one `DISTINCT ON` query each, and computes the label padding once. Half of the remaining time turned out not to be the database: the nested location serializer built a new serializer for every node of every container's location subtree, about 20,700 per request. The response bodies for the two container lists are byte-identical to before. The chemical list and dashboard differ only where rows were tied (SDS with the same revision, containers with the same percentage), which are now ordered by id instead of by chance. No pagination was added; the full container list is still about 4.4 MB, mostly the nested location subtrees.
+**Fixed**
 
-**Status, 6 October 2026, finding 8:** fixed. `LocationView` now lists the actions that are open (list, retrieve, menu, containers) and requires Stockroom for everything else, the allow-list pattern recommended in section 5.7, so a new action is gated by default. Tested for every location write as a Lab Assistant.
+- **1 to 4** (#101, `v1.0.3`), each with regression tests. Registration now gives the lowest role; the dashboard is list-only; scanned labels are normalised (`normalize_container_slug`); a new chemical with blank optional fields saves.
+- **5** (#114, `v1.1.1`), together with the chemical list from section 5.8. On the Pi, in the browser, the Containers page now loads in about 1.5 s (22.6 s before, measured in a Django shell) and the Chemicals page in about 1 s. `Container.objects.for_display()` loads the newest reading, checkout event and SDS for a whole list with one `DISTINCT ON` query each, and computes the label padding once. Half of the remaining time was not the database: the nested location serializer built a new serializer for every node of every container's location subtree, about 20,700 per request. The two container list responses are byte-identical to before. No pagination was added; the full container list is still about 4.4 MB, mostly the nested location subtrees. `tests/test_list_query_counts.py` guards the query counts. Measured locally against a copy of production data (1,131 containers, 707 chemicals), through the full view:
 
-**Status, 1 October 2026, finding 7:** the repo side is done on the branch `cp/feature/https`. nginx serves `https://app.cplabmanager.com` with a Let's Encrypt certificate obtained through a Cloudflare DNS challenge, which needs neither a hostname from IT nor the Pi being reachable from the internet. Port 80 redirects, and the deploy script's health checks follow the configured address. The switch on the Pi itself (certificate, firewall, `.env` values, nginx file) is a manual runbook in [deploy/pi/README.md](../deploy/pi/README.md#https). It was run the same day with release `v1.1.0`, and checked from a second machine on the campus network: the page, the API and the bridge answer over HTTPS with the Let's Encrypt certificate, port 80 redirects, and the CSRF cookie carries the `Secure` flag. Finding 6 is unchanged: the bridge is now encrypted in transit but still has no login.
+  | Endpoint | Queries before | Queries after | Time before | Time after |
+  |---|---|---|---|---|
+  | Container list | 7,243 | 5 | 8.9 s | 0.7 s |
+  | A location's containers | 7,246 | 8 | 9.5 s | 0.7 s |
+  | Chemical list | 3,227 | 3 | 2.0 s | 0.4 s |
+  | Dashboard | 551 | 15 | 0.3 s | 0.05 s |
+
+- **7** (#106, `v1.1.0`). The app is served at `https://app.cplabmanager.com` with a Let's Encrypt certificate obtained through a Cloudflare DNS challenge, which needed neither a hostname from IT nor the Pi being reachable from the internet. Port 80 redirects. Setup, renewal and rollback are in [deploy/pi/README.md](../deploy/pi/README.md#https).
+- **8** (#128, `v1.2.0`). `LocationView` now lists the actions that are open (list, retrieve, menu, containers) and requires Stockroom for everything else: the allow-list pattern from section 5.7, so a new action is gated by default.
+
+**Partly fixed**
+
+- **11.** Three of the 500s are gone: `check_in`'s status code and a missing `chemicals` list (#101), and `check_cas` with no CAS numbers (#127). `transfer`, `weigh_in_bulk` and `locations/move` still index `request.data` directly, so a malformed body is still a 500. Since #119 their expected bodies are described in the schema, a starting point for request serializers.
+- **13.** CI now runs every workflow on every pull request into `develop` or `main` (#120, #121), and a new check fails if the generated API types are stale. There are still no frontend or bridge tests.
+
+**Open**
+
+- **6.** The bridge is encrypted in transit since finding 7, but still has no login.
+- **9.** Same cause as GitHub issue #94, fixed for chemical edits in #118: a new mixture and its new ingredients are still saved through `ChemicalSerializer`, whose `depth = 1` makes `storage_category` read-only. The fix is to save them with `ChemicalWriteSerializer` instead, in `ContainerView.create`.
+- **10, 12, 14, 15, 16:** unchanged. For 16, the order is now one named constant, `SDS.NEWEST_FIRST`.
+- **17:** none of the four items has changed: the missing `key` in `Move.tsx`, the delete dialog's text, the dead `check_in` / `is_valid` endpoints, and the router built inside `App`.
 
 ---
 
@@ -1530,7 +1546,7 @@ The gaps are the ones that LLM-assisted development tends to leave. The code tha
 
 CLAUDE.md matters most, because it is what an LLM reads before working on the project. A stale description there produces confidently wrong suggestions.
 
-**Status, 1 October 2026:** every row above is fixed on the branch `cp/docs/stale_documentation`.
+**Status, 1 October 2026:** every row above is fixed (#105, `v1.1.0`).
 
 - CLAUDE.md was rewritten against the code: hardware, deployment, roles, the data model as built, external services, the git hooks and the current milestone state.
 - Roles_and_Permissions.md is now the permission matrix the code enforces, with the open gaps (findings 6, 8 and 10) and the unbuilt ideas from the old notes listed separately.
