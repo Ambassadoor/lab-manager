@@ -82,30 +82,35 @@ export const Transfer = () => {
     if (!list.add(target)) notify(`${target.label} is already in the list`, 'info');
   };
 
-  useScanHandler((target) => {
-    if (!target) return false;
-    if (transferConfirm.isOpen || storageConflict.isOpen) {
-      notify('Confirm or cancel the transfer first', 'warning');
-      return;
-    }
-    if (target.kind === 'container') {
-      addItem(target);
-      return;
-    }
-    // A location: the destination.
-    const destination = locationMenu?.find((l) => l.id === target.id);
-    if (!destination) {
-      notify(`No location ${target.label}`, 'warning');
-      return;
-    }
-    setValue('location', String(destination.id));
-    clearErrors('location');
-    if (list.ready.length > 0 && !list.isLooking && !list.hasProblems) {
-      requestTransfer(String(destination.id));
-    } else {
-      notify(`Destination: ${destination.full_path}`, 'success');
-    }
-  });
+  useScanHandler(
+    (target) => {
+      if (!target) return false;
+      if (transferConfirm.isOpen || storageConflict.isOpen) {
+        notify('Confirm or cancel the transfer first', 'warning');
+        return;
+      }
+      if (target.kind === 'container') {
+        addItem(target);
+        return;
+      }
+      // A location: the destination.
+      const destination = locationMenu?.find((l) => l.id === target.id);
+      if (!destination) {
+        notify(`No location ${target.label}`, 'warning');
+        return;
+      }
+      setValue('location', String(destination.id));
+      clearErrors('location');
+      if (list.ready.length > 0 && !list.isLooking && !list.hasProblems) {
+        requestTransfer(String(destination.id));
+        // Closes the camera, if open, so the confirm dialog is in view
+        return 'done';
+      } else {
+        notify(`Destination: ${destination.full_path}`, 'success');
+      }
+    },
+    { continuous: true }
+  );
 
   return (
     <>

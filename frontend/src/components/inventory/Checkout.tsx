@@ -38,18 +38,21 @@ export const Checkout = () => {
     if (!list.add(target)) notify(`${target.label} is already in the list`, 'info');
   };
 
-  useScanHandler((target) => {
-    if (!target) return false;
-    if (checkoutConfirm.isOpen) {
-      notify('Confirm or cancel the checkout first', 'warning');
-      return;
-    }
-    if (target.kind !== 'container') {
-      notify(`${target.label} is a location. Check Out takes containers.`, 'info');
-      return;
-    }
-    addItem(target);
-  });
+  useScanHandler(
+    (target) => {
+      if (!target) return false;
+      if (checkoutConfirm.isOpen) {
+        notify('Confirm or cancel the checkout first', 'warning');
+        return;
+      }
+      if (target.kind !== 'container') {
+        notify(`${target.label} is a location. Check Out takes containers.`, 'info');
+        return;
+      }
+      addItem(target);
+    },
+    { continuous: true }
+  );
 
   const canSubmit = list.ready.length > 0 && !list.isLooking && !list.hasProblems;
 

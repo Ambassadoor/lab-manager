@@ -98,19 +98,22 @@ export const WeighIn = () => {
     if (!added) notify(`${target.label} is already in the list`, 'info');
   };
 
-  useScanHandler((target) => {
-    if (!target) return false;
-    if (checkinConfirm.isOpen) {
-      notify('Confirm or cancel the check in first', 'warning');
-      return;
-    }
-    if (target.kind !== 'container') {
-      notify(`${target.label} is a location. Check In takes containers.`, 'info');
-      return;
-    }
-    // Scanned as it goes on the balance, so read it straight away.
-    addItem(target, true);
-  });
+  useScanHandler(
+    (target) => {
+      if (!target) return false;
+      if (checkinConfirm.isOpen) {
+        notify('Confirm or cancel the check in first', 'warning');
+        return;
+      }
+      if (target.kind !== 'container') {
+        notify(`${target.label} is a location. Check In takes containers.`, 'info');
+        return;
+      }
+      // Scanned as it goes on the balance, so read it straight away.
+      addItem(target, true);
+    },
+    { continuous: true }
+  );
 
   const rows = list.ready.map((item) => ({ item, ...(weights[item.key] ?? NO_WEIGHTS) }));
   const weightProblem = rows.some(

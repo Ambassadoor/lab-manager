@@ -83,26 +83,29 @@ export function LocationSelect<
   } = useController({ control, name, rules });
 
   const { notify } = useScanner();
-  useScanHandler((target) => {
-    // Not a label at all: the app-wide default reports it.
-    if (!target) return false;
-    if (target.kind === 'container') {
-      notify(`${target.label} is a container. Scan a location label to fill ${label}.`, 'info');
-      return;
-    }
-    const option = options.find((o) => o.id === target.id);
-    if (!option) {
-      const known = menu?.some((l) => l.id === target.id);
-      notify(
-        known ? `${target.label} can't be chosen here` : `No location ${target.label}`,
-        'warning'
-      );
-      return;
-    }
-    field.onChange(String(option.id));
-    clearErrors(name);
-    notify(`${label}: ${option.full_path}`, 'success');
-  }, acceptScans);
+  useScanHandler(
+    (target) => {
+      // Not a label at all: the app-wide default reports it.
+      if (!target) return false;
+      if (target.kind === 'container') {
+        notify(`${target.label} is a container. Scan a location label to fill ${label}.`, 'info');
+        return;
+      }
+      const option = options.find((o) => o.id === target.id);
+      if (!option) {
+        const known = menu?.some((l) => l.id === target.id);
+        notify(
+          known ? `${target.label} can't be chosen here` : `No location ${target.label}`,
+          'warning'
+        );
+        return;
+      }
+      field.onChange(String(option.id));
+      clearErrors(name);
+      notify(`${label}: ${option.full_path}`, 'success');
+    },
+    { enabled: acceptScans }
+  );
 
   return (
     <Autocomplete

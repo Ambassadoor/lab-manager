@@ -3,11 +3,11 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useNavigate } from 'react-router-dom';
 import { getSdsList, NEWEST_SDS_FIRST } from '../api/sds';
 import { useAuth } from '../context/AuthContext';
+import { runHandlers, wantsContinuous, type HandlerEntry, type ScanHandler } from './handlerStack';
 import { identify } from './identify';
 import { nextScanStep, type ScanState } from './scanSequence';
 import {
   ScannerContext,
-  type ScanHandler,
   type ScanMessageSeverity,
   type ScannerContextValue,
 } from './ScannerContext';
@@ -18,7 +18,8 @@ type Message = { id: number; text: string; severity: ScanMessageSeverity };
 
 // Listens for the barcode scanner everywhere in the app. Scans are told
 // apart from typing by the scanner's prefix (scanSequence.ts) and handed to
-// the most recently registered useScanHandler. With none, or if they all
+// the most recently registered useScanHandler; the phone camera
+// (CameraScanner.tsx) hands its scans over through submitScan. With none, or if they all
 // pass, a container scan opens the container and a location scan opens the
 // Locations page at that location. Logged out, a container scan opens its
 // newest SDS instead, since SDS are public safety information. Setting up
@@ -34,11 +35,11 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
     setMessage({ id: messageId.current, text, severity });
   }, []);
 
-  const handlers = useRef<{ current: ScanHandler }[]>([]);
-  const register = useCallback((handler: { current: ScanHandler }) => {
-    handlers.current.push(handler);
+  const handlers = useRef<HandlerEntry[]>([]);
+  const register = useCallback((entry: HandlerEntry) => {
+    handlers.current.push(entry);
     return () => {
-      handlers.current = handlers.current.filter((h) => h !== handler);
+      handlers.current = handlers.current.filter((h) => h !== entry);
     };
   }, []);
 
@@ -66,16 +67,14 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
     };
   });
 
+  const submitScan = useCallback(
+    (raw: string) => runHandlers(handlers.current, defaultHandler.current, identify(raw), raw),
+    []
+  );
+  const wantsList = useCallback(() => wantsContinuous(handlers.current), []);
+
   useEffect(() => {
     let state: ScanState = null;
-
-    const dispatch = (raw: string) => {
-      const target = identify(raw);
-      for (const handler of [...handlers.current].reverse()) {
-        if (handler.current(target, raw) !== false) return;
-      }
-      defaultHandler.current(target, raw);
-    };
 
     const onKeyDown = (e: KeyboardEvent) => {
       // An IME composition, or a shortcut like Ctrl+`, is never a scan.
@@ -86,16 +85,19 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
       if (result.step.action === 'ignore') return;
       e.preventDefault();
       e.stopPropagation();
-      if (result.step.action === 'complete') dispatch(result.step.value);
+      if (result.step.action === 'complete') submitScan(result.step.value);
     };
 
     // Capture phase: this sees each key before the focused input does, so
     // a scan's characters never reach it.
     window.addEventListener('keydown', onKeyDown, { capture: true });
     return () => window.removeEventListener('keydown', onKeyDown, { capture: true });
-  }, []);
+  }, [submitScan]);
 
-  const value = useMemo<ScannerContextValue>(() => ({ register, notify }), [register, notify]);
+  const value = useMemo<ScannerContextValue>(
+    () => ({ register, notify, submitScan, wantsContinuous: wantsList }),
+    [register, notify, submitScan, wantsList]
+  );
 
   return (
     <ScannerContext.Provider value={value}>

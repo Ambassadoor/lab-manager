@@ -55,3 +55,14 @@ While the scanner is connected as a keyboard, iPadOS hides the on-screen keyboar
 Scan **Add Prefix** (p.9), then **Enter/Exit Programming Mode** (Appendix, p.48), without scanning a character in between. These are the manual's "Clear Prefixes" steps (p.10). A wireless factory reset (p.1) also removes it, along with every other setting, including the pairing mode.
 
 Without the prefix, scanning only works while a field that can read a label has focus: the location picker, or the Actions page's "Add by ID" box (the scanner's Enter adds the item).
+
+## Phone camera
+
+Phones (and any device with a camera) can scan labels without the scanner: tap the **QR code icon** in the top bar. A camera scan does exactly what a scanner scan does on that page.
+
+- **One scan or a list:** on most pages the camera closes after one label. On the Actions tabs it stays open, beeping (and on Android, vibrating) for each label and counting them, until you tap **Done**. It closes by itself when a scan opens a confirmation, such as scanning the destination in Move Containers.
+- **Scanning a label twice:** a label held in view counts once. To scan the same label again (the new parent in Move Locations), point away from it for a second, then back.
+- **HTTPS only:** browsers only allow the camera on a secure page, so it works at `https://app.cplabmanager.com` (and `localhost` in development), not over plain `http`. Like the rest of the app, that address only works on campus.
+- **Permission:** the first time, the browser asks to use the camera. If it was refused, allow it again: on an iPhone in Settings › Apps › Safari › Camera, in Chrome from the icon beside the address bar.
+
+The camera code is in `frontend/src/scanner/` (`CameraButton`, `CameraScanner`, `detector.ts`). Android Chrome decodes QR codes with its built-in detector; other browsers, including iPhone Safari, use the zxing WebAssembly decoder, which is bundled with the app and loaded the first time the camera opens.
