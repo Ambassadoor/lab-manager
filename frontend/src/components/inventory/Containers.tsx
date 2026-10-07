@@ -5,10 +5,7 @@ import {
   Container,
   Drawer,
   IconButton,
-  InputAdornment,
   Snackbar,
-  Stack,
-  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -26,13 +23,14 @@ import { ContainerDetail } from './ContainerDetail';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DataTable } from '../shared/DataTable';
 import type { Container as ContainerType, ContainerPatch, EditableKeys } from '../../types';
-import { AddBox, Description, Print, Search, UploadFile } from '@mui/icons-material';
+import { AddBox, Description, Print, UploadFile } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { hasRoleAtLeast } from '../shared/roles';
 import { SdsUploadDialog } from '../sds/SdsUploadDialog';
 import { PrintResultSnackbar } from '../shared/PrintResultSnackbar';
 import { printContainerLabel } from '../shared/printTemplates';
+import { PageHeader } from '../shared/PageHeader';
 
 // The three dashboard-card slices "View More" can land here with, via
 // ?view=. `checked_out` and `recently_added` translate straight to backend
@@ -277,10 +275,11 @@ export const Containers = () => {
 
   return (
     <Container maxWidth={false}>
-      <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Stack direction={'row'} spacing={2}>
-            <Typography variant="h4">Containers</Typography>
+      <PageHeader
+        title="Containers"
+        subtitle="Browse and edit containers in inventory."
+        titleActions={
+          <>
             {canEdit && (
               <Tooltip title="Add container">
                 <IconButton
@@ -293,29 +292,10 @@ export const Containers = () => {
                 </IconButton>
               </Tooltip>
             )}
-          </Stack>
-          <Typography variant="body2" color="text.secondary">
-            Browse and edit containers in inventory.
-          </Typography>
-        </Box>
-        <TextField
-          type="search"
-          size="small"
-          placeholder="Search containers…"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          sx={{ ml: 'auto', minWidth: 260 }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search fontSize="small" />
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
-      </Stack>
+          </>
+        }
+        search={{ value: searchInput, onChange: setSearchInput, placeholder: 'Search containers…' }}
+      />
       {view && (
         <Alert
           severity="info"

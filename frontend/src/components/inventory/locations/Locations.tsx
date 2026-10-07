@@ -59,6 +59,7 @@ import { PrintResultSnackbar } from '../../shared/PrintResultSnackbar';
 import { printLocationLabels, type LocationLabelTarget } from '../../shared/printTemplates';
 import { hasRoleAtLeast } from '../../shared/roles';
 import { ContainerDetail } from '../ContainerDetail';
+import { PageHeader } from '../../shared/PageHeader';
 
 type LocationProps = {
   location: Location;
@@ -388,10 +389,11 @@ export const Locations = () => {
           {locationsError instanceof Error ? locationsError.message : 'Failed to load locations.'}
         </Alert>
       )}
-      <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Stack direction={'row'} spacing={2}>
-            <Typography variant="h4">Locations</Typography>
+      <PageHeader
+        title="Locations"
+        subtitle="Browse locations and the containers stored in them."
+        titleActions={
+          <>
             <AddLocation
               id={''}
               open={open}
@@ -407,12 +409,9 @@ export const Locations = () => {
                 </IconButton>
               </Tooltip>
             )}
-          </Stack>
-          <Typography variant="body2" color="text.secondary">
-            Browse locations and the containers stored in them.
-          </Typography>
-        </Box>
-      </Stack>
+          </>
+        }
+      />
       <Stack direction={'row'} spacing={2}>
         {/* Same elevation as DataTable's default, so both panels share a
             surface color in dark mode */}
