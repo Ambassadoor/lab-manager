@@ -12,7 +12,9 @@ import {
   type ScannerContextValue,
 } from './ScannerContext';
 
-type Message = { text: string; severity: ScanMessageSeverity };
+// `id` gives each message its own Snackbar, and so its own auto-hide timer:
+// otherwise a new message inherits the previous one's and can vanish at once.
+type Message = { id: number; text: string; severity: ScanMessageSeverity };
 
 // Listens for the barcode scanner everywhere in the app. Scans are told
 // apart from typing by the scanner's prefix (scanSequence.ts) and handed to
@@ -26,8 +28,10 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [message, setMessage] = useState<Message | null>(null);
 
+  const messageId = useRef(0);
   const notify = useCallback((text: string, severity: ScanMessageSeverity = 'info') => {
-    setMessage({ text, severity });
+    messageId.current += 1;
+    setMessage({ id: messageId.current, text, severity });
   }, []);
 
   const handlers = useRef<{ current: ScanHandler }[]>([]);
@@ -97,6 +101,7 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
     <ScannerContext.Provider value={value}>
       {children}
       <Snackbar
+        key={message?.id}
         open={!!message}
         onClose={() => setMessage(null)}
         autoHideDuration={4000}

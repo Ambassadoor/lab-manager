@@ -128,7 +128,7 @@ As of 7 October 2026 (`v1.2.0`): **7 fixed, 2 partly, 8 open.** The numbers in b
 - **6.** The bridge is encrypted in transit since finding 7, but still has no login.
 - **9.** Same cause as GitHub issue #94, fixed for chemical edits in #118: a new mixture and its new ingredients are still saved through `ChemicalSerializer`, whose `depth = 1` makes `storage_category` read-only. The fix is to save them with `ChemicalWriteSerializer` instead, in `ContainerView.create`.
 - **10, 12, 14, 15, 16:** unchanged. For 16, the order is now one named constant, `SDS.NEWEST_FIRST`.
-- **17:** none of the four items has changed: the missing `key` in `Move.tsx`, the delete dialog's text, the dead `check_in` / `is_valid` endpoints, and the router built inside `App`.
+- **17:** the missing `key` in `Move.tsx` went with the Actions panel rewrite (scan lists). The other three are unchanged: the delete dialog's text, the dead `check_in` / `is_valid` endpoints, and the router built inside `App`.
 
 ---
 

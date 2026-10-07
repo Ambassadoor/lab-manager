@@ -1,100 +1,68 @@
-import { Close } from '@mui/icons-material';
-import {
-  Alert,
-  Box,
-  Button,
-  IconButton,
-  List,
-  ListItem,
-  ListItemText,
-  Snackbar,
-  Stack,
-  Typography,
-} from '@mui/material';
-import { useFieldArray, useForm } from 'react-hook-form';
-import { useRef, useState } from 'react';
+import { Alert, Box, Button, List, ListItem, ListItemText, Stack, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { containerKeys, locationKeys } from '../../../api/queryKeys';
+import { useForm, useWatch } from 'react-hook-form';
 import { getLocationMenu, transferContainers } from '../../../api/inventory';
-import { ScannableFieldRow } from '../../shared/ScannableFieldRow';
-import { LocationSelect } from '../../shared/LocationSelect';
-import { requiredRule } from '../../shared/formRules';
+import { containerKeys, dashboardKeys, locationKeys } from '../../../api/queryKeys';
+import { useScanHandler, useScanner } from '../../../scanner/ScannerContext';
+import type { ScanTarget } from '../../../scanner/identify';
+import type { Container } from '../../../types';
 import { ActionFormCard } from '../../shared/ActionFormCard';
 import { ConfirmDialog } from '../../shared/ConfirmDialog';
+import { LocationSelect } from '../../shared/LocationSelect';
+import { StorageConflictWarnings } from '../../shared/StorageConflictWarnings';
 import { useConfirmDialog } from '../../shared/useConfirmDialog';
 import { useStorageConflictConfirm } from '../../shared/useStorageConflictConfirm';
-import { StorageConflictWarnings } from '../../shared/StorageConflictWarnings';
+import { AddByIdField } from '../../shared/scanList/AddByIdField';
+import { lookUpContainer } from '../../shared/scanList/lookups';
+import { ScanListView } from '../../shared/scanList/ScanListView';
+import { useScanList, type ScanItem } from '../../shared/scanList/useScanList';
 
-type SnackbarState = { message: string; severity: 'success' | 'error' };
-type TransferTarget = { containers: { slug: string }[]; location: string };
+type TransferTarget = { items: ScanItem<Container>[]; location: string };
 
+// Move Containers: scan the containers, then scan the shelf they're going
+// to. Scanning a location sets the destination and asks to confirm; it can
+// also be picked from the list.
 export const Transfer = () => {
-  const [snackbar, setSnackbar] = useState<SnackbarState | null>(null);
-  const queryClient = useQueryClient();
-  const {
-    control,
-    clearErrors,
-    reset,
-    resetField,
-    handleSubmit,
-    setFocus,
-    getValues,
-    setValue,
-    formState: { isSubmitting, errors },
-  } = useForm({
-    mode: 'onBlur',
-    reValidateMode: 'onBlur',
-    defaultValues: {
-      location: '',
-      containers: [
-        {
-          slug: '',
-        },
-      ],
-    },
-  });
-
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'containers',
-  });
+  const qc = useQueryClient();
+  const { notify } = useScanner();
+  const list = useScanList(lookUpContainer);
+  const { control, clearErrors, setValue, reset } = useForm({ defaultValues: { location: '' } });
+  const location = useWatch({ control, name: 'location' });
 
   const { data: locationMenu } = useQuery({
     queryKey: locationKeys.menu(),
     queryFn: getLocationMenu,
   });
+  const pathOf = (id: string) => locationMenu?.find((l) => String(l.id) === id)?.full_path ?? id;
 
-  // Shared across every row (not created per-row) — a completed scan on one
-  // row can append a new row whose autoFocus shifts focus there before the
-  // scanner's trailing Enter arrives, so whichever row has focus needs to
-  // see the same ref to know it should swallow that Enter.
-  const justScannedRef = useRef(false);
-
-  // Holds the batch awaiting confirmation — the parent-location field also
-  // fires this on a "double scan" (see onScan below), not just the Transfer
-  // button, so both paths funnel through the same confirm gate.
   const transferConfirm = useConfirmDialog<TransferTarget>();
-  // Second, later confirm step — a batch that clears "confirm transfer"
-  // above can still 409 on a storage-compatibility rule (see
-  // backend/apps/inventory/storage_rules.py), which needs its own separate
-  // confirmation on top rather than being silently folded into the first.
+  // A batch that passes "confirm transfer" can still 409 on a storage rule
+  // (backend/apps/inventory/storage_rules.py), which gets its own confirm.
   const storageConflict = useStorageConflictConfirm();
 
   const mutation = useMutation({
     mutationFn: ({ data, confirmed }: { data: TransferTarget; confirmed?: boolean }) =>
-      transferContainers(data, confirmed),
-    onSuccess: (response) => {
-      if (response.length > 0) {
-        setSnackbar({ message: 'Containers transferred.', severity: 'success' });
-        reset();
-        queryClient.invalidateQueries({ queryKey: containerKeys.list() });
-      }
+      transferContainers(
+        {
+          containers: data.items.map((item) => ({ slug: item.detail?.slug ?? '' })),
+          location: data.location,
+        },
+        confirmed
+      ),
+    onSuccess: (response, { data }) => {
+      qc.invalidateQueries({ queryKey: containerKeys.all });
+      qc.invalidateQueries({ queryKey: locationKeys.all });
+      qc.invalidateQueries({ queryKey: dashboardKeys.all });
+      notify(
+        `Moved ${response.length} container${response.length !== 1 ? 's' : ''} to ${pathOf(data.location)}.`,
+        'success'
+      );
+      list.clear();
+      reset();
       transferConfirm.cancel();
     },
     onError: (error, { data }) => {
-      // Closes the "confirm transfer" dialog once the storage-conflict one
-      // takes over — otherwise both would be open/stacked at once, since
-      // nothing else here closes the first dialog on a failed attempt.
+      // The storage-conflict dialog takes over from the transfer one.
       const handled = storageConflict.intercept(error, () =>
         mutation.mutate({ data, confirmed: true })
       );
@@ -102,16 +70,42 @@ export const Transfer = () => {
     },
   });
 
-  const onSubmit = (data: TransferTarget) => {
-    const containers = data.containers.filter((c) => c.slug.trim().length > 0);
-    if (containers.length === 0) return;
-    // A new submit is a new batch — drop the previous attempt's error (e.g.
-    // storage warnings for a container since removed from the list) so
-    // the confirm dialog doesn't open already showing it. The rules are
-    // re-checked server-side when this batch is confirmed.
+  const canSubmit =
+    list.ready.length > 0 && !list.isLooking && !list.hasProblems && location !== '';
+
+  const requestTransfer = (destination: string) => {
     mutation.reset();
-    transferConfirm.request({ ...data, containers });
+    transferConfirm.request({ items: list.ready, location: destination });
   };
+
+  const addItem = (target: ScanTarget) => {
+    if (!list.add(target)) notify(`${target.label} is already in the list`, 'info');
+  };
+
+  useScanHandler((target) => {
+    if (!target) return false;
+    if (transferConfirm.isOpen || storageConflict.isOpen) {
+      notify('Confirm or cancel the transfer first', 'warning');
+      return;
+    }
+    if (target.kind === 'container') {
+      addItem(target);
+      return;
+    }
+    // A location: the destination.
+    const destination = locationMenu?.find((l) => l.id === target.id);
+    if (!destination) {
+      notify(`No location ${target.label}`, 'warning');
+      return;
+    }
+    setValue('location', String(destination.id));
+    clearErrors('location');
+    if (list.ready.length > 0 && !list.isLooking && !list.hasProblems) {
+      requestTransfer(String(destination.id));
+    } else {
+      notify(`Destination: ${destination.full_path}`, 'success');
+    }
+  });
 
   return (
     <>
@@ -123,16 +117,14 @@ export const Transfer = () => {
           transferConfirm.target && (
             <>
               <Typography variant="body1">
-                Transfer {transferConfirm.target.containers.length} container
-                {transferConfirm.target.containers.length !== 1 ? 's' : ''} to{' '}
-                {locationMenu?.find((l) => String(l.id) === transferConfirm.target?.location)
-                  ?.full_path ?? transferConfirm.target.location}
-                ?
+                Move {transferConfirm.target.items.length} container
+                {transferConfirm.target.items.length !== 1 ? 's' : ''} to{' '}
+                {pathOf(transferConfirm.target.location)}?
               </Typography>
               <List dense sx={{ maxHeight: 240, overflow: 'auto' }}>
-                {transferConfirm.target.containers.map((c) => (
-                  <ListItem key={c.slug} disableGutters>
-                    <ListItemText primary={c.slug.toUpperCase()} />
+                {transferConfirm.target.items.map((item) => (
+                  <ListItem key={item.key} disableGutters>
+                    <ListItemText primary={item.target.label} secondary={item.detail?.name} />
                   </ListItem>
                 ))}
               </List>
@@ -169,100 +161,58 @@ export const Transfer = () => {
         }}
         onConfirm={storageConflict.confirm}
       />
-      <Snackbar
-        open={!!snackbar}
-        onClose={() => setSnackbar(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        autoHideDuration={6000}
-        action={
-          <IconButton onClick={() => setSnackbar(null)} color="inherit">
-            <Close />
-          </IconButton>
-        }
-      >
-        <Alert
-          onClose={() => setSnackbar(null)}
-          severity={snackbar?.severity ?? 'success'}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar?.message}
-        </Alert>
-      </Snackbar>
       <ActionFormCard
-        title={'Transfer Location'}
-        subheader={`Add ID's of containers you are moving.`}
-        onSubmit={handleSubmit(onSubmit)}
+        title="Move Containers"
+        subheader="Scan the containers, then scan the location they're going to."
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (canSubmit) requestTransfer(location);
+        }}
         actions={
           <>
-            <Button
-              type="submit"
-              variant="contained"
-              loading={isSubmitting}
-              disabled={!!errors.containers || !!errors.location}
-            >
+            <Button type="submit" variant="contained" disabled={!canSubmit}>
               Transfer
             </Button>
-            <Button variant="outlined" onClick={() => reset()}>
-              Cancel
+            <Button
+              variant="outlined"
+              onClick={() => {
+                list.clear();
+                reset();
+              }}
+              disabled={list.items.length === 0 && location === ''}
+            >
+              Clear
             </Button>
           </>
         }
       >
         <Stack spacing={2}>
-          {fields.map((field, index) => (
-            <ScannableFieldRow
-              key={field.id}
-              control={control}
-              name={`containers.${index}.slug`}
-              label={`Container #${index + 1}`}
-              clearErrors={clearErrors}
-              onScan={(scannedId, setFieldValue) => {
-                const locationId = /^loc-(\d+)$/i.exec(scannedId)?.[1];
-                if (locationId) {
-                  // The location label was scanned into the trailing blank
-                  // row — drop that row, but keep at least one so there's
-                  // still a field to scan into.
-                  if (fields.length > 1) {
-                    remove(index);
-                  } else {
-                    resetField(`containers.${index}.slug`);
-                  }
-                  setValue('location', locationId);
-                  clearErrors('location');
-                  handleSubmit(onSubmit)();
-                  return;
-                }
-                const isDuplicate = getValues('containers').some(
-                  (c) => c.slug.toLocaleLowerCase() === scannedId.toLocaleLowerCase()
-                );
-                if (isDuplicate) {
-                  resetField(`containers.${index}.slug`);
-                  return;
-                }
-                setFieldValue(scannedId);
-                append({ slug: '' });
-              }}
-              showRemove={index > 0}
-              onRemove={() => remove(index)}
-              onAdd={() => {
-                append({ slug: '' });
-                setFocus(`containers.${fields.length}.slug`);
-              }}
-              justScannedRef={justScannedRef}
-            />
-          ))}
-        </Stack>
-        <Box sx={{ mt: 2 }}>
-          <LocationSelect
-            control={control}
-            name="location"
-            label="New Location"
-            rules={{ required: requiredRule }}
-            clearErrors={clearErrors}
-            fullWidth
+          <AddByIdField
+            accepts={(t) => t.kind === 'container'}
+            describeAccepted="containers (pick the destination below)"
+            placeholder="CHEM-12, CHEM-13"
+            onAdd={addItem}
           />
-        </Box>
+          {list.hasProblems && (
+            <Alert severity="warning">Remove the items marked in red to continue.</Alert>
+          )}
+          <ScanListView
+            items={list.items}
+            onRemove={list.remove}
+            emptyText="Scan a container to start."
+            describe={(c) => ({ primary: c.name, secondary: `Now in ${c.location.full_path}` })}
+          />
+          <Box>
+            <LocationSelect
+              control={control}
+              name="location"
+              label="Destination"
+              placeholder="Scan a location, or choose one"
+              clearErrors={clearErrors}
+              fullWidth
+            />
+          </Box>
+        </Stack>
       </ActionFormCard>
     </>
   );
