@@ -40,6 +40,7 @@ import { DarkModeToggle } from './DarkModeToggle';
 import { useDarkModeSwitch } from './useDarkModeSwitch';
 import { PrinterStatusIndicator } from './PrinterStatusIndicator';
 import { HelpMenu } from './HelpMenu';
+import { TestSiteBanner } from './TestSiteBanner';
 import { CameraButton } from '../../scanner/CameraButton';
 import { Link, NavLink, Outlet, useNavigate, useNavigation } from 'react-router-dom';
 import { hasRoleAtLeast } from '../shared/roles';
@@ -133,6 +134,7 @@ export const Navbar = (): JSX.Element | null => {
 
   return (
     <Paper sx={{ height: '100dvh', width: '100%', overflow: 'auto' }} square>
+      <TestSiteBanner />
       <Box sx={{ flexGrow: 1, marginBottom: { xs: 2, sm: 5 } }}>
         <AppBar position="static">
           <Toolbar>

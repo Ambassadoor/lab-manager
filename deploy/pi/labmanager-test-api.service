@@ -1,0 +1,14 @@
+[Unit]
+Description=Lab Manager API, test site (gunicorn)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+User=ambassadoor
+WorkingDirectory=/opt/lab-manager-test/backend
+# Two workers (the live site has three): it only serves whoever is testing.
+ExecStart=/opt/lab-manager-test/backend/.venv/bin/gunicorn config.wsgi --bind 127.0.0.1:8001 --workers 2
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

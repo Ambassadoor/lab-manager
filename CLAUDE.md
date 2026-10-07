@@ -66,7 +66,7 @@ Hooks live in `.githooks/` and need `git config core.hooksPath .githooks` once p
 
 ### Branching
 
-Work branches are `cp/<type>/<snake_name>`, branched from and merged into `develop`. `develop` is merged into `main` for releases, which are tagged (`v1.1.0`). The Pi deploys from `main`, so a change is not live until it is released and `deploy/pi/deploy.sh` is run. CI runs on push to `develop`/`main` and on pull requests into either; the `API types` workflow fails if `openapi.json` or `api.ts` is out of date.
+Work branches are `cp/<type>/<snake_name>`, branched from and merged into `develop`. `develop` is merged into `main` for releases, which are tagged (`v1.1.0`). The Pi deploys from `main`, so a change is not live until it is released and `deploy/pi/deploy.sh` is run. A test site on the same Pi, `https://test.cplabmanager.com`, runs `develop` against a copy of the live database (setup and use in [deploy/pi/README.md](deploy/pi/README.md#test-site)). CI runs on push to `develop`/`main` and on pull requests into either; the `API types` workflow fails if `openapi.json` or `api.ts` is out of date.
 
 ### Commits
 
