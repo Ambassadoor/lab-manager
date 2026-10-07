@@ -40,6 +40,7 @@ import { DarkModeToggle } from './DarkModeToggle';
 import { useDarkModeSwitch } from './useDarkModeSwitch';
 import { PrinterStatusIndicator } from './PrinterStatusIndicator';
 import { HelpMenu } from './HelpMenu';
+import { CameraButton } from '../../scanner/CameraButton';
 import { Link, NavLink, Outlet, useNavigate, useNavigation } from 'react-router-dom';
 import { hasRoleAtLeast } from '../shared/roles';
 import { useNavigationBreadcrumbs } from '../../diagnostics';
@@ -282,6 +283,8 @@ export const Navbar = (): JSX.Element | null => {
                 )}
               </Stack>
             </Box>
+            {/* Logged in or out: logged out, a container scan opens its SDS */}
+            <CameraButton />
             {/* Stockroom+ only — same gate as Add Container/Actions above,
                 since printing labels is a stockroom-level task and the
                 bridge it reports on only runs on the lab PC anyway. */}
