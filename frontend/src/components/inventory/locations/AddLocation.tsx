@@ -31,6 +31,7 @@ import {
   Shelves,
 } from '@mui/icons-material';
 import type { Location } from '../../../types';
+import { useFullScreenOnPhone } from '../../shared/useFullScreenOnPhone';
 
 type AddLocationProps = {
   id?: string;
@@ -79,6 +80,7 @@ const iconMap = new Map([
 
 //Modal for in page addition of locations
 export const AddLocation = ({ id, open, setOpen, onCreated }: AddLocationProps) => {
+  const fullScreen = useFullScreenOnPhone();
   const { data: locationTypes } = useQuery({
     queryKey: locationKeys.types(),
     queryFn: getLocationTypes,
@@ -150,6 +152,7 @@ export const AddLocation = ({ id, open, setOpen, onCreated }: AddLocationProps) 
 
   return (
     <Dialog
+      fullScreen={fullScreen}
       fullWidth
       open={open}
       component={'form'}

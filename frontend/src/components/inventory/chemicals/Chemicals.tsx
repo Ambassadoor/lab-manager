@@ -1,13 +1,4 @@
-import {
-  Box,
-  IconButton,
-  InputAdornment,
-  Container,
-  Stack,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import { Box, IconButton, Container, Tooltip } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { type CustomCellRendererProps } from 'ag-grid-react';
 import { getChemicals } from '../../../api/inventory';
@@ -15,13 +6,14 @@ import { chemicalKeys } from '../../../api/queryKeys';
 import { useEffect, useMemo, useState } from 'react';
 import Decimal from 'decimal.js';
 import { type ColDef } from 'ag-grid-community';
-import { AddBox, Search } from '@mui/icons-material';
+import { AddBox } from '@mui/icons-material';
 import { AddChemical } from './AddChemical';
 import { useNavigate } from 'react-router-dom';
 import { DataTable } from '../../shared/DataTable';
 import type { Chemical } from '../../../types';
 import { useAuth } from '../../../context/AuthContext';
 import { hasRoleAtLeast } from '../../shared/roles';
+import { PageHeader } from '../../shared/PageHeader';
 
 //Table for viewing chemicals
 export const Chemicals = () => {
@@ -105,10 +97,11 @@ export const Chemicals = () => {
 
   return (
     <Container maxWidth={false}>
-      <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Stack direction={'row'} spacing={2}>
-            <Typography variant="h4">Chemicals</Typography>
+      <PageHeader
+        title="Chemicals"
+        subtitle="Browse the chemical catalog."
+        titleActions={
+          <>
             {canEdit && (
               <Tooltip title="Add chemical">
                 <IconButton
@@ -120,29 +113,10 @@ export const Chemicals = () => {
                 </IconButton>
               </Tooltip>
             )}
-          </Stack>
-          <Typography variant="body2" color="text.secondary">
-            Browse the chemical catalog.
-          </Typography>
-        </Box>
-        <TextField
-          type="search"
-          size="small"
-          placeholder="Search chemicals…"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          sx={{ ml: 'auto', minWidth: 260 }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search fontSize="small" />
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
-      </Stack>
+          </>
+        }
+        search={{ value: searchInput, onChange: setSearchInput, placeholder: 'Search chemicals…' }}
+      />
       <AddChemical open={open} setOpen={setOpen} />
       <Box>
         <DataTable<Chemical>
