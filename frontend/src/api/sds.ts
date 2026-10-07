@@ -19,7 +19,12 @@ export type SdsListParams = {
   product_num?: string;
   revision_date?: string;
   revision_number?: number | string;
+  ordering?: string;
 };
+
+// Newest first, the same order as the backend's SDS.NEWEST_FIRST, which
+// picks a container's "Latest SDS".
+export const NEWEST_SDS_FIRST = '-revision_date,-revision_number,-id';
 
 export const getSdsList = (params?: SdsListParams): Promise<SDS[]> => {
   return apiFetch(`/api/inventory/sds/${toQueryString(params)}`);

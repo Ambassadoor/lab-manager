@@ -27,6 +27,7 @@ import { Locations } from './components/inventory/locations/Locations';
 import { Chemicals } from './components/inventory/chemicals/Chemicals';
 import { ChemicalDetail } from './components/inventory/chemicals/ChemicalDetail';
 import { Dashboard } from './components/inventory/Dashboard';
+import { ScannerProvider } from './scanner/ScannerProvider';
 import { NotFound, StatusPage } from './components/shared/NotFound';
 import { SdsSearch } from './components/sds/SdsSearch';
 import { SdsViewer } from './components/sds/SdsViewer';
@@ -97,7 +98,13 @@ export default function App() {
   const routes: RouteObject[] = [
     {
       path: '/',
-      element: <Navbar />,
+      // Inside the router, so a scan can navigate; around everything, so a
+      // scan works on any page.
+      element: (
+        <ScannerProvider>
+          <Navbar />
+        </ScannerProvider>
+      ),
       children: [
         {
           errorElement: <ErrorBoundary />,
