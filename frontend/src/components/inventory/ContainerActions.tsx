@@ -20,8 +20,9 @@ export const ContainerActions = () => {
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4">Quick Actions</Typography>
         <Typography variant="body2" color="text.secondary">
-          Check containers out, check them back in with a weigh-in, transfer their location, or move
-          locations to a new parent location.
+          Scan items into a list, or add them by ID, then confirm: check containers out, check them
+          back in with a weigh-in, move containers to a new location, or move locations to a new
+          parent.
         </Typography>
       </Box>
       <Paper elevation={4} sx={{ height: '80dvh', overflow: 'auto' }}>

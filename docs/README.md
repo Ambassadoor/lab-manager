@@ -9,6 +9,7 @@ Project planning and reference documents live here, so they travel with the code
 | [Post-MVP-Code-Review.md](Post-MVP-Code-Review.md) | Review of everything added since MVP sign-off: how each part works, known problems, and how it compares with professional practice | A snapshot of 1 October 2026; only the status notes change |
 | [Lab Manager on a Raspberry Pi — Deployment Plan.md](Lab%20Manager%20on%20a%20Raspberry%20Pi%20—%20Deployment%20Plan.md) | How the live app was deployed to the Pi, with as-built notes | A record of the deployment |
 | [Bug-Reporting-Plan.md](Bug-Reporting-Plan.md) | Design of the in-app bug reports and the GitHub App setup | Phases marked done as built |
+| [Barcode-Scanner.md](Barcode-Scanner.md) | Setting up the barcode scanner (backtick prefix, pairing, iPad) and how the app recognises scans | Yes |
 | [Flinn Scientific Chemical Storage Pattern.md](Flinn%20Scientific%20Chemical%20Storage%20Pattern.md) | The storage category chart the app's categories are loaded from | Reference |
 
 Elsewhere in the repository:

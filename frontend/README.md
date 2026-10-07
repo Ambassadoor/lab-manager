@@ -21,8 +21,9 @@ React + TypeScript single-page app, built with Vite.
 | `pnpm lint` | Run ESLint |
 | `pnpm format` | Format `src/` with Prettier |
 | `pnpm format:check` | Check formatting |
+| `pnpm test` | Run the unit tests (Vitest) |
 
-There are no frontend tests yet.
+Unit tests (Vitest) sit next to the code they test as `*.test.ts`, and run in CI and in the pre-push hook. So far they cover the barcode scanner logic in `src/scanner/`.
 
 ## Key files
 | Path | Purpose |
@@ -36,6 +37,7 @@ There are no frontend tests yet.
 | `src/context/` | Auth state (checks the session on load) and the light/dark theme |
 | `src/types/api.ts` | Generated from the backend schema by the pre-commit hook. Do not edit by hand |
 | `src/types/index.ts` | Hand-written types |
+| `src/scanner/` | App-wide barcode scanning: `ScannerProvider`, `useScanHandler`, and the pure, tested parsing in `scanSequence.ts`, `identify.ts`, `parseIdList.ts`. Scanner setup: `docs/Barcode-Scanner.md` |
 | `src/diagnostics/` | Captures console output, failed requests and navigation for bug reports |
 | `src/components/` | By area: `accounts`, `inventory`, `sds`, `labels`, `feedback`, `nav`, and `shared` for reused pieces |
 

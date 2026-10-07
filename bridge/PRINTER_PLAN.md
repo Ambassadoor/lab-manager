@@ -24,7 +24,7 @@ an earlier `edge-js`-based in-process attempt had unstable COM marshalling.
 That work is a useful reference (see below) but **we're not following that
 architecture** — going with a different protocol instead of b-PAC.
 
-**Why:** Brother's own developer docs (now in `brother_docs/`) show the
+**Why:** Brother's own developer docs (now in `docs/`) show the
 raster/P-touch Template protocol family works over plain network TCP/IP,
 and is explicitly documented as intended for non-Windows use (*"When
 printing from an operating system other than Windows (Example: When
@@ -50,7 +50,7 @@ that P-touch Editor currently gives for free.
 
 ## Reference material
 
-- `bridge/brother_docs/` — Brother's official developer docs, added this
+- `bridge/docs/` — Brother's official developer docs, added this
   session:
   - `cv_ptp900_eng_ptemp_103.pdf` — P-touch Template Command Reference
     (the one we're building against)
@@ -75,7 +75,7 @@ that P-touch Editor currently gives for free.
   already parses from scanner input — so whatever template we print needs
   to keep producing that same QR payload shape for scanning to keep working.
 
-## Known protocol details (from brother_docs, so next session doesn't need to re-search)
+## Known protocol details (from bridge/docs, so next session doesn't need to re-search)
 
 **Status request:** `ESC i S` (hex `1B 69 53`). Send once before printing
 (not while printing — error info arrives automatically during printing).
@@ -377,7 +377,7 @@ nothing on the frontend or in Django consumed them yet. In priority order:
      doesn't create a registry row for a number that was never actually
      assigned that way.
 4. **Whether printer errors can be cleared programmatically — resolved:
-   no.** Checked all four Brother references now in `brother_docs/`
+   no.** Checked all four Brother references now in `docs/`
    (ptemp, raster, escp command references + this user guide); none
    documents a network/serial command that clears a latched error. This
    matches the "Cancelling a held/buffered print job" finding above
