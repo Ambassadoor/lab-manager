@@ -34,7 +34,7 @@ import { GHS_PICTOGRAMS, ghsPictogramIconSrc, ghsPictogramLabel } from '../share
 import { RhfDateField } from '../shared/RhfDateField';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import type { GHSPictogram, SDS } from '../../types';
-import { useFullScreenOnPhone } from '../shared/useFullScreenOnPhone';
+import { useIsPhone } from '../shared/useIsPhone';
 
 type SdsUploadDialogProps = {
   open: boolean;
@@ -95,7 +95,8 @@ export const SdsUploadDialog = ({
   onUploaded,
   onSelect,
 }: SdsUploadDialogProps) => {
-  const fullScreen = useFullScreenOnPhone();
+  // On a phone a centred dialog leaves the fields a strip of the screen
+  const fullScreen = useIsPhone();
   const [file, setFile] = useState<File | null>(null);
   const [existingId, setExistingId] = useState<number | null>(null);
   // Only used in deferred mode, to label the staged selection back to the

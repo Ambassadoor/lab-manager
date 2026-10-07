@@ -14,7 +14,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import type { ChemicalDefaults } from '../../../types';
 import { ChemicalFields } from './ChemicalFields';
-import { useFullScreenOnPhone } from '../../shared/useFullScreenOnPhone';
+import { useIsPhone } from '../../shared/useIsPhone';
 
 type AddChemicalProps = {
   open: boolean;
@@ -23,7 +23,8 @@ type AddChemicalProps = {
 
 //Modal for in page addition of new chemicals
 export const AddChemical = ({ open, setOpen }: AddChemicalProps) => {
-  const fullScreen = useFullScreenOnPhone();
+  // On a phone a centred dialog leaves the fields a strip of the screen
+  const fullScreen = useIsPhone();
   const {
     handleSubmit,
     control,

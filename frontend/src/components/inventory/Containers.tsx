@@ -31,6 +31,7 @@ import { SdsUploadDialog } from '../sds/SdsUploadDialog';
 import { PrintResultSnackbar } from '../shared/PrintResultSnackbar';
 import { printContainerLabel } from '../shared/printTemplates';
 import { PageHeader } from '../shared/PageHeader';
+import { useIsPhone } from '../shared/useIsPhone';
 
 // The three dashboard-card slices "View More" can land here with, via
 // ?view=. `checked_out` and `recently_added` translate straight to backend
@@ -140,6 +141,9 @@ const PrintCellRenderer = ({ data, onPrint }: PrintCellRendererProps) => {
     </Tooltip>
   );
 };
+
+// What a phone has room for
+const PHONE_COLUMNS = ['label', 'name', 'location.full_path'];
 
 // Fetches its own container list rather than receiving it as a prop — this
 // only pays for itself once a second consumer needs the same data (App.tsx
@@ -272,6 +276,7 @@ export const Containers = () => {
   };
 
   const navigate = useNavigate();
+  const isPhone = useIsPhone();
 
   return (
     <Container maxWidth={false}>
@@ -321,9 +326,14 @@ export const Containers = () => {
           isError={isError}
           errorMessage={error instanceof Error ? error.message : undefined}
           singleClickEdit
-          onCellDoubleClicked={(e) => {
-            if (!e.data) return;
-            setSelectedRow(e.data);
+          phoneColumns={PHONE_COLUMNS}
+          onRowOpen={(row) => {
+            // The side drawer would be too narrow on a phone
+            if (isPhone) {
+              navigate(`/inventory/containers/${row.slug}`, { state: row });
+              return;
+            }
+            setSelectedRow(row);
             setOpen(true);
           }}
           onCellValueChanged={onCellValueChanged}

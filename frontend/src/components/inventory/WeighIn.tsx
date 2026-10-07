@@ -124,7 +124,7 @@ export const WeighIn = () => {
     const badWeight = !!value.weight && !DECIMAL.test(value.weight);
     const badTare = !!value.tare && !DECIMAL.test(value.tare);
     return (
-      <Stack direction="row" spacing={1} sx={{ flex: '1 1 260px' }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ flex: '1 1 260px' }}>
         <TextField
           size="small"
           label="Weight"

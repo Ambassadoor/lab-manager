@@ -3,6 +3,7 @@ import {
   deleteLocation,
   getContainers,
   getLocationContainers,
+  getLocationMenu,
   getLocations,
 } from '../../../api/inventory';
 import { locationKeys } from '../../../api/queryKeys';
@@ -151,7 +152,7 @@ const Location = ({
       <ListItemButton
         selected={selectedLocation === String(location.id)}
         onClick={() => setSelectedLocation(String(location.id))}
-        sx={{ pl: 2 + depth * 2 }}
+        sx={{ pl: { xs: 1 + depth * 1.5, sm: 2 + depth * 2 } }}
       >
         <ListItemIcon sx={{ minWidth: 40 }}>
           {location.type.icon && iconMap.get(location.type.icon)}
@@ -252,6 +253,9 @@ const Location = ({
   );
 };
 
+// What a phone has room for
+const PHONE_COLUMNS = ['label', 'name'];
+
 // Component for viewing/editing locations and their assigned containers
 export const Locations = () => {
   const { user } = useAuth();
@@ -267,6 +271,8 @@ export const Locations = () => {
     setSearchParams(id ? { location: id } : {});
     // The previewed container likely isn't in the new location's list
     setPreviewSlug(null);
+    // Stacked, fold the tree away so the location's containers are in view
+    if (stacked) setTreeOpen(false);
   };
   // Slug rather than the row object, so the preview re-derives from the
   // latest list data after a refetch (e.g. after editing in the panel).
@@ -275,6 +281,19 @@ export const Locations = () => {
   // below that the preview is dropped so the tree and grid keep the room
   // (double-click still opens a container's full page).
   const showPreview = useMediaQuery((theme) => theme.breakpoints.up('xl'));
+  // Below md (phones, a narrow window) the tree sits above the grid instead
+  // of beside it, and folds into one row showing the selected location.
+  const stacked = useMediaQuery((theme) => theme.breakpoints.down('md'));
+  // Starts folded when opened at a location (a scan, a link)
+  const [treeOpen, setTreeOpen] = useState(!selectedLocation);
+  const { data: locationMenu } = useQuery({
+    queryKey: locationKeys.menu(),
+    queryFn: getLocationMenu,
+    enabled: stacked,
+  });
+  const selectedPath = selectedLocation
+    ? (locationMenu?.find((l) => String(l.id) === selectedLocation)?.full_path ?? '…')
+    : 'All locations';
   const {
     data: locations,
     isPending: isLocationsPending,
@@ -412,41 +431,67 @@ export const Locations = () => {
           </>
         }
       />
-      <Stack direction={'row'} spacing={2}>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
         {/* Same elevation as DataTable's default, so both panels share a
             surface color in dark mode */}
         <Paper
           elevation={4}
-          sx={{ flexShrink: 0, width: 360, maxWidth: 500, height: '75dvh', overflowY: 'auto' }}
+          sx={{
+            flexShrink: 0,
+            width: { xs: '100%', md: 360 },
+            maxWidth: { md: 500 },
+            height: { md: '75dvh' },
+            maxHeight: { xs: '50dvh', md: 'none' },
+            overflowY: 'auto',
+          }}
         >
-          {isLocationsPending ? (
-            <CircularProgress size={24} sx={{ m: 2 }} />
-          ) : (
-            <List component="nav" dense>
-              {/* Explicit way back to the unfiltered container list */}
-              <ListItemButton
-                selected={selectedLocation === ''}
-                onClick={() => setSelectedLocation('')}
-              >
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <Inventory />
-                </ListItemIcon>
-                <ListItemText primary="All locations" />
-              </ListItemButton>
-              {locations?.map((l) => (
-                <Location
-                  location={l}
-                  key={l.id}
-                  path={[l.name]}
-                  selectedLocation={selectedLocation}
-                  setSelectedLocation={setSelectedLocation}
-                  canEdit={canEdit}
-                  onRequestDelete={deleteConfirm.request}
-                  onPrint={handlePrint}
-                />
-              ))}
-            </List>
+          {stacked && (
+            <ListItemButton
+              onClick={() => setTreeOpen((prev) => !prev)}
+              aria-expanded={treeOpen}
+              // The Paper's colour, and in dark mode its elevation overlay too
+              sx={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 1,
+                backgroundColor: 'inherit',
+                backgroundImage: 'inherit',
+              }}
+            >
+              <ListItemText secondary="Location" primary={selectedPath} />
+              {treeOpen ? <ExpandLess /> : <ExpandMore />}
+            </ListItemButton>
           )}
+          <Collapse in={!stacked || treeOpen}>
+            {isLocationsPending ? (
+              <CircularProgress size={24} sx={{ m: 2 }} />
+            ) : (
+              <List component="nav" dense>
+                {/* Explicit way back to the unfiltered container list */}
+                <ListItemButton
+                  selected={selectedLocation === ''}
+                  onClick={() => setSelectedLocation('')}
+                >
+                  <ListItemIcon sx={{ minWidth: 40 }}>
+                    <Inventory />
+                  </ListItemIcon>
+                  <ListItemText primary="All locations" />
+                </ListItemButton>
+                {locations?.map((l) => (
+                  <Location
+                    location={l}
+                    key={l.id}
+                    path={[l.name]}
+                    selectedLocation={selectedLocation}
+                    setSelectedLocation={setSelectedLocation}
+                    canEdit={canEdit}
+                    onRequestDelete={deleteConfirm.request}
+                    onPrint={handlePrint}
+                  />
+                ))}
+              </List>
+            )}
+          </Collapse>
         </Paper>
         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
           <DataTable<ContainerType>
@@ -458,8 +503,9 @@ export const Locations = () => {
             onRowClicked={(e) => {
               if (showPreview && e.data) setPreviewSlug(e.data.slug);
             }}
-            onCellDoubleClicked={(e) => {
-              navigate(`/inventory/containers/${e.data?.slug}`, { state: e.data });
+            phoneColumns={PHONE_COLUMNS}
+            onRowOpen={(row) => {
+              navigate(`/inventory/containers/${row.slug}`, { state: row });
             }}
           />
         </Box>

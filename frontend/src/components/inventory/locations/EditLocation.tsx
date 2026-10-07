@@ -14,7 +14,7 @@ import {
   Stack,
   TextField,
 } from '@mui/material';
-import { useFullScreenOnPhone } from '../../shared/useFullScreenOnPhone';
+import { useIsPhone } from '../../shared/useIsPhone';
 
 type EditLocationProps = {
   location: Location;
@@ -31,7 +31,8 @@ export type EditLocationDefaults = {
 
 //Modal for quick in page editing of locations
 export const EditLocation = ({ location, parent, open, setOpen }: EditLocationProps) => {
-  const fullScreen = useFullScreenOnPhone();
+  // On a phone a centred dialog leaves the fields a strip of the screen
+  const fullScreen = useIsPhone();
   const qc = useQueryClient();
 
   const { data: types } = useQuery({
