@@ -1,106 +1,169 @@
+import { MonitorWeight } from '@mui/icons-material';
 import {
   Alert,
   Box,
   Button,
   IconButton,
+  InputAdornment,
   List,
   ListItem,
   ListItemText,
-  Snackbar,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material';
-import { useFieldArray, useForm, useWatch, type SubmitHandler } from 'react-hook-form';
-import { checkIfDiscarded, createWeighIn } from '../../api/inventory';
-import { getBalanceWeight } from '../../api/bridge';
-import { containerKeys, dashboardKeys } from '../../api/queryKeys';
-import type { WeighInDefaults } from '../../types';
-import { useRef, useState } from 'react';
-import { Close } from '@mui/icons-material';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { WeightField } from '../shared/WeightField';
-import { ScannableFieldRow } from '../shared/ScannableFieldRow';
+import { useCallback, useState } from 'react';
+import { getBalanceWeight } from '../../api/bridge';
+import { checkIfDiscarded, createWeighIn } from '../../api/inventory';
+import { containerKeys, dashboardKeys } from '../../api/queryKeys';
+import { useScanHandler, useScanner } from '../../scanner/ScannerContext';
+import type { ScanTarget } from '../../scanner/identify';
+import type { Container, WeighInDefaults } from '../../types';
 import { ActionFormCard } from '../shared/ActionFormCard';
-import { RhfTextField } from '../shared/RhfTextField';
-import { decimalPatternRule } from '../shared/formRules';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { useConfirmDialog } from '../shared/useConfirmDialog';
+import { AddByIdField } from '../shared/scanList/AddByIdField';
+import { lookUpContainer } from '../shared/scanList/lookups';
+import { ScanListView } from '../shared/scanList/ScanListView';
+import { useScanList, type ScanItem } from '../shared/scanList/useScanList';
 
-type SnackbarState = { message: string; severity: 'success' | 'error' };
+// What Check In needs to know about each container: the container, and
+// whether it still lacks a real tare weight (then one can be entered here).
+type CheckInDetail = { container: Container; needsTare: boolean };
+type Weights = { weight: string; tare: string };
+const NO_WEIGHTS: Weights = { weight: '', tare: '' };
 
+const DECIMAL = /^\d+(\.\d+)?$/;
+
+async function lookUpForCheckIn(target: ScanTarget): Promise<CheckInDetail> {
+  const [container, status] = await Promise.all([
+    lookUpContainer(target),
+    target.kind === 'container' ? checkIfDiscarded(target.slug) : Promise.resolve(null),
+  ]);
+  if (status?.is_discarded) throw new Error(`${target.label} has been discarded`);
+  return { container, needsTare: !status?.has_estimated_usage };
+}
+
+// Check In: scan each container as it goes on the balance. The scan reads
+// the balance into that container's weight, which can still be edited or
+// re-read. Typed-in containers are weighed with the scale button.
 export const WeighIn = () => {
-  const [snackbar, setSnackbar] = useState<SnackbarState | null>(null);
-  // Keyed by each row's stable RHF field.id (not array index, which shifts
-  // under add/remove) — true once a scanned row's container is confirmed to
-  // have no real tare weight yet, per Container.has_estimated_usage.
-  const [needsTare, setNeedsTare] = useState<Record<string, boolean>>({});
-  const {
-    control,
-    handleSubmit,
-    clearErrors,
-    reset,
-    setFocus,
-    setValue,
-    getValues,
-    resetField,
-    formState: { isSubmitting, isValidating, errors },
-  } = useForm({
-    mode: 'onBlur',
-    reValidateMode: 'onBlur',
-    defaultValues: {
-      checkin: [
-        {
-          slug: '',
-          weight: '',
-          tare_weight: '',
-        },
-      ],
-    },
-  });
-
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'checkin',
-  });
-
-  const checkinValues = useWatch({ control, name: 'checkin' });
-
-  const queryClient = useQueryClient();
-
-  // Tracks whether the last onChange was a completed barcode scan, so we only
-  // swallow the scanner's own trailing Enter keystroke, not a manual submit.
-  const justScannedRef = useRef(false);
-
-  // One shared mutation for every row's WeightField — its own button calls
-  // this directly, and onScan (below) also calls it right after a slug
-  // scan, so an id scan auto-reads the scale instead of requiring a
-  // separate manual click.
-  const scaleMutation = useMutation({ mutationFn: getBalanceWeight });
-
-  // Holds the rows awaiting confirmation — scanning several containers in a
-  // row queues up weight readings and check-ins that aren't trivial to
-  // undo, so this gates the actual submit behind one deliberate click.
+  const qc = useQueryClient();
+  const { notify } = useScanner();
+  const list = useScanList(lookUpForCheckIn);
+  const [weights, setWeights] = useState<Record<string, Weights>>({});
+  const [reading, setReading] = useState<string | null>(null);
   const checkinConfirm = useConfirmDialog<WeighInDefaults['checkin']>();
 
-  const weighInMutation = useMutation({
+  const setWeight = (key: string, patch: Partial<Weights>) =>
+    setWeights((current) => ({
+      ...current,
+      [key]: { ...(current[key] ?? NO_WEIGHTS), ...patch },
+    }));
+
+  const readScale = useCallback(
+    (key: string) => {
+      setReading(key);
+      getBalanceWeight()
+        .then((r) =>
+          setWeights((current) => ({
+            ...current,
+            [key]: { ...(current[key] ?? NO_WEIGHTS), weight: String(r.weight) },
+          }))
+        )
+        .catch((error: Error) => notify(`Couldn't read the balance: ${error.message}`, 'error'))
+        .finally(() => setReading(null));
+    },
+    [notify]
+  );
+
+  const mutation = useMutation({
     mutationFn: (checkin: WeighInDefaults['checkin']) => createWeighIn({ checkin }),
     onSuccess: (response) => {
-      if (response.readings.length > 0) {
-        setSnackbar({ message: 'Weigh in recorded.', severity: 'success' });
-        reset();
-        // .all, not .list() — also refreshes this container's weigh-in history table
-        queryClient.invalidateQueries({ queryKey: containerKeys.all });
-        // restock_soon on the dashboard depends on percent_remaining, which shifts with every reading
-        queryClient.invalidateQueries({ queryKey: dashboardKeys.all });
-      }
+      qc.invalidateQueries({ queryKey: containerKeys.all });
+      qc.invalidateQueries({ queryKey: dashboardKeys.all });
+      notify(
+        `Checked in ${response.readings.length} container${response.readings.length !== 1 ? 's' : ''}.`,
+        'success'
+      );
+      list.clear();
+      setWeights({});
       checkinConfirm.cancel();
     },
   });
 
-  const onSubmit: SubmitHandler<WeighInDefaults> = (data) => {
-    const checkin = data.checkin.filter((c) => c.slug.trim().length > 0);
-    if (checkin.length === 0) return;
-    checkinConfirm.request(checkin);
+  const addItem = (target: ScanTarget, weighNow: boolean) => {
+    const added = list.add(target, weighNow ? (item) => readScale(item.key) : undefined);
+    if (!added) notify(`${target.label} is already in the list`, 'info');
+  };
+
+  useScanHandler((target) => {
+    if (!target) return false;
+    if (checkinConfirm.isOpen) {
+      notify('Confirm or cancel the check in first', 'warning');
+      return;
+    }
+    if (target.kind !== 'container') {
+      notify(`${target.label} is a location. Check In takes containers.`, 'info');
+      return;
+    }
+    // Scanned as it goes on the balance, so read it straight away.
+    addItem(target, true);
+  });
+
+  const rows = list.ready.map((item) => ({ item, ...(weights[item.key] ?? NO_WEIGHTS) }));
+  const weightProblem = rows.some(
+    ({ weight, tare }) => !weight || !DECIMAL.test(weight) || (!!tare && !DECIMAL.test(tare))
+  );
+  const canSubmit =
+    list.ready.length > 0 && !list.isLooking && !list.hasProblems && !weightProblem && !reading;
+
+  const renderWeights = (item: ScanItem<CheckInDetail>) => {
+    const value = weights[item.key] ?? NO_WEIGHTS;
+    const badWeight = !!value.weight && !DECIMAL.test(value.weight);
+    const badTare = !!value.tare && !DECIMAL.test(value.tare);
+    return (
+      <Stack direction="row" spacing={1} sx={{ flex: '1 1 260px' }}>
+        <TextField
+          size="small"
+          label="Weight"
+          value={value.weight}
+          onChange={(e) => setWeight(item.key, { weight: e.target.value })}
+          error={badWeight}
+          helperText={badWeight ? 'A number' : undefined}
+          slotProps={{
+            input: {
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    aria-label={`Read ${item.target.label} from scale`}
+                    disabled={!!reading}
+                    onClick={() => readScale(item.key)}
+                  >
+                    <MonitorWeight fontSize="small" />
+                  </IconButton>
+                  g
+                </InputAdornment>
+              ),
+            },
+          }}
+          sx={{ flex: 1 }}
+        />
+        {item.detail?.needsTare && (
+          <TextField
+            size="small"
+            label="Tare weight (g)"
+            value={value.tare}
+            onChange={(e) => setWeight(item.key, { tare: e.target.value })}
+            error={badTare}
+            helperText={badTare ? 'A number' : 'Optional: empty container'}
+            sx={{ flex: 1 }}
+          />
+        )}
+      </Stack>
+    );
   };
 
   return (
@@ -133,169 +196,76 @@ export const WeighIn = () => {
         }
         confirmLabel="Check In"
         confirmColor="primary"
-        loading={weighInMutation.isPending}
-        error={weighInMutation.isError ? weighInMutation.error.message : null}
+        loading={mutation.isPending}
+        error={mutation.isError ? mutation.error.message : null}
         onCancel={() => {
-          weighInMutation.reset();
+          mutation.reset();
           checkinConfirm.cancel();
         }}
         onConfirm={() => {
-          if (checkinConfirm.target) weighInMutation.mutate(checkinConfirm.target);
+          if (checkinConfirm.target) mutation.mutate(checkinConfirm.target);
         }}
       />
-      <Snackbar
-        open={!!snackbar}
-        onClose={() => setSnackbar(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        autoHideDuration={6000}
-        action={
-          <IconButton onClick={() => setSnackbar(null)} color="inherit">
-            <Close />
-          </IconButton>
-        }
-      >
-        <Alert
-          onClose={() => setSnackbar(null)}
-          severity={snackbar?.severity ?? 'success'}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar?.message}
-        </Alert>
-      </Snackbar>
       <ActionFormCard
         title="Check In"
-        subheader="Input your container ID (Chem-##) and weight in grams."
-        onSubmit={handleSubmit(onSubmit)}
-        // Wider than the 600 default — a row can grow to three fields
-        // (slug, weight, and the tare-weight backfill) instead of two.
+        subheader="Scan each container as you put it on the balance; its weight is read automatically."
         maxWidth={760}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!canSubmit) return;
+          checkinConfirm.request(
+            rows.map(({ item, weight, tare }) => ({
+              slug: item.detail?.container.slug ?? '',
+              weight,
+              ...(tare ? { tare_weight: tare } : {}),
+            }))
+          );
+        }}
         actions={
           <>
-            <Button
-              type="submit"
-              variant="contained"
-              loading={isSubmitting || isValidating}
-              disabled={!!errors.checkin}
-            >
+            <Button type="submit" variant="contained" disabled={!canSubmit}>
               Check In
             </Button>
-            <Button variant="outlined" onClick={() => reset()}>
-              Cancel
+            <Button
+              variant="outlined"
+              onClick={() => {
+                list.clear();
+                setWeights({});
+              }}
+              disabled={list.items.length === 0}
+            >
+              Clear
             </Button>
           </>
         }
       >
         <Stack spacing={2}>
-          {fields.map((field, index) => (
-            <Stack key={field.id} spacing={2} direction={'row'} sx={{ flexWrap: 'wrap' }}>
-              {/* Each field sits in its own flex-basis box — the fields
-                  themselves render fullWidth (width: 100%), which without
-                  a wrapper each interprets as "claim the whole row" once
-                  flexWrap is in play, instead of sharing space. minWidth: 0
-                  lets a box shrink below its content's natural width, which
-                  a flex item can't do by default (min-width: auto). */}
-              <Box sx={{ flex: '2 1 220px', minWidth: 0 }}>
-                <ScannableFieldRow
-                  key={field.id}
-                  control={control}
-                  name={`checkin.${index}.slug`}
-                  label={`Item #${index + 1}`}
-                  clearErrors={clearErrors}
-                  rules={{
-                    pattern: {
-                      value: /^chem-\d+$/i,
-                      message: 'Must match format Chem-####',
-                    },
-                    validate: {
-                      discarded: async (value) => {
-                        if (!value || value === '') {
-                          setNeedsTare((prev) => ({ ...prev, [field.id]: false }));
-                          return;
-                        }
-                        const split = value.toLocaleLowerCase().split('-');
-                        const stripped = parseInt(split[1], 10);
-                        const joined = split[0] + '-' + String(stripped);
-                        const response = await checkIfDiscarded(joined);
-                        if (response.is_discarded === true) {
-                          setNeedsTare((prev) => ({ ...prev, [field.id]: false }));
-                          return `This container has been discarded. Cannot check in'}.`;
-                        } else if (response.is_valid === false) {
-                          setNeedsTare((prev) => ({ ...prev, [field.id]: false }));
-                          return 'Invalid ID';
-                        }
-                        setNeedsTare((prev) => ({
-                          ...prev,
-                          [field.id]: !response.has_estimated_usage,
-                        }));
-                      },
-                    },
-                  }}
-                  onScan={(scannedId, setFieldValue) => {
-                    const isDuplicate = getValues('checkin').some(
-                      (c) => c.slug.toLocaleLowerCase() === scannedId.toLocaleLowerCase()
-                    );
-                    if (isDuplicate) {
-                      resetField(`checkin.${index}.slug`);
-                      return;
-                    }
-                    setFieldValue(scannedId);
-                    setFocus(`checkin.${index}.weight`);
-                    scaleMutation.mutate(undefined, {
-                      onSuccess: (reading) => {
-                        setValue(`checkin.${index}.weight`, String(reading.weight));
-                        clearErrors(`checkin.${index}.weight`);
-                        append({
-                          slug: '',
-                          weight: '',
-                          tare_weight: '',
-                        });
-                      },
-                      onError: (error) => {
-                        setSnackbar({ message: error.message, severity: 'error' });
-                      },
-                    });
-                  }}
-                  showRemove={index > 0}
-                  onRemove={() => remove(index)}
-                  onAdd={() => {
-                    append({ slug: '', weight: '', tare_weight: '' });
-                    setFocus(`checkin.${fields.length}.slug`);
-                  }}
-                  justScannedRef={justScannedRef}
-                />
-              </Box>
-              <Box sx={{ flex: '1 1 140px', minWidth: 0 }}>
-                <WeightField
-                  control={control}
-                  name={`checkin.${index}.weight`}
-                  setValue={setValue}
-                  clearErrors={clearErrors}
-                  onError={(message) => setSnackbar({ message, severity: 'error' })}
-                  scaleMutation={scaleMutation}
-                  required={!!checkinValues?.[index]?.slug}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && justScannedRef.current) {
-                      e.preventDefault();
-                      justScannedRef.current = false;
-                    }
-                  }}
-                />
-              </Box>
-              {needsTare[field.id] && (
-                <Box sx={{ flex: '1 1 140px', minWidth: 0 }}>
-                  <RhfTextField
-                    control={control}
-                    name={`checkin.${index}.tare_weight`}
-                    label="Tare Weight (g)"
-                    rules={{ pattern: decimalPatternRule() }}
-                    clearErrors={clearErrors}
-                    fullWidth
-                  />
-                </Box>
-              )}
-            </Stack>
-          ))}
+          <AddByIdField
+            accepts={(t) => t.kind === 'container'}
+            describeAccepted="containers"
+            placeholder="CHEM-12, CHEM-13"
+            onAdd={(target) => addItem(target, false)}
+          />
+          {list.hasProblems && (
+            <Alert severity="warning">Remove the items marked in red to continue.</Alert>
+          )}
+          {list.ready.length > 0 && weightProblem && !list.hasProblems && (
+            <Box>
+              <Typography variant="body2" color="text.secondary">
+                Every container needs a weight before checking in.
+              </Typography>
+            </Box>
+          )}
+          <ScanListView
+            items={list.items}
+            onRemove={list.remove}
+            emptyText="Put a container on the balance and scan it to start."
+            describe={({ container }) => ({
+              primary: container.name,
+              secondary: container.location.full_path,
+            })}
+            renderExtra={renderWeights}
+          />
         </Stack>
       </ActionFormCard>
     </>

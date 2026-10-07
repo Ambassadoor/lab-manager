@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseIdList } from './parseIdList';
+import { parseIdList, readIdBox } from './parseIdList';
 
 const tokens = (text: string, flush = false) =>
   parseIdList(text, flush).entries.map((e) => e.token);
@@ -56,6 +56,48 @@ describe('parseIdList', () => {
     expect(parseIdList('{"id":"CHEM-0292"},').entries[0].target).toMatchObject({
       kind: 'container',
       slug: 'chem-292',
+    });
+  });
+});
+
+describe('readIdBox', () => {
+  const containersOnly = (t: { kind: string }) => t.kind === 'container';
+
+  it('leaves text with no completed entry alone', () => {
+    expect(readIdBox('CHEM-1', false, containersOnly, 'containers')).toEqual({
+      add: [],
+      text: 'CHEM-1',
+      error: null,
+    });
+  });
+
+  it('takes completed entries out of the box', () => {
+    const result = readIdBox('CHEM-1, CHEM-2, CHE', false, containersOnly, 'containers');
+
+    expect(result.add.map((t) => t.label)).toEqual(['CHEM-1', 'CHEM-2']);
+    expect(result.text).toBe('CHE');
+    expect(result.error).toBeNull();
+  });
+
+  it('keeps invalid and wrong-kind entries in the box with a reason', () => {
+    const result = readIdBox('CHEM-1, CHEM-2x, LOC-3, CH', false, containersOnly, 'containers');
+
+    expect(result.add.map((t) => t.label)).toEqual(['CHEM-1']);
+    expect(result.text).toBe('CHEM-2x, LOC-3, CH');
+    expect(result.error).toBe('Not an ID: CHEM-2x. LOC-3: this list takes containers');
+  });
+
+  it('takes a fixed entry once it is corrected', () => {
+    const result = readIdBox('CHEM-2, CH', false, containersOnly, 'containers');
+
+    expect(result.add.map((t) => t.label)).toEqual(['CHEM-2']);
+    expect(result.text).toBe('CH');
+  });
+
+  it('takes the last entry on Enter', () => {
+    expect(readIdBox('CHEM-1', true, containersOnly, 'containers')).toMatchObject({
+      add: [{ label: 'CHEM-1' }],
+      text: '',
     });
   });
 });

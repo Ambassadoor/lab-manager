@@ -9,6 +9,7 @@ A scanner in keyboard mode "types" what it reads. To tell a scan apart from typi
 - On most pages, scanning a container opens it, and scanning a location opens the Locations page at that location.
 - Logged out (for example on the login or SDS pages), scanning a container opens its newest SDS, since SDS are public. A location scan asks you to log in.
 - On a form with a location field (Add Container, editing a container, Edit Location), a location scan fills that field instead.
+- On the Actions page, scans go into the open tab's list: containers to check out, check in (the balance is read as each one is scanned) or move; a location sets where they go. In Move Locations, scan the new parent twice in a row. Items can also be typed into the "Add by ID" box, separated by commas.
 - The labels themselves don't change: they still contain `{"id":"CHEM-0292"}` or `{"id":"LOC-12"}`.
 
 A backtick typed by hand is ignored. Nothing in the app needs one.
@@ -53,4 +54,4 @@ While the scanner is connected as a keyboard, iPadOS hides the on-screen keyboar
 
 Scan **Add Prefix** (p.9), then **Enter/Exit Programming Mode** (Appendix, p.48), without scanning a character in between. These are the manual's "Clear Prefixes" steps (p.10). A wireless factory reset (p.1) also removes it, along with every other setting, including the pairing mode.
 
-Without the prefix, scanning only works in fields that look for a label themselves (the location picker, and the Actions page's fields), and only when that field has focus.
+Without the prefix, scanning only works while a field that can read a label has focus: the location picker, or the Actions page's "Add by ID" box (the scanner's Enter adds the item).
