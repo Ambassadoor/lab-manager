@@ -123,6 +123,7 @@ export const ContainerEditForm = ({ container, onDone }: ContainerEditFormProps)
             label="Location"
             rules={{ required: requiredRule }}
             clearErrors={clearErrors}
+            acceptScans
           />
           <FieldPair>
             <RhfTextField

@@ -121,7 +121,7 @@ As of 7 October 2026 (`v1.2.0`): **7 fixed, 2 partly, 8 open.** The numbers in b
 **Partly fixed**
 
 - **11.** Three of the 500s are gone: `check_in`'s status code and a missing `chemicals` list (#101), and `check_cas` with no CAS numbers (#127). `transfer`, `weigh_in_bulk` and `locations/move` still index `request.data` directly, so a malformed body is still a 500. Since #119 their expected bodies are described in the schema, a starting point for request serializers.
-- **13.** CI now runs every workflow on every pull request into `develop` or `main` (#120, #121), and a new check fails if the generated API types are stale. There are still no frontend or bridge tests.
+- **13.** CI now runs every workflow on every pull request into `develop` or `main` (#120, #121), and a new check fails if the generated API types are stale. The frontend now has a test runner (Vitest), so far covering the barcode scanner logic; the rest of the frontend and the bridge have no tests.
 
 **Open**
 

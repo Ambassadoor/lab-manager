@@ -19,6 +19,8 @@ echo "Running lint checks" >&2
 (cd frontend && pnpm lint) || { echo "Lint check failed" >&2; RESULT=1; }
 echo "Running type checks" >&2
 (cd frontend && pnpm exec tsc -b) || { echo "TypeScript check failed" >&2; RESULT=1; }
+echo "Running frontend tests" >&2
+(cd frontend && pnpm test) || { echo "Frontend tests failed" >&2; RESULT=1; }
 echo "Running ruff checks" >&2
 (cd backend && poetry run ruff format --check .) || { echo "Ruff format check failed - run poetry run ruff format" >&2; RESULT=1; }
 (cd backend && poetry run ruff check .) || { echo "Ruff lint check failed" >&2; RESULT=1; }

@@ -502,6 +502,7 @@ export const ContainerForm = () => {
                 label="Location"
                 rules={{ required: requiredRule }}
                 clearErrors={clearErrors}
+                acceptScans
               />
               <RhfTextField
                 control={control}

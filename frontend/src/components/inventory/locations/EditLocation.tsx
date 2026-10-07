@@ -148,6 +148,7 @@ export const EditLocation = ({ location, parent, open, setOpen }: EditLocationPr
             placeholder="No parent"
             clearErrors={clearErrors}
             excludeIds={[location.id]}
+            acceptScans
           />
         </Stack>
       </DialogContent>
