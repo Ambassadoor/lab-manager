@@ -32,6 +32,7 @@ import { Logout } from '@mui/icons-material';
 import { DarkModeToggle } from './DarkModeToggle';
 import { PrinterStatusIndicator } from './PrinterStatusIndicator';
 import { HelpMenu } from './HelpMenu';
+import { TestSiteBanner } from './TestSiteBanner';
 import { Link, NavLink, Outlet, useNavigate, useNavigation } from 'react-router-dom';
 import { hasRoleAtLeast } from '../shared/roles';
 import { useNavigationBreadcrumbs } from '../../diagnostics';
@@ -117,6 +118,7 @@ export const Navbar = (): JSX.Element | null => {
 
   return (
     <Paper sx={{ height: '100dvh', width: '100dvw', overflow: 'auto' }} square>
+      <TestSiteBanner />
       <Box sx={{ flexGrow: 1, marginBottom: 5 }}>
         <AppBar position="static">
           <Toolbar>
