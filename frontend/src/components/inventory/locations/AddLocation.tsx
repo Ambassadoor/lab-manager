@@ -31,6 +31,7 @@ import {
   Shelves,
 } from '@mui/icons-material';
 import type { Location } from '../../../types';
+import { useIsPhone } from '../../shared/useIsPhone';
 
 type AddLocationProps = {
   id?: string;
@@ -79,6 +80,8 @@ const iconMap = new Map([
 
 //Modal for in page addition of locations
 export const AddLocation = ({ id, open, setOpen, onCreated }: AddLocationProps) => {
+  // On a phone a centred dialog leaves the fields a strip of the screen
+  const fullScreen = useIsPhone();
   const { data: locationTypes } = useQuery({
     queryKey: locationKeys.types(),
     queryFn: getLocationTypes,
@@ -150,6 +153,7 @@ export const AddLocation = ({ id, open, setOpen, onCreated }: AddLocationProps) 
 
   return (
     <Dialog
+      fullScreen={fullScreen}
       fullWidth
       open={open}
       component={'form'}
@@ -157,7 +161,10 @@ export const AddLocation = ({ id, open, setOpen, onCreated }: AddLocationProps) 
       onClose={close}
       disableRestoreFocus
     >
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', pr: 2 }}>
+      <Stack
+        direction="row"
+        sx={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', pr: 2 }}
+      >
         <DialogTitle>{id ? 'Add Child Locations' : 'Add Locations'}</DialogTitle>
         <Controller
           control={control}

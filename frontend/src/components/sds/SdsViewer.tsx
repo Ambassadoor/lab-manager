@@ -28,7 +28,7 @@ export const SdsViewer = () => {
   if (isPending || !sds) return null;
 
   return (
-    <Container sx={{ py: 3 }}>
+    <Container sx={{ py: { xs: 2, sm: 3 } }}>
       <SafetyHeader />
       <Stack spacing={1} sx={{ mb: 2 }}>
         <Typography variant="h5">{sds.container.name}</Typography>
@@ -77,7 +77,12 @@ export const SdsViewer = () => {
         component="iframe"
         src={sds.view_url}
         title={sds.file_name}
-        sx={{ width: '100%', height: '80dvh', border: 'none', borderRadius: 1 }}
+        sx={{
+          width: '100%',
+          height: { xs: '70dvh', sm: '80dvh' },
+          border: 'none',
+          borderRadius: 1,
+        }}
       />
     </Container>
   );

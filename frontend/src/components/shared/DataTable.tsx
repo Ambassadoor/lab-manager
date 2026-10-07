@@ -13,7 +13,8 @@ import {
   type RowSelectionOptions,
 } from 'ag-grid-community';
 import { AgGridReact } from 'ag-grid-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useIsPhone } from './useIsPhone';
 
 const NoRowsOverlay = () => <Typography color="text.secondary">No rows to display</Typography>;
 
@@ -49,6 +50,12 @@ export type DataTableProps<TData> = {
   onRowClicked?: (e: RowClickedEvent<TData>) => void;
   onCellDoubleClicked?: (e: CellDoubleClickedEvent<TData>) => void;
   onCellValueChanged?: (e: CellValueChangedEvent<TData>) => void;
+  // Opens a row: a double-click, or on a phone a single tap (a double tap
+  // zooms the page there).
+  onRowOpen?: (data: TData) => void;
+  // The columns (field or colId) to keep on a phone; the rest are hidden,
+  // and the kept ones stretch to the screen's width. All are shown if unset.
+  phoneColumns?: string[];
   // Lets a single click start editing an editable cell instead of just
   // selecting it (ag-grid's default). Has no effect on non-editable cells.
   singleClickEdit?: boolean;
@@ -84,6 +91,8 @@ export function DataTable<TData>({
   onRowClicked,
   onCellDoubleClicked,
   onCellValueChanged,
+  onRowOpen,
+  phoneColumns,
   singleClickEdit,
   height = '80dvh',
   pageSize = 25,
@@ -96,6 +105,19 @@ export function DataTable<TData>({
   const theme = useTheme();
   const { mode } = useColorScheme();
   const [contentWidth, setContentWidth] = useState<number>();
+  const isPhone = useIsPhone();
+  const phoneLayout = isPhone && !!phoneColumns;
+
+  const shownColumns = useMemo(
+    () =>
+      phoneLayout
+        ? columnDefs.map((col) => ({
+            ...col,
+            hide: !phoneColumns.includes(col.colId ?? col.field ?? ''),
+          }))
+        : columnDefs,
+    [phoneLayout, phoneColumns, columnDefs]
+  );
 
   // fitCellContents sizes each column to its own content, but the grid's
   // wrapper div still stretches to fill its flex/grid parent by default —
@@ -152,7 +174,7 @@ export function DataTable<TData>({
     <Box
       sx={{
         height,
-        width: contentWidth && !fillWidth ? `${contentWidth}px` : '100%',
+        width: contentWidth && !fillWidth && !phoneLayout ? `${contentWidth}px` : '100%',
         maxWidth: '100%',
         mx: align === 'center' ? 'auto' : 0,
         boxShadow: flat ? 'none' : theme.shadows[elevation],
@@ -164,10 +186,11 @@ export function DataTable<TData>({
       <AgGridReact<TData>
         theme={myTheme}
         rowData={rowData}
-        columnDefs={columnDefs}
+        columnDefs={shownColumns}
         getRowId={getRowId}
-        rowSelection={rowSelection}
-        singleClickEdit={singleClickEdit}
+        // Checkboxes and tap-to-edit would fight tap-to-open on a phone
+        rowSelection={isPhone ? undefined : rowSelection}
+        singleClickEdit={singleClickEdit && !isPhone}
         // Otherwise a cell stays "editing" (just visually unfocused) when
         // the user clicks entirely outside the grid, instead of committing.
         stopEditingWhenCellsLoseFocus
@@ -175,13 +198,21 @@ export function DataTable<TData>({
         pagination
         paginationPageSize={pageSize}
         paginationPageSizeSelector={pageSizeOptions}
-        autoSizeStrategy={fillWidth ? { type: 'fitGridWidth' } : { type: 'fitCellContents' }}
+        autoSizeStrategy={
+          fillWidth || phoneLayout ? { type: 'fitGridWidth' } : { type: 'fitCellContents' }
+        }
         onFirstDataRendered={onFirstDataRendered}
         noRowsOverlayComponent={NoRowsOverlay}
         activeOverlay={isError ? ErrorOverlay : undefined}
         activeOverlayParams={isError ? ({ errorMessage } satisfies ErrorOverlayProps) : undefined}
-        onRowClicked={onRowClicked}
-        onCellDoubleClicked={onCellDoubleClicked}
+        onRowClicked={(e) => {
+          onRowClicked?.(e);
+          if (isPhone && e.data) onRowOpen?.(e.data);
+        }}
+        onCellDoubleClicked={(e) => {
+          onCellDoubleClicked?.(e);
+          if (!isPhone && e.data) onRowOpen?.(e.data);
+        }}
         onCellValueChanged={onCellValueChanged}
       />
     </Box>

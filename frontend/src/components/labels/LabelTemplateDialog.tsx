@@ -15,6 +15,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createLabelTemplate, updateLabelTemplate } from '../../api/labelTemplates';
 import { labelTemplateKeys } from '../../api/queryKeys';
 import type { LabelTemplate, LabelTemplateWrite } from '../../types';
+import { useIsPhone } from '../shared/useIsPhone';
 
 const KIND_OPTIONS: { value: LabelTemplateWrite['kind']; label: string }[] = [
   { value: 'container', label: 'Container' },
@@ -55,6 +56,8 @@ type LabelTemplateDialogProps = {
 // One dialog for both create and edit — the fields are identical either
 // way, only the mutation (and its default values) differ.
 export const LabelTemplateDialog = ({ open, onClose, template }: LabelTemplateDialogProps) => {
+  // On a phone a centred dialog leaves the fields a strip of the screen
+  const fullScreen = useIsPhone();
   const qc = useQueryClient();
 
   const { control, handleSubmit, reset, clearErrors } = useForm<FormValues>({
@@ -96,6 +99,7 @@ export const LabelTemplateDialog = ({ open, onClose, template }: LabelTemplateDi
 
   return (
     <Dialog
+      fullScreen={fullScreen}
       open={open}
       component="form"
       onSubmit={handleSubmit(onSubmit)}

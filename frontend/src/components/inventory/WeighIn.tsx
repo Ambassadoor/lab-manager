@@ -98,19 +98,22 @@ export const WeighIn = () => {
     if (!added) notify(`${target.label} is already in the list`, 'info');
   };
 
-  useScanHandler((target) => {
-    if (!target) return false;
-    if (checkinConfirm.isOpen) {
-      notify('Confirm or cancel the check in first', 'warning');
-      return;
-    }
-    if (target.kind !== 'container') {
-      notify(`${target.label} is a location. Check In takes containers.`, 'info');
-      return;
-    }
-    // Scanned as it goes on the balance, so read it straight away.
-    addItem(target, true);
-  });
+  useScanHandler(
+    (target) => {
+      if (!target) return false;
+      if (checkinConfirm.isOpen) {
+        notify('Confirm or cancel the check in first', 'warning');
+        return;
+      }
+      if (target.kind !== 'container') {
+        notify(`${target.label} is a location. Check In takes containers.`, 'info');
+        return;
+      }
+      // Scanned as it goes on the balance, so read it straight away.
+      addItem(target, true);
+    },
+    { continuous: true }
+  );
 
   const rows = list.ready.map((item) => ({ item, ...(weights[item.key] ?? NO_WEIGHTS) }));
   const weightProblem = rows.some(
@@ -124,7 +127,7 @@ export const WeighIn = () => {
     const badWeight = !!value.weight && !DECIMAL.test(value.weight);
     const badTare = !!value.tare && !DECIMAL.test(value.tare);
     return (
-      <Stack direction="row" spacing={1} sx={{ flex: '1 1 260px' }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ flex: '1 1 260px' }}>
         <TextField
           size="small"
           label="Weight"

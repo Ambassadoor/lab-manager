@@ -118,7 +118,13 @@ export const ContainerDetail = ({ data, onClose, elevation }: ContainerDetailPro
       )}
       <Box sx={{ display: 'flex', justifyContent: 'center' }}>
         <Card
-          sx={{ width: `${data ? '25dvw' : '50dvw'}`, alignSelf: 'center' }}
+          sx={{
+            // Full width on a phone; in the drawer or preview (`data`), at
+            // least wide enough for the detail rows' values to fit
+            width: { xs: '100%', md: data ? '25dvw' : '50dvw' },
+            minWidth: { sm: data ? 340 : undefined },
+            alignSelf: 'center',
+          }}
           variant={data && elevation === undefined ? 'outlined' : 'elevation'}
           elevation={elevation ?? (data ? 0 : 4)}
         >

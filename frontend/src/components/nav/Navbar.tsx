@@ -23,19 +23,29 @@ import {
   Toolbar,
   Tooltip,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
 import type { Theme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useLayoutEffect, useRef, useState, type JSX } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Logout } from '@mui/icons-material';
+import {
+  BugReportOutlined,
+  DarkMode,
+  LightMode,
+  Logout,
+  RateReviewOutlined,
+} from '@mui/icons-material';
 import { DarkModeToggle } from './DarkModeToggle';
+import { useDarkModeSwitch } from './useDarkModeSwitch';
 import { PrinterStatusIndicator } from './PrinterStatusIndicator';
 import { HelpMenu } from './HelpMenu';
 import { TestSiteBanner } from './TestSiteBanner';
+import { CameraButton } from '../../scanner/CameraButton';
 import { Link, NavLink, Outlet, useNavigate, useNavigation } from 'react-router-dom';
 import { hasRoleAtLeast } from '../shared/roles';
 import { useNavigationBreadcrumbs } from '../../diagnostics';
+import { useFeedback } from '../feedback/FeedbackContext';
 
 // Shared by every top-level nav link, desktop and mobile — was copy-pasted
 // four times before (once per Button); the theme-callback form here means
@@ -61,6 +71,8 @@ export const Navbar = (): JSX.Element | null => {
   // place a route-change hook sees all navigation (for bug-report breadcrumbs).
   useNavigationBreadcrumbs();
   const { user, loading, logout } = useAuth();
+  const { openBugReport, openFeedback } = useFeedback();
+  const darkMode = useDarkModeSwitch();
   const [userMenuEl, setUserMenuEl] = useState<null | HTMLElement>(null);
   const userMenuOpen = Boolean(userMenuEl);
   const handleUserMenuClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -94,6 +106,10 @@ export const Navbar = (): JSX.Element | null => {
   const linksAreaRef = useRef<HTMLDivElement>(null);
   const linksRef = useRef<HTMLDivElement>(null);
   const [linksFit, setLinksFit] = useState(true);
+  // A phone always gets the drawer: it also holds the help menu and dark
+  // mode switch, which the bar has no room for there.
+  const isPhone = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
+  const showDrawer = !linksFit || isPhone;
   useLayoutEffect(() => {
     const area = linksAreaRef.current;
     const links = linksRef.current;
@@ -117,9 +133,9 @@ export const Navbar = (): JSX.Element | null => {
   if (loading) return null;
 
   return (
-    <Paper sx={{ height: '100dvh', width: '100dvw', overflow: 'auto' }} square>
+    <Paper sx={{ height: '100dvh', width: '100%', overflow: 'auto' }} square>
       <TestSiteBanner />
-      <Box sx={{ flexGrow: 1, marginBottom: 5 }}>
+      <Box sx={{ flexGrow: 1, marginBottom: { xs: 2, sm: 5 } }}>
         <AppBar position="static">
           <Toolbar>
             {/* Not gated by `user` — the mobile drawer now also carries the
@@ -130,7 +146,7 @@ export const Navbar = (): JSX.Element | null => {
               edge="start"
               color="inherit"
               aria-label="menu"
-              sx={{ mr: 2, display: linksFit ? 'none' : 'inline-flex' }}
+              sx={{ mr: { xs: 1, sm: 2 }, display: showDrawer ? 'inline-flex' : 'none' }}
               onClick={() => setMobileOpen((prev) => !prev)}
             >
               <MenuIcon />
@@ -139,7 +155,8 @@ export const Navbar = (): JSX.Element | null => {
               variant="h6"
               component={Link}
               to="/"
-              sx={{ textDecoration: 'none', color: 'inherit' }}
+              noWrap
+              sx={{ textDecoration: 'none', color: 'inherit', flexShrink: 0 }}
             >
               Lab Manager
             </Typography>
@@ -152,7 +169,7 @@ export const Navbar = (): JSX.Element | null => {
                 direction={'row'}
                 // visibility (not display) keeps the row's width measurable,
                 // and still removes it from the tab order and screen readers
-                sx={{ width: 'max-content', visibility: linksFit ? 'visible' : 'hidden' }}
+                sx={{ width: 'max-content', visibility: showDrawer ? 'hidden' : 'visible' }}
               >
                 {/* Always visible, logged in or out — SDS viewing is public
                     safety information (see App.tsx's /sds routes). */}
@@ -268,6 +285,8 @@ export const Navbar = (): JSX.Element | null => {
                 )}
               </Stack>
             </Box>
+            {/* Logged in or out: logged out, a container scan opens its SDS */}
+            <CameraButton />
             {/* Stockroom+ only — same gate as Add Container/Actions above,
                 since printing labels is a stockroom-level task and the
                 bridge it reports on only runs on the lab PC anyway. */}
@@ -276,10 +295,16 @@ export const Navbar = (): JSX.Element | null => {
                 <PrinterStatusIndicator />
               </Box>
             )}
-            <HelpMenu />
-            <DarkModeToggle />
+            {/* On a phone these move into the nav drawer, to leave the bar
+                room for the title. */}
+            <Box sx={{ display: { xs: 'none', sm: 'inline-flex' }, alignItems: 'center' }}>
+              <HelpMenu />
+              <DarkModeToggle />
+            </Box>
             {!user ? (
-              <Button color="inherit">Login</Button>
+              <Button color="inherit" component={Link} to="/login" sx={{ flexShrink: 0 }}>
+                Login
+              </Button>
             ) : (
               <>
                 <Tooltip title="Account settings">
@@ -335,7 +360,7 @@ export const Navbar = (): JSX.Element | null => {
       <Drawer
         anchor="left"
         // Closes by itself if the window widens until the links fit again
-        open={mobileOpen && !linksFit}
+        open={mobileOpen && showDrawer}
         onClose={closeMobileMenu}
       >
         <Box sx={{ width: 260 }} role="presentation">
@@ -432,6 +457,37 @@ export const Navbar = (): JSX.Element | null => {
                 )}
               </>
             )}
+          </List>
+          {/* The toolbar's help menu and dark mode switch, which a phone's
+              bar has no room for. */}
+          <Divider />
+          <List>
+            <ListItemButton
+              onClick={() => {
+                closeMobileMenu();
+                openBugReport();
+              }}
+            >
+              <ListItemIcon>
+                <BugReportOutlined />
+              </ListItemIcon>
+              <ListItemText primary="Report a problem" />
+            </ListItemButton>
+            <ListItemButton
+              onClick={() => {
+                closeMobileMenu();
+                openFeedback();
+              }}
+            >
+              <ListItemIcon>
+                <RateReviewOutlined />
+              </ListItemIcon>
+              <ListItemText primary="Send feedback" />
+            </ListItemButton>
+            <ListItemButton onClick={darkMode.toggle}>
+              <ListItemIcon>{darkMode.mode === 'dark' ? <DarkMode /> : <LightMode />}</ListItemIcon>
+              <ListItemText primary={darkMode.mode === 'dark' ? 'Dark mode' : 'Light mode'} />
+            </ListItemButton>
           </List>
         </Box>
       </Drawer>
