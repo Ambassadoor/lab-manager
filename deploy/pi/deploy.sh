@@ -4,6 +4,11 @@
 #
 #   ssh -t labmanager /opt/lab-manager/deploy/pi/deploy.sh          # pull the checked-out branch
 #   ssh -t labmanager /opt/lab-manager/deploy/pi/deploy.sh v1.2.0   # deploy a tag, branch or commit
+#   ssh -t labmanager /opt/lab-manager-test/deploy/pi/deploy.sh     # the test site (develop)
+#
+# It deploys the checkout it lives in. The live and test sites are separate
+# checkouts, each with its own backend/.env; settings there (below) say
+# which services to restart and whether to back the database up first.
 #
 # Order matters: everything that can fail without touching the live site
 # (pull, installs, frontend build) runs first. The running services keep
@@ -21,13 +26,21 @@ TARGET="${1:-}"
 # plain HTTP on the Pi's first IP. The checks need the real name, since
 # Django rejects hosts not in ALLOWED_HOSTS (localhost included) and plain
 # HTTP only answers with a redirect once HTTPS is on.
-env_origin() {
+env_value() {
   [[ -f "$REPO/backend/.env" ]] || return 0
-  sed -n 's/^FRONTEND_ORIGIN=//p' "$REPO/backend/.env" | tail -n 1 | tr -d "\"'\r[:space:]"
+  sed -n "s/^$1=//p" "$REPO/backend/.env" | tail -n 1 | tr -d "\"'\r[:space:]"
 }
-BASE_URL="${DEPLOY_URL:-$(env_origin)}"
+BASE_URL="${DEPLOY_URL:-$(env_value FRONTEND_ORIGIN)}"
 BASE_URL="${BASE_URL:-http://$(hostname -I | awk '{print $1}')}"
 BASE_URL="${BASE_URL%/}"
+
+# The systemd units to restart (comma-separated) and whether to back the
+# database up before migrating. The defaults are the live site's; the test
+# site's .env sets DEPLOY_SERVICES=labmanager-test-api (it shares the live
+# bridge) and DEPLOY_BACKUP=False (its data is a throwaway copy).
+SERVICES="$(env_value DEPLOY_SERVICES)"
+SERVICES="${SERVICES:-labmanager-api,labmanager-bridge}"
+BACKUP="$(env_value DEPLOY_BACKUP)"
 
 # Send the checks to this machine's nginx whatever DNS says, while still
 # asking for the real name (which the certificate and Django both check).
@@ -130,11 +143,15 @@ step "Building the frontend"
   pnpm exec vite build --outDir dist-next
 )
 
-step "Backing up the database"
-# Before migrate, so a bad migration can be undone with a restore (see
-# the deployment plan's Backups section). Same command the nightly timer
-# runs; it also uploads to Drive.
-(cd backend && .venv/bin/python manage.py backup_db)
+if [[ "$BACKUP" == False ]]; then
+  step "Skipping the database backup (DEPLOY_BACKUP=False)"
+else
+  step "Backing up the database"
+  # Before migrate, so a bad migration can be undone with a restore (see
+  # the deployment plan's Backups section). Same command the nightly timer
+  # runs; it also uploads to Drive.
+  (cd backend && .venv/bin/python manage.py backup_db)
+fi
 
 step "Migrating and collecting static files"
 (
@@ -151,8 +168,9 @@ step "Switching to the new frontend"
   mv dist-next dist
 )
 
-step "Restarting services"
-sudo systemctl restart labmanager-api labmanager-bridge
+step "Restarting ${SERVICES//,/ }"
+# shellcheck disable=SC2086  # one word per unit
+sudo systemctl restart ${SERVICES//,/ }
 RESTARTED=true
 
 step "Checking the app responds at $BASE_URL"
@@ -176,7 +194,7 @@ check /api/auth/csrf/ || healthy=false
 check /bridge/health || healthy=false
 
 if [[ "$healthy" != true ]]; then
-  fail "new code is running but not responding; check journalctl -u labmanager-api -u labmanager-bridge"
+  fail "new code is running but not responding; check journalctl -u ${SERVICES//,/ -u }"
 fi
 
 printf '\n\033[32mDeployed %s.\033[0m Previous: %s (frontend kept in frontend/dist-prev).\n' \
