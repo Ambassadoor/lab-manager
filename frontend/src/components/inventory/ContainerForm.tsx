@@ -381,11 +381,7 @@ export const ContainerForm = () => {
   // half of this is the same completed work noted above ContainerForm's
   // definition.
   return (
-    <Container
-      sx={{
-        padding: 4,
-      }}
-    >
+    <Container sx={{ px: { xs: 2, sm: 4 }, py: { xs: 0, sm: 4 } }}>
       <Snackbar
         open={!!bridgeError}
         onClose={() => setBridgeError(null)}
@@ -418,18 +414,22 @@ export const ContainerForm = () => {
         <Card
           sx={{
             display: 'flex',
-            maxWidth: '50vw',
+            maxWidth: { xs: '100%', md: '50vw' },
             flexDirection: 'column',
             alignSelf: 'center',
             margin: 'auto',
-            padding: 4,
+            padding: { xs: 2, sm: 4 },
           }}
           elevation={6}
         >
           <Box component={'form'} onSubmit={handleSubmit(onSubmit)}>
             <Stack spacing={2}>
-              <Stack direction={'row'} sx={{ justifyContent: 'space-between' }}>
-                <Typography component={'h1'} variant={'h4'}>
+              <Stack direction={'row'} sx={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                <Typography
+                  component={'h1'}
+                  variant={'h4'}
+                  sx={{ fontSize: { xs: '1.75rem', sm: '2.125rem' } }}
+                >
                   Add New Container
                 </Typography>
                 <Controller
@@ -542,7 +542,7 @@ export const ContainerForm = () => {
                 clearErrors={clearErrors}
               />
               <RhfDateField control={control} name="expiration_date" label="Expiration Date" />
-              <Stack direction={'row'} spacing={2}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <WeightField
                   control={control}
                   name="initial_weight"
@@ -602,7 +602,12 @@ export const ContainerForm = () => {
               <Divider />
               <Stack spacing={1}>
                 <Typography variant="subtitle1">Attach SDS (optional)</Typography>
-                <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                <Stack
+                  direction="row"
+                  useFlexGap
+                  spacing={2}
+                  sx={{ alignItems: 'center', flexWrap: 'wrap' }}
+                >
                   <Button variant="outlined" onClick={() => setSdsDialogOpen(true)}>
                     {pendingSds ? 'Change SDS' : 'Attach SDS'}
                   </Button>

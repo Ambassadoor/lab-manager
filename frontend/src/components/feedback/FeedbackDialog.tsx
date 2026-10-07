@@ -21,7 +21,7 @@ import { createFeedback } from '../../api/feedback';
 import { useAuth } from '../../context/AuthContext';
 import type { FeedbackCategory } from '../../types';
 import { submitErrorMessage } from './submitErrorMessage';
-import { useFullScreenOnPhone } from '../shared/useFullScreenOnPhone';
+import { useIsPhone } from '../shared/useIsPhone';
 
 type FeedbackDialogProps = {
   open: boolean;
@@ -48,7 +48,8 @@ const CATEGORY_OPTIONS: { value: FeedbackCategory; label: string }[] = [
 // General UI/UX feedback — stored for the lab managers to read, not sent to
 // GitHub unless one of them promotes it. No diagnostics are attached.
 export const FeedbackDialog = ({ open, onClose, route }: FeedbackDialogProps) => {
-  const fullScreen = useFullScreenOnPhone();
+  // On a phone a centred dialog leaves the fields a strip of the screen
+  const fullScreen = useIsPhone();
   const { user } = useAuth();
   const {
     control,

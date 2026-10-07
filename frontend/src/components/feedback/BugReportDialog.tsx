@@ -25,7 +25,7 @@ import { createBugReport } from '../../api/feedback';
 import { APP_VERSION, type Diagnostics } from '../../diagnostics';
 import type { BugImpact } from '../../types';
 import { submitErrorMessage } from './submitErrorMessage';
-import { useFullScreenOnPhone } from '../shared/useFullScreenOnPhone';
+import { useIsPhone } from '../shared/useIsPhone';
 
 type BugReportDialogProps = {
   open: boolean;
@@ -55,7 +55,8 @@ export const BugReportDialog = ({
   diagnostics,
   fromCrash,
 }: BugReportDialogProps) => {
-  const fullScreen = useFullScreenOnPhone();
+  // On a phone a centred dialog leaves the fields a strip of the screen
+  const fullScreen = useIsPhone();
   const [showDetails, setShowDetails] = useState(false);
   const {
     control,

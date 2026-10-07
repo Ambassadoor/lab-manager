@@ -45,6 +45,9 @@ const ActionsCellRenderer = ({ data, onEdit, onDelete }: ActionsCellRendererProp
   );
 };
 
+// What a phone has room for
+const PHONE_COLUMNS = ['name', 'media_width_mm', 'actions'];
+
 // Admin/Lab Manager-only — App.tsx's RequireRole keeps anyone else from
 // landing here, matching the backend's own role_at_least(LAB_MANAGER) gate
 // on LabelTemplateView's write actions (reads are open to any authenticated
@@ -148,6 +151,7 @@ export const LabelTemplates = () => {
           columnDefs={colDefs}
           isLoading={isPending}
           getRowId={(p) => String(p.data.id)}
+          phoneColumns={PHONE_COLUMNS}
         />
       </Box>
       <LabelTemplateDialog

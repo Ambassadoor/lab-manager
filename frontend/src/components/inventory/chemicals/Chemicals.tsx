@@ -15,6 +15,9 @@ import { useAuth } from '../../../context/AuthContext';
 import { hasRoleAtLeast } from '../../shared/roles';
 import { PageHeader } from '../../shared/PageHeader';
 
+// What a phone has room for
+const PHONE_COLUMNS = ['name', 'cas'];
+
 //Table for viewing chemicals
 export const Chemicals = () => {
   const { user } = useAuth();
@@ -125,6 +128,7 @@ export const Chemicals = () => {
           isLoading={isPending}
           isError={isError}
           errorMessage={error instanceof Error ? error.message : undefined}
+          phoneColumns={PHONE_COLUMNS}
           onRowClicked={(e) => {
             navigate(`${e.data?.id}`, { state: e.data });
           }}
