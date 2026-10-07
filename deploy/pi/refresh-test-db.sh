@@ -4,7 +4,7 @@
 # checkout (README.md, Test site):
 #
 #   ssh -t labmanager /opt/lab-manager-test/deploy/pi/refresh-test-db.sh
-#   ssh -t labmanager /opt/lab-manager-test/deploy/pi/refresh-test-db.sh /var/backups/labmanager/labmanager-2026-10-07_0200.dump
+#   ssh -t labmanager /opt/lab-manager-test/deploy/pi/refresh-test-db.sh /var/backups/labmanager/<name>.dump
 #
 # Everything done on the test site since the last refresh is lost. The
 # copy includes real accounts, so people log in with their usual password.
@@ -34,8 +34,10 @@ export PGPASSWORD="$(env_value DB_PASSWORD)"
 
 DUMP="${1:-}"
 if [[ -z "$DUMP" ]]; then
+  # backup_db names dumps after the live database (<DB_NAME>-<date>.dump),
+  # so take the newest of any name. In-progress ones end in .partial.
   # shellcheck disable=SC2012  # names are ours, no odd characters
-  DUMP="$(ls -t "$LIVE_BACKUPS"/labmanager-*.dump 2>/dev/null | head -n 1 || true)"
+  DUMP="$(ls -t "$LIVE_BACKUPS"/*.dump 2>/dev/null | head -n 1 || true)"
 fi
 [[ -f "$DUMP" ]] || fail "no dump found (looked in $LIVE_BACKUPS); pass one as the argument"
 
