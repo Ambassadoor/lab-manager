@@ -129,6 +129,51 @@ class TestContainerComputedFields:
 
         assert container.initial_content_mass == 100
 
+    @pytest.mark.parametrize(
+        ("quantity", "unit", "density", "grams"),
+        [
+            (500, "mg", None, Decimal("0.5")),
+            (500, "g", None, Decimal("500")),
+            (2, "kg", None, Decimal("2000")),
+            (500, "mL", Decimal("0.79"), Decimal("395")),
+            (2, "L", Decimal("1.2"), Decimal("2400")),
+            # A volume can't become a mass without a density
+            (500, "mL", None, None),
+            (2, "L", None, None),
+            (None, "g", None, None),
+            (500, None, Decimal("1.2"), None),
+        ],
+    )
+    def test_initial_content_mass_is_in_grams(
+        self, chemical, location_type, quantity, unit, density, grams
+    ):
+        location = Location.objects.create(name="Shelf 1", type=location_type)
+        container = self._make_container(
+            chemical, location, initial_quantity=quantity, quantity_unit=unit, density=density
+        )
+
+        assert container.initial_content_mass == grams
+
+    def test_percent_remaining_for_a_litre_bottle(self, chemical, location_type, django_user_model):
+        from apps.inventory.models import WeightReading
+
+        location = Location.objects.create(name="Shelf 1", type=location_type)
+        # 1 L of ethanol (0.789 g/mL) is 789 g; 400 g bottle + 394.5 g left
+        container = self._make_container(
+            chemical,
+            location,
+            initial_quantity=1,
+            quantity_unit="L",
+            density=Decimal("0.789"),
+            tare_weight=Decimal("400"),
+        )
+        user = django_user_model.objects.create_user(
+            username="w", email="w@lipscomb.edu", password="pw12345!"
+        )
+        WeightReading.objects.create(container=container, weight=Decimal("794.5"), recorded_by=user)
+
+        assert container.percent_remaining == 50
+
     def test_has_estimated_usage_requires_tare_weight(self, chemical, location_type):
         location = Location.objects.create(name="Shelf 1", type=location_type)
         without_tare = self._make_container(chemical, location, slug="no-tare")

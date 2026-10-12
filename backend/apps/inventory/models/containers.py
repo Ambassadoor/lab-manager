@@ -19,6 +19,11 @@ def highest_container_pk_subquery():
     return Subquery(Container.objects.order_by("-pk").values("pk")[:1])
 
 
+# Container.quantity_unit to grams (mass) or millilitres (volume)
+GRAMS_PER_UNIT = {"mg": Decimal("0.001"), "g": Decimal(1), "kg": Decimal(1000)}
+ML_PER_UNIT = {"mL": Decimal(1), "L": Decimal(1000)}
+
+
 class ContainerQuerySet(models.QuerySet):
     def active(self):
         """Containers still in the inventory: not marked discarded. The
@@ -132,13 +137,25 @@ class Container(models.Model):
         return self.date_opened is not None
 
     @property
-    def initial_content_mass(self):
-        if self.density is not None and not self.quantity_unit.endswith("g"):
-            return self.initial_quantity * self.density
-        return self.initial_quantity
+    def initial_content_mass(self) -> Decimal | None:
+        """The original contents' mass in grams, the unit the balance
+        weighs in: a mass quantity converted to grams, or a volume (mL, L)
+        times its density (g/mL). None when it can't be known: no quantity
+        or unit, or a volume with no density.
+        """
+        if self.initial_quantity is None or not self.quantity_unit:
+            return None
+        quantity = Decimal(self.initial_quantity)
+        if self.quantity_unit in GRAMS_PER_UNIT:
+            return quantity * GRAMS_PER_UNIT[self.quantity_unit]
+        if self.quantity_unit in ML_PER_UNIT and self.density is not None:
+            return quantity * ML_PER_UNIT[self.quantity_unit] * self.density
+        return None
 
     @property
-    def container_weight(self):
+    def container_weight(self) -> Decimal | None:
+        if self.initial_weight is None or self.initial_content_mass is None:
+            return None
         return self.initial_weight - self.initial_content_mass
 
     @property
@@ -198,7 +215,7 @@ class Container(models.Model):
         if latest is None:
             return None
         try:
-            mass = Decimal(str(self.initial_content_mass))
+            mass = self.initial_content_mass
             current_weight = Decimal(str(latest.weight))
             tare_weight = Decimal(str(self.tare_weight))
             result = ((current_weight - tare_weight) / mass) * 100
