@@ -66,3 +66,118 @@ class TestDiscardedHiddenFromLists:
         make_container("gone", date_discarded=DISCARDED_ON)
 
         assert set(Container.objects.active().values_list("slug", flat=True)) == {"kept"}
+
+
+@pytest.mark.django_db
+class TestDiscardAndRestore:
+    def test_stockroom_cannot_discard(self, client_as, make_container):
+        make_container("jar")
+
+        response = client_as("stockroom").post("/api/inventory/containers/jar/discard/")
+
+        assert response.status_code == 403
+        assert Container.objects.get(slug="jar").date_discarded is None
+
+    def test_coordinator_discards_today_by_default(self, client_as, make_container):
+        make_container("jar")
+
+        response = client_as("coordinator").post("/api/inventory/containers/jar/discard/")
+
+        assert response.status_code == 200
+        jar = Container.objects.get(slug="jar")
+        assert jar.date_discarded is not None
+        assert jar.discarded_by.username == "user-coordinator"
+        assert response.data["discarded_by"]["full_name"] is not None
+
+    def test_discard_on_a_given_date(self, client_as, make_container):
+        make_container("jar")
+
+        response = client_as("coordinator").post(
+            "/api/inventory/containers/jar/discard/",
+            {"date": "2026-01-01"},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert response.data["date_discarded"] == "2026-01-01"
+
+    def test_future_date_rejected(self, client_as, make_container):
+        make_container("jar")
+
+        response = client_as("coordinator").post(
+            "/api/inventory/containers/jar/discard/", {"date": "2999-01-01"}, format="json"
+        )
+
+        assert response.status_code == 400
+
+    def test_discarding_twice_is_refused(self, client_as, make_container):
+        make_container("jar", date_discarded=DISCARDED_ON)
+
+        response = client_as("coordinator").post("/api/inventory/containers/jar/discard/")
+
+        assert response.status_code == 400
+
+    def test_restore(self, client_as, make_container):
+        make_container("jar", date_discarded=DISCARDED_ON)
+        coordinator = client_as("coordinator")
+
+        response = coordinator.post("/api/inventory/containers/jar/restore/")
+
+        assert response.status_code == 200
+        jar = Container.objects.get(slug="jar")
+        assert jar.date_discarded is None
+        assert jar.discarded_by is None
+        assert coordinator.post("/api/inventory/containers/jar/restore/").status_code == 400
+
+
+@pytest.mark.django_db
+class TestDiscardedCantBeUsed:
+    @pytest.fixture
+    def stockroom(self, client_as):
+        return client_as("stockroom")
+
+    def test_check_out(self, stockroom, make_container):
+        make_container("gone", date_discarded=DISCARDED_ON)
+
+        response = stockroom.post("/api/inventory/containers/check_out/", ["gone"], format="json")
+
+        assert response.status_code == 400
+        assert "Discarded" in response.data["detail"]
+
+    def test_check_in(self, stockroom, make_container):
+        make_container("gone", date_discarded=DISCARDED_ON)
+
+        response = stockroom.post("/api/inventory/containers/check_in/", ["gone"], format="json")
+
+        assert response.status_code == 400
+
+    def test_transfer(self, stockroom, make_container, make_location):
+        make_container("gone", date_discarded=DISCARDED_ON)
+        shelf = make_location("Shelf B")
+
+        response = stockroom.patch(
+            "/api/inventory/containers/transfer/",
+            {"containers": [{"slug": "gone"}], "location": shelf.id},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "Discarded" in response.data["detail"]
+
+    def test_weigh_in(self, stockroom, make_container):
+        make_container("gone", date_discarded=DISCARDED_ON)
+
+        response = stockroom.post(
+            "/api/inventory/containers/weigh_in_bulk/",
+            {"checkin": [{"slug": "gone", "weight": "100"}]},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "Discarded" in response.data["detail"]
+
+    def test_unknown_container_says_which(self, stockroom, db):
+        response = stockroom.post("/api/inventory/containers/check_out/", ["nope"], format="json")
+
+        assert response.status_code == 400
+        assert "nope" in response.data["detail"]

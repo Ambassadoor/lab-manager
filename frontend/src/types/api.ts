@@ -439,6 +439,22 @@ export interface paths {
     patch: operations['inventory_containers_partial_update'];
     trace?: never;
   };
+  '/api/inventory/containers/{slug}/discard/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['inventory_containers_discard_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/inventory/containers/{slug}/is_discarded/': {
     parameters: {
       query?: never;
@@ -465,6 +481,22 @@ export interface paths {
     get: operations['inventory_containers_is_valid_retrieve'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/inventory/containers/{slug}/restore/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['inventory_containers_restore_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -996,6 +1028,10 @@ export interface components {
       recently_added: components['schemas']['Container'][];
       checked_out: components['schemas']['Container'][];
       restock_soon: components['schemas']['Container'][];
+    };
+    Discard: {
+      /** Format: date */
+      date?: string;
     };
     ErrorDetail: {
       detail: string;
@@ -2462,6 +2498,41 @@ export interface operations {
       };
     };
   };
+  inventory_containers_discard_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['Discard'];
+        'application/x-www-form-urlencoded': components['schemas']['Discard'];
+        'multipart/form-data': components['schemas']['Discard'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorDetail'];
+        };
+      };
+    };
+  };
   inventory_containers_is_discarded_retrieve: {
     parameters: {
       query?: never;
@@ -2500,6 +2571,35 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ContainerValidity'];
+        };
+      };
+    };
+  };
+  inventory_containers_restore_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorDetail'];
         };
       };
     };
@@ -2603,12 +2703,13 @@ export interface operations {
           'application/json': components['schemas']['CheckoutEvents'];
         };
       };
-      /** @description No response body */
       400: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorDetail'];
+        };
       };
     };
   };
@@ -2633,12 +2734,13 @@ export interface operations {
           'application/json': components['schemas']['CheckoutEvents'];
         };
       };
-      /** @description No response body */
       400: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorDetail'];
+        };
       };
     };
   };
