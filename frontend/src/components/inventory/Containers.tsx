@@ -4,8 +4,10 @@ import {
   Button,
   Container,
   Drawer,
+  FormControlLabel,
   IconButton,
   Snackbar,
+  Switch,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -166,13 +168,17 @@ export const Containers = () => {
     return () => clearTimeout(id);
   }, [searchInput]);
 
+  // Discarded containers are hidden unless asked for, and then shown alone
+  const [discardedOnly, setDiscardedOnly] = useState(false);
+
   const listParams: ContainerListParams = useMemo(() => {
     const params: ContainerListParams = {};
     if (debouncedSearch) params.search = debouncedSearch;
     if (view === 'checked_out') params.checkout_status = 'out';
     if (view === 'recently_added') params.ordering = '-date_received';
+    if (discardedOnly) params.is_discarded = true;
     return params;
-  }, [debouncedSearch, view]);
+  }, [debouncedSearch, view, discardedOnly]);
 
   const {
     isPending,
@@ -300,6 +306,13 @@ export const Containers = () => {
           </>
         }
         search={{ value: searchInput, onChange: setSearchInput, placeholder: 'Search containers…' }}
+      />
+      <FormControlLabel
+        sx={{ mt: -2, mb: 1 }}
+        control={
+          <Switch checked={discardedOnly} onChange={(e) => setDiscardedOnly(e.target.checked)} />
+        }
+        label="Discarded only"
       />
       {view && (
         <Alert

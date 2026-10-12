@@ -27,6 +27,8 @@ export type ContainerListParams = {
   search?: string;
   checkout_status?: 'in' | 'out';
   ordering?: string;
+  // Unset hides discarded containers; true lists only discarded ones
+  is_discarded?: boolean;
 };
 
 export const getContainers = (params?: ContainerListParams): Promise<Container[] | []> => {
@@ -117,6 +119,18 @@ type ContainerValidation = {
 };
 export const checkIfDiscarded = (slug: string): Promise<ContainerValidation> => {
   return apiFetch(`/api/inventory/containers/${slug}/is_discarded/`);
+};
+
+// Coordinator and up. `date` (YYYY-MM-DD) defaults to today on the server.
+export const discardContainer = (slug: string, date?: string): Promise<Container> => {
+  return apiFetch(`/api/inventory/containers/${slug}/discard/`, {
+    method: 'POST',
+    body: JSON.stringify(date ? { date } : {}),
+  });
+};
+
+export const restoreContainer = (slug: string): Promise<Container> => {
+  return apiFetch(`/api/inventory/containers/${slug}/restore/`, { method: 'POST' });
 };
 
 export const checkOutContainers = (slugs: string[]): Promise<{ events: CheckoutEvent[] }> => {

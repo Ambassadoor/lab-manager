@@ -13,7 +13,7 @@ import { StorageConflictWarnings } from '../../shared/StorageConflictWarnings';
 import { useConfirmDialog } from '../../shared/useConfirmDialog';
 import { useStorageConflictConfirm } from '../../shared/useStorageConflictConfirm';
 import { AddByIdField } from '../../shared/scanList/AddByIdField';
-import { lookUpContainer } from '../../shared/scanList/lookups';
+import { lookUpUsableContainer } from '../../shared/scanList/lookups';
 import { ScanListView } from '../../shared/scanList/ScanListView';
 import { useScanList, type ScanItem } from '../../shared/scanList/useScanList';
 
@@ -25,7 +25,7 @@ type TransferTarget = { items: ScanItem<Container>[]; location: string };
 export const Transfer = () => {
   const qc = useQueryClient();
   const { notify } = useScanner();
-  const list = useScanList(lookUpContainer);
+  const list = useScanList(lookUpUsableContainer);
   const { control, clearErrors, setValue, reset } = useForm({ defaultValues: { location: '' } });
   const location = useWatch({ control, name: 'location' });
 
