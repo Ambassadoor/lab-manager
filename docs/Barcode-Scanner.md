@@ -6,7 +6,7 @@ The lab uses a **Tera HW0002** wireless scanner, paired to a computer or the iPa
 
 A scanner in keyboard mode "types" what it reads. To tell a scan apart from typing, the scanner is programmed to send a **backtick** (`` ` ``) first; it ends every scan with **Enter** by default. When the app sees a backtick followed quickly by characters and Enter, it takes them as a scan wherever you are, and none of those keys reach the field that has focus.
 
-- On most pages, scanning a container opens it, and scanning a location opens the Locations page at that location.
+- On most pages, scanning a container opens it, and scanning a location opens the Inventory page at that location.
 - Logged out (for example on the login or SDS pages), scanning a container opens its newest SDS, since SDS are public. A location scan asks you to log in.
 - On a form with a location field (Add Container, editing a container, Edit Location), a location scan fills that field instead.
 - On the Actions page, scans go into the open tab's list: containers to check out, check in (the balance is read as each one is scanned) or move; a location sets where they go. In Move Locations, scan the new parent twice in a row. Items can also be typed into the "Add by ID" box, separated by commas.
