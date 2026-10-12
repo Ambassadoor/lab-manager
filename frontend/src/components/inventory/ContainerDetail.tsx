@@ -19,7 +19,16 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getContainerDetails } from '../../api/inventory';
 import { containerKeys, printerKeys } from '../../api/queryKeys';
 import type { Container } from '../../types';
-import { Close, Edit, MoreVert, Print, UnfoldMore, UploadFile } from '@mui/icons-material';
+import {
+  Close,
+  DeleteOutlined,
+  Edit,
+  MoreVert,
+  Print,
+  RestoreFromTrash,
+  UnfoldMore,
+  UploadFile,
+} from '@mui/icons-material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { WeighInTable } from './WeighinTable';
 import { NotFound } from '../shared/NotFound';
@@ -31,6 +40,7 @@ import { PrintResultSnackbar } from '../shared/PrintResultSnackbar';
 import { printContainerLabel } from '../shared/printTemplates';
 import { ContainerView } from './ContainerView';
 import { ContainerEditForm } from './ContainerEditForm';
+import { DiscardDialog } from './DiscardDialog';
 
 type ContainerDetailProps = {
   data?: Container;
@@ -47,11 +57,13 @@ type ContainerDetailProps = {
 export const ContainerDetail = ({ data, onClose, elevation }: ContainerDetailProps) => {
   const { user } = useAuth();
   const canEdit = hasRoleAtLeast(user, 'stockroom');
+  const canDiscard = hasRoleAtLeast(user, 'coordinator');
 
   const location = useLocation();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [sdsDialogOpen, setSdsDialogOpen] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   // Close the menu before running the action, same as Locations.tsx's row menu
   const menuAction = (fn: () => void) => () => {
@@ -96,6 +108,7 @@ export const ContainerDetail = ({ data, onClose, elevation }: ContainerDetailPro
   if (isPending || !container) return null;
 
   const checkedOut = container.checkout_status?.action === 'out';
+  const discarded = !!container.date_discarded;
 
   return (
     <>
@@ -114,6 +127,13 @@ export const ContainerDetail = ({ data, onClose, elevation }: ContainerDetailPro
           chemicalId={container.chemical}
           manufacturer={container.manufacturer}
           productNum={container.product_num}
+        />
+      )}
+      {canDiscard && (
+        <DiscardDialog
+          container={container}
+          open={discardOpen}
+          onClose={() => setDiscardOpen(false)}
         />
       )}
       <Box sx={{ display: 'flex', justifyContent: 'center' }}>
@@ -139,20 +159,24 @@ export const ContainerDetail = ({ data, onClose, elevation }: ContainerDetailPro
                 sx={{ alignItems: 'center', flexWrap: 'wrap', mt: 0.5 }}
               >
                 <span>{container.label}</span>
-                <Chip
-                  size="small"
-                  color={checkedOut ? 'warning' : 'success'}
-                  label={
-                    checkedOut
-                      ? `Checked out by ${container.checkout_status?.user.full_name}`
-                      : 'Available'
-                  }
-                />
+                {discarded ? (
+                  <Chip size="small" label="Discarded" />
+                ) : (
+                  <Chip
+                    size="small"
+                    color={checkedOut ? 'warning' : 'success'}
+                    label={
+                      checkedOut
+                        ? `Checked out by ${container.checkout_status?.user.full_name}`
+                        : 'Available'
+                    }
+                  />
+                )}
               </Stack>
             }
             action={
               <Box>
-                {(data || canEdit) && (
+                {(data || canEdit || canDiscard) && (
                   <Tooltip title="Actions">
                     <IconButton
                       aria-haspopup="menu"
@@ -208,6 +232,18 @@ export const ContainerDetail = ({ data, onClose, elevation }: ContainerDetailPro
                       <ListItemText>
                         {container.latest_sds ? 'Upload new SDS revision' : 'Upload SDS'}
                       </ListItemText>
+                    </MenuItem>
+                  )}
+                  {canDiscard && (
+                    <MenuItem onClick={menuAction(() => setDiscardOpen(true))}>
+                      <ListItemIcon>
+                        {discarded ? (
+                          <RestoreFromTrash fontSize="small" />
+                        ) : (
+                          <DeleteOutlined fontSize="small" color="error" />
+                        )}
+                      </ListItemIcon>
+                      <ListItemText>{discarded ? 'Restore' : 'Mark as discarded'}</ListItemText>
                     </MenuItem>
                   )}
                 </Menu>

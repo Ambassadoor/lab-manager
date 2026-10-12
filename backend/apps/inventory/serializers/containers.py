@@ -55,6 +55,9 @@ class ContainerSerializer(serializers.ModelSerializer):
     latest_reading = serializers.SerializerMethodField()
     checkout_status = serializers.SerializerMethodField()
     latest_sds = serializers.SerializerMethodField()
+    # Set through ContainerView.discard/restore only, never a plain update
+    date_discarded = serializers.DateField(read_only=True, allow_null=True)
+    discarded_by = UserCheckoutEventSerializer(read_only=True, allow_null=True)
 
     class Meta:
         model = Container
@@ -79,6 +82,8 @@ class ContainerSerializer(serializers.ModelSerializer):
             "percent_remaining",
             "checkout_status",
             "latest_sds",
+            "date_discarded",
+            "discarded_by",
         ]
 
     # The get_* methods below read rows that Container.objects.for_display()
@@ -222,6 +227,6 @@ class LocationContainersSerializer(serializers.ModelSerializer):
                 location_ids.append(child_id)
                 queue.append(child_id)
 
-        containers = Container.objects.for_display().filter(location__id__in=location_ids)
+        containers = Container.objects.active().for_display().filter(location__id__in=location_ids)
         serializer = ContainerSerializer(containers, many=True)
         return serializer.data

@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { Button, CardContent, LinearProgress, Link, Stack, Typography } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import type { Container } from '../../types';
@@ -49,6 +50,12 @@ export const ContainerView = ({ container, showCurrentWeight }: ContainerViewPro
             </Link>
           )}
         </DetailRow>
+        {container.date_discarded && (
+          <DetailRow label="Discarded">
+            {dayjs(container.date_discarded).format('MMM D, YYYY')}
+            {container.discarded_by && ` by ${container.discarded_by.full_name}`}
+          </DetailRow>
+        )}
         <DetailRow label="Manufacturer">{container.manufacturer}</DetailRow>
         <DetailRow label="Product #">{container.product_num}</DetailRow>
         <DetailRow label="Quantity">{container.quantity}</DetailRow>

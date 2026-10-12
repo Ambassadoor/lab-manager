@@ -20,6 +20,12 @@ def highest_container_pk_subquery():
 
 
 class ContainerQuerySet(models.QuerySet):
+    def active(self):
+        """Containers still in the inventory: not marked discarded. The
+        default manager deliberately includes discarded ones, so a scan, a
+        link or the admin can still open them; lists apply this."""
+        return self.filter(date_discarded__isnull=True)
+
     def for_display(self):
         """Everything ContainerSerializer reads, loaded up front.
 
@@ -32,7 +38,7 @@ class ContainerQuerySet(models.QuerySet):
         nothing was prefetched, so both paths return the same rows.
         """
         return (
-            self.select_related("location")
+            self.select_related("location", "discarded_by")
             .annotate(highest_pk=highest_container_pk_subquery())
             .prefetch_related(
                 Prefetch(
@@ -84,6 +90,14 @@ class Container(models.Model):
     date_received = models.DateField("received on", default=timezone.now, null=True, blank=True)
     date_opened = models.DateField("opened on", null=True, blank=True)
     date_discarded = models.DateField("discarded on", null=True, blank=True)
+    # Who marked it discarded (Coordinator and up, ContainerView.discard)
+    discarded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="discarded_containers",
+    )
     # Four decimal places: densities are commonly given as 1.0493 g/mL.
     # Seven digits leaves room for the densest liquids (mercury, 13.534).
     density = models.DecimalField(

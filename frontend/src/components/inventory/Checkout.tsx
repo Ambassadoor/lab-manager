@@ -9,7 +9,7 @@ import { ActionFormCard } from '../shared/ActionFormCard';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { useConfirmDialog } from '../shared/useConfirmDialog';
 import { AddByIdField } from '../shared/scanList/AddByIdField';
-import { lookUpContainer } from '../shared/scanList/lookups';
+import { lookUpUsableContainer } from '../shared/scanList/lookups';
 import { ScanListView } from '../shared/scanList/ScanListView';
 import { useScanList, type ScanItem } from '../shared/scanList/useScanList';
 
@@ -17,7 +17,7 @@ import { useScanList, type ScanItem } from '../shared/scanList/useScanList';
 export const Checkout = () => {
   const qc = useQueryClient();
   const { notify } = useScanner();
-  const list = useScanList(lookUpContainer);
+  const list = useScanList(lookUpUsableContainer);
   const checkoutConfirm = useConfirmDialog<ScanItem<Container>[]>();
 
   const mutation = useMutation({
