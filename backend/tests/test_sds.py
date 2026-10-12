@@ -401,3 +401,69 @@ class TestSDSCorrection:
         response = APIClient().get("/api/inventory/sds/?drive_id=drive-shared")
 
         assert len(response.data) == 2
+
+
+@pytest.mark.django_db
+class TestSDSReplace:
+    @patch("apps.inventory.serializers.chemicals.trash_file")
+    def test_existing_document_repoints_only_this_row(
+        self, mock_trash, client_as, shared_sds, make_container
+    ):
+        other = make_container("c3", manufacturer="Beta", product_num="B-9")
+        right = SDS.objects.create(
+            container=other,
+            file_name="Beta_B-9_Water_Rev7.pdf",
+            drive_id="drive-right",
+            revision_number="7",
+        )
+        client = client_as(User.Role.STOCKROOM)
+
+        response = client.post(
+            f"/api/inventory/sds/{shared_sds[0].id}/replace/",
+            {"existing_sds": right.id},
+            format="multipart",
+        )
+
+        assert response.status_code == 200
+        fixed = SDS.objects.get(id=shared_sds[0].id)
+        assert (fixed.drive_id, fixed.file_name, fixed.revision_number) == (
+            "drive-right",
+            "Beta_B-9_Water_Rev7.pdf",
+            "7",
+        )
+        # The other container keeps the old document, so it isn't trashed
+        assert SDS.objects.get(id=shared_sds[1].id).drive_id == "drive-shared"
+        mock_trash.assert_not_called()
+
+    @patch("apps.inventory.serializers.chemicals.trash_file")
+    @patch("apps.inventory.serializers.chemicals.upload_sds_file")
+    def test_new_upload_trashes_the_unused_old_file(self, mock_upload, mock_trash, client_as, sds):
+        mock_upload.return_value = "drive-new"
+        client = client_as(User.Role.STOCKROOM)
+
+        response = client.post(
+            f"/api/inventory/sds/{sds.id}/replace/",
+            {"file": make_pdf(), "revision_number": "5"},
+            format="multipart",
+        )
+
+        assert response.status_code == 200
+        sds.refresh_from_db()
+        assert sds.drive_id == "drive-new"
+        assert sds.file_name == "Acme_P-1_Water_Rev5.pdf"
+        assert sds.revision_date is None
+        mock_trash.assert_called_once_with("drive-abc")
+
+    def test_needs_exactly_one_document(self, client_as, sds):
+        client = client_as(User.Role.STOCKROOM)
+
+        response = client.post(f"/api/inventory/sds/{sds.id}/replace/", {}, format="multipart")
+
+        assert response.status_code == 400
+
+    def test_lab_assistant_cannot_replace(self, client_as, sds):
+        response = client_as(User.Role.LAB_ASSISTANT).post(
+            f"/api/inventory/sds/{sds.id}/replace/", {}, format="multipart"
+        )
+
+        assert response.status_code == 403

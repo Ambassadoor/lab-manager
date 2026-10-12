@@ -1,5 +1,6 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
@@ -10,7 +11,12 @@ from apps.users.permissions import role_at_least
 from ..filters import SDSFilter
 from ..models import SDS
 from ..schema import ERROR_DETAIL
-from ..serializers import SDSCorrectionSerializer, SDSSerializer, SDSWriteSerializer
+from ..serializers import (
+    SDSCorrectionSerializer,
+    SDSReplaceSerializer,
+    SDSSerializer,
+    SDSWriteSerializer,
+)
 
 
 # List/retrieve are fully public (no login, no CSRF) — SDS documents are
@@ -57,6 +63,19 @@ class SDSView(
     def partial_update(self, request, *args, **kwargs):
         sds = self.get_object()
         serializer = SDSCorrectionSerializer(sds, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(SDSSerializer(sds).data)
+
+    # "Wrong SDS on this container": see SDSReplaceSerializer
+    @extend_schema(
+        request=SDSReplaceSerializer,
+        responses={200: SDSSerializer, 400: ERROR_DETAIL},
+    )
+    @action(detail=True, methods=["post"])
+    def replace(self, request, pk=None):
+        sds = self.get_object()
+        serializer = SDSReplaceSerializer(sds, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(SDSSerializer(sds).data)
