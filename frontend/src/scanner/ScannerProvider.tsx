@@ -62,7 +62,7 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
       } else if (target.kind === 'container') {
         navigate(`/inventory/containers/${target.slug}`);
       } else {
-        navigate(`/inventory/locations/?location=${target.id}`);
+        navigate(`/inventory/?location=${target.id}`);
       }
     };
   });

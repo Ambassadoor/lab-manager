@@ -196,7 +196,7 @@ export const ContainerDetail = ({ data, onClose, elevation }: ContainerDetailPro
                   {data && (
                     <MenuItem
                       // Absolute — this panel is also embedded on the
-                      // Locations page, where a relative path breaks
+                      // Inventory page, where a relative path breaks
                       onClick={menuAction(() =>
                         navigate(`/inventory/containers/${data.slug}`, { state: data })
                       )}
