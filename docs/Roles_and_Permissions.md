@@ -11,7 +11,7 @@ A role has a rank, and a permission asks for a minimum rank. A higher rank can d
 | Rank | Roles | Notes |
 |------|-------|-------|
 | 4 | Admin, Lab Manager | The same permissions. Kept as two values so IT could hold Admin while a non-technical person is Lab Manager. |
-| 3 | Coordinator, Faculty | The same permissions. Nothing currently requires rank 3, so in practice these match Stockroom. |
+| 3 | Coordinator, Faculty | The same permissions. Everything Stockroom can do, plus discarding and restoring containers. |
 | 2 | Stockroom Worker | Day-to-day inventory work. |
 | 1 | Lab Assistant | Read-only. The default for a new account. |
 
@@ -33,12 +33,15 @@ Anyone with an `@lipscomb.edu` or `@mail.lipscomb.edu` address can register. The
 | Storage categories | Any user | Stockroom | Lab Manager |
 | Containers | Any user | Stockroom | Lab Manager |
 | Container actions: check out, check in, weigh in, transfer | — | Stockroom | — |
+| Discard a container, or restore a discarded one | — | Coordinator | — |
 | Weight readings | Any user | Stockroom | Lab Manager |
 | Locations | Any user | Stockroom (create, add child, rename, re-parent, move) | Stockroom |
 | Location types | Any user | Stockroom | Lab Manager |
 | SDS | **Visitor** | Stockroom (create only; an SDS cannot be edited) | Not possible |
 | Label templates | Any user | Lab Manager | Lab Manager |
 | Dashboard | Any user | — | — |
+
+A discarded container drops out of the container list (unless `?is_discarded=` asks for it), a location's containers and the dashboard, and check out, check in, weigh in and transfer refuse it. It still opens by link or scan, and keeps its history.
 
 Deleting a location is open to Stockroom because the database refuses to delete one that still has children or containers.
 
