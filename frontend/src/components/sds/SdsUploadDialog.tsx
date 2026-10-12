@@ -1,23 +1,16 @@
 import {
   Alert,
-  Avatar,
   Box,
   Button,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
   IconButton,
-  InputLabel,
   List,
   ListItem,
-  ListItemAvatar,
   ListItemButton,
   ListItemText,
-  MenuItem,
-  Select,
   Stack,
   TextField,
   Tooltip,
@@ -30,11 +23,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 import { createSds, getSdsList, type PendingSdsSelection } from '../../api/sds';
 import { chemicalKeys, containerKeys, sdsKeys } from '../../api/queryKeys';
-import { GHS_PICTOGRAMS, ghsPictogramIconSrc, ghsPictogramLabel } from '../shared/ghsPictograms';
 import { RhfDateField } from '../shared/RhfDateField';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import type { GHSPictogram, SDS } from '../../types';
 import { useIsPhone } from '../shared/useIsPhone';
+import { GhsPictogramSelect } from './GhsPictogramSelect';
 
 type SdsUploadDialogProps = {
   open: boolean;
@@ -359,55 +352,7 @@ export const SdsUploadDialog = ({
                 />
               )}
             />
-            <Controller
-              control={control}
-              name="ghs_pictograms"
-              render={({ field }) => (
-                <FormControl>
-                  <InputLabel id="ghs-pictograms">GHS Pictograms</InputLabel>
-                  <Select
-                    {...field}
-                    multiple
-                    labelId="ghs-pictograms"
-                    label="GHS Pictograms"
-                    renderValue={(selected) => (
-                      <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
-                        {(selected as GHSPictogram[]).map((value) => (
-                          <Chip
-                            key={value}
-                            avatar={
-                              // Transparent-background PNGs — bgcolor keeps
-                              // the glyph visible in dark mode (see
-                              // SdsViewer's fuller comment on the same fix).
-                              <Avatar
-                                src={ghsPictogramIconSrc(value)}
-                                alt=""
-                                sx={{ bgcolor: 'common.white' }}
-                              />
-                            }
-                            label={ghsPictogramLabel(value)}
-                            size="small"
-                          />
-                        ))}
-                      </Stack>
-                    )}
-                  >
-                    {GHS_PICTOGRAMS.map((p) => (
-                      <MenuItem key={p.value} value={p.value}>
-                        <ListItemAvatar>
-                          <Avatar
-                            src={ghsPictogramIconSrc(p.value)}
-                            alt=""
-                            sx={{ width: 28, height: 28, bgcolor: 'common.white' }}
-                          />
-                        </ListItemAvatar>
-                        <ListItemText primary={p.label} />
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
-            />
+            <GhsPictogramSelect control={control} name="ghs_pictograms" />
           </Stack>
         </DialogContent>
         <DialogActions>
