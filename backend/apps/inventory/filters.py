@@ -94,6 +94,9 @@ class SDSFilter(df.FilterSet):
             "product_num",
             "revision_date",
             "revision_number",
+            # Every row sharing one Drive file: a correction changes them all,
+            # and the correction dialog says how many that is
+            "drive_id",
         ]
 
     # One combined search box covers Chemical name, Product name, CAS #,

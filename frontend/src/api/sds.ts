@@ -13,6 +13,8 @@ import type { SDS } from '../types';
 // by chemical + exact revision date/# (SdsUploadDialog.tsx, both).
 export type SdsListParams = {
   search?: string;
+  // Every row sharing one Drive file (one document on several containers)
+  drive_id?: string;
   container?: number | string;
   chemical?: number | string;
   manufacturer?: string;
@@ -52,9 +54,10 @@ export type CreateSdsInput = {
 // exists. See SdsUploadDialog's `onSelect` (deferred) mode.
 export type PendingSdsSelection = Omit<CreateSdsInput, 'container'>;
 
-export const createSds = (input: CreateSdsInput): Promise<SDS> => {
+// FormData for a document selection: a new `file`, or an `existing_sds` to
+// reuse, plus revision fields. Shared by createSds and replaceSds.
+function selectionFormData(input: PendingSdsSelection): FormData {
   const formData = new FormData();
-  formData.set('container', String(input.container));
   if (input.file) formData.set('file', input.file);
   if (input.existingSdsId !== undefined) {
     formData.set('existing_sds', String(input.existingSdsId));
@@ -64,9 +67,55 @@ export const createSds = (input: CreateSdsInput): Promise<SDS> => {
     formData.set('revision_number', String(input.revisionNumber));
   }
   input.ghsPictograms?.forEach((pictogram) => formData.append('ghs_pictograms', pictogram));
+  return formData;
+}
 
+export const createSds = (input: CreateSdsInput): Promise<SDS> => {
+  const formData = selectionFormData(input);
+  formData.set('container', String(input.container));
   return apiFetch('/api/inventory/sds/', {
     method: 'POST',
     body: formData,
   });
+};
+
+// "Wrong SDS on this container": points this one SDS row at another
+// document (existing or newly uploaded); other containers sharing the old
+// one keep it.
+export const replaceSds = (id: number, selection: PendingSdsSelection): Promise<SDS> => {
+  return apiFetch(`/api/inventory/sds/${id}/replace/`, {
+    method: 'POST',
+    body: selectionFormData(selection),
+  });
+};
+
+export type SdsCorrection = {
+  revisionDate: string | null;
+  revisionNumber: string;
+  ghsPictograms: string[];
+  // The right PDF, replacing the file's content in place
+  file?: File;
+};
+
+// "Fix this document": corrects every SDS row sharing this one's Drive
+// file. JSON unless there's a file, so an emptied pictogram list still
+// clears them (a multipart form can't send an empty list).
+export const correctSds = (id: number, correction: SdsCorrection): Promise<SDS> => {
+  const fields = {
+    revision_date: correction.revisionDate,
+    revision_number: correction.revisionNumber || null,
+    ghs_pictograms: correction.ghsPictograms,
+  };
+  if (!correction.file) {
+    return apiFetch(`/api/inventory/sds/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(fields),
+    });
+  }
+  const formData = new FormData();
+  formData.set('file', correction.file);
+  if (fields.revision_date) formData.set('revision_date', fields.revision_date);
+  if (fields.revision_number) formData.set('revision_number', fields.revision_number);
+  fields.ghs_pictograms.forEach((p) => formData.append('ghs_pictograms', p));
+  return apiFetch(`/api/inventory/sds/${id}/`, { method: 'PATCH', body: formData });
 };

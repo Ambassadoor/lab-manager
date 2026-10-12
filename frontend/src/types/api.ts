@@ -788,6 +788,22 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
+    patch: operations['inventory_sds_partial_update'];
+    trace?: never;
+  };
+  '/api/inventory/sds/{id}/replace/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['inventory_sds_replace_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
     patch?: never;
     trace?: never;
   };
@@ -1306,6 +1322,14 @@ export interface components {
       type?: number;
       parent?: number | null;
     };
+    PatchedSDSCorrection: {
+      /** Format: date */
+      revision_date?: string | null;
+      revision_number?: string | null;
+      ghs_pictograms?: components['schemas']['GhsPictogramsEnum'][];
+      /** Format: uri */
+      file?: string;
+    };
     PatchedUser: {
       readonly id?: number;
       /** @description Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only. */
@@ -1372,6 +1396,15 @@ export interface components {
       readonly id: number;
       readonly label: string;
       name: string;
+    };
+    SDSReplace: {
+      /** Format: uri */
+      file?: string;
+      existing_sds?: number;
+      /** Format: date */
+      revision_date?: string | null;
+      revision_number?: string | null;
+      ghs_pictograms?: components['schemas']['GhsPictogramsEnum'][];
     };
     SDSWrite: {
       readonly id: number;
@@ -3452,6 +3485,7 @@ export interface operations {
       query?: {
         chemical?: number;
         container?: number;
+        drive_id?: string;
         manufacturer?: string;
         /** @description Which field to use when ordering the results. */
         ordering?: string;
@@ -3520,6 +3554,78 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['SDS'];
+        };
+      };
+    };
+  };
+  inventory_sds_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this sds. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedSDSCorrection'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedSDSCorrection'];
+        'multipart/form-data': components['schemas']['PatchedSDSCorrection'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SDS'];
+        };
+      };
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorDetail'];
+        };
+      };
+    };
+  };
+  inventory_sds_replace_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this sds. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['SDSReplace'];
+        'application/x-www-form-urlencoded': components['schemas']['SDSReplace'];
+        'multipart/form-data': components['schemas']['SDSReplace'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SDS'];
+        };
+      };
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorDetail'];
         };
       };
     };

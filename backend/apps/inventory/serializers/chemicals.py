@@ -3,7 +3,15 @@ import re
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from ..drive import DriveUploadError, upload_sds_file
+from django.db import transaction
+
+from ..drive import (
+    DriveUploadError,
+    rename_file,
+    replace_file_content,
+    trash_file,
+    upload_sds_file,
+)
 from ..models import (
     SDS,
     Chemical,
@@ -32,7 +40,9 @@ def _build_sds_filename(container, revision_date, revision_number) -> str:
         _slugify_filename_part(container.product_num or "NA"),
         _slugify_filename_part(container.chemical.name),
     ]
-    if revision_number is not None:
+    # Truthiness, not `is not None`: a blank revision number would name the
+    # file "..._Rev.pdf"
+    if revision_number:
         parts.append(f"Rev{revision_number}")
     if revision_date is not None:
         parts.append(str(revision_date))
@@ -197,34 +207,107 @@ class SDSWriteSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        file = validated_data.pop("file", None)
-        existing_sds = validated_data.pop("existing_sds", None)
         container = validated_data["container"]
+        return SDS.objects.create(
+            container=container, **_resolve_document(validated_data, container)
+        )
 
-        if file is not None:
-            filename = _build_sds_filename(
-                container,
-                validated_data.get("revision_date"),
-                validated_data.get("revision_number"),
-            )
+
+# The document fields of an SDS row being attached to `container`: a new
+# upload (`file`, named and sent to Drive here), or a document already on
+# file (`existing_sds`), whose Drive file is reused rather than copied —
+# each row is still its own revision-history entry for its container. Given
+# revision fields win; for an existing document, missing ones come from it.
+def _resolve_document(validated_data, container) -> dict:
+    file = validated_data.get("file")
+    existing_sds = validated_data.get("existing_sds")
+    pictograms = validated_data.get("ghs_pictograms") or []
+
+    if file is not None:
+        revision_date = validated_data.get("revision_date")
+        revision_number = validated_data.get("revision_number")
+        file_name = _build_sds_filename(container, revision_date, revision_number)
+        try:
+            drive_id = upload_sds_file(file, file_name)
+        except DriveUploadError as e:
+            raise serializers.ValidationError({"file": str(e)}) from e
+        return {
+            "drive_id": drive_id,
+            "file_name": file_name,
+            "revision_date": revision_date,
+            "revision_number": revision_number,
+            "ghs_pictograms": pictograms,
+        }
+
+    return {
+        "drive_id": existing_sds.drive_id,
+        "file_name": existing_sds.file_name,
+        "revision_date": validated_data.get("revision_date", existing_sds.revision_date),
+        "revision_number": validated_data.get("revision_number", existing_sds.revision_number),
+        "ghs_pictograms": pictograms or existing_sds.ghs_pictograms,
+    }
+
+
+# "Wrong SDS on this container": points one SDS row at a different document
+# (one already on file, or a new upload) without touching the other
+# containers that shared the old one. The old Drive file is trashed only if
+# no row uses it any more.
+class SDSReplaceSerializer(SDSWriteSerializer):
+    container = None
+
+    class Meta(SDSWriteSerializer.Meta):
+        fields = ["file", "existing_sds", "revision_date", "revision_number", "ghs_pictograms"]
+
+    def update(self, instance, validated_data):
+        old_drive_id = instance.drive_id
+        for field, value in _resolve_document(validated_data, instance.container).items():
+            setattr(instance, field, value)
+        instance.save()
+        if not SDS.objects.filter(drive_id=old_drive_id).exists():
             try:
-                drive_id = upload_sds_file(file, filename)
-            except DriveUploadError as e:
-                raise serializers.ValidationError({"file": str(e)}) from e
-            validated_data["drive_id"] = drive_id
-            validated_data["file_name"] = filename
-        else:
-            # Reuse the existing document's Drive file rather than uploading
-            # a duplicate copy — this row is still its own revision-history
-            # entry for `container`, just pointing at the same file.
-            validated_data["drive_id"] = existing_sds.drive_id
-            validated_data["file_name"] = existing_sds.file_name
-            validated_data.setdefault("revision_date", existing_sds.revision_date)
-            validated_data.setdefault("revision_number", existing_sds.revision_number)
-            if not validated_data.get("ghs_pictograms"):
-                validated_data["ghs_pictograms"] = existing_sds.ghs_pictograms
+                trash_file(old_drive_id)
+            except DriveUploadError:
+                # A leftover file in the Drive folder is harmless; the
+                # correction itself has already been saved
+                pass
+        return instance
 
-        return SDS.objects.create(**validated_data)
+
+# "Fix this document": corrects an SDS's revision date/number and pictograms,
+# and optionally swaps in the right PDF, for every SDS row that shares its
+# Drive file (they are the same document, attached to several containers).
+# The file is renamed to match on Drive, and replaced in place if a new PDF
+# is given, so its link doesn't change.
+class SDSCorrectionSerializer(serializers.ModelSerializer):
+    file = serializers.FileField(write_only=True, required=False)
+
+    class Meta:
+        model = SDS
+        fields = ["revision_date", "revision_number", "ghs_pictograms", "file"]
+
+    validate_file = SDSWriteSerializer.validate_file
+
+    def update(self, instance, validated_data):
+        file = validated_data.pop("file", None)
+        revision_date = validated_data.get("revision_date", instance.revision_date)
+        revision_number = validated_data.get("revision_number", instance.revision_number)
+        file_name = _build_sds_filename(instance.container, revision_date, revision_number)
+
+        # Drive first: if it fails, nothing in the database has changed
+        try:
+            if file is not None:
+                replace_file_content(instance.drive_id, file, file_name)
+            elif file_name != instance.file_name:
+                rename_file(instance.drive_id, file_name)
+        except DriveUploadError as e:
+            raise serializers.ValidationError({"file" if file else "detail": str(e)}) from e
+
+        with transaction.atomic():
+            SDS.objects.filter(drive_id=instance.drive_id).update(
+                file_name=file_name, **validated_data
+            )
+        instance.refresh_from_db()
+        return instance
 
 
 class IngredientSerializer(serializers.ModelSerializer):

@@ -23,6 +23,7 @@ import {
   Close,
   DeleteOutlined,
   Edit,
+  EditNote,
   MoreVert,
   Print,
   RestoreFromTrash,
@@ -35,6 +36,7 @@ import { NotFound } from '../shared/NotFound';
 import { useAuth } from '../../context/AuthContext';
 import { hasRoleAtLeast } from '../shared/roles';
 import { SdsUploadDialog } from '../sds/SdsUploadDialog';
+import { SdsCorrectDialog } from '../sds/SdsCorrectDialog';
 import { PendingResultSnackbar } from '../shared/PendingResultSnackbar';
 import { PrintResultSnackbar } from '../shared/PrintResultSnackbar';
 import { printContainerLabel } from '../shared/printTemplates';
@@ -64,6 +66,9 @@ export const ContainerDetail = ({ data, onClose, elevation }: ContainerDetailPro
   const [editing, setEditing] = useState(false);
   const [sdsDialogOpen, setSdsDialogOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
+  // Correcting the latest SDS: fix the document, or (wrong document) replace it
+  const [correctOpen, setCorrectOpen] = useState(false);
+  const [replaceOpen, setReplaceOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   // Close the menu before running the action, same as Locations.tsx's row menu
   const menuAction = (fn: () => void) => () => {
@@ -128,6 +133,25 @@ export const ContainerDetail = ({ data, onClose, elevation }: ContainerDetailPro
           manufacturer={container.manufacturer}
           productNum={container.product_num}
         />
+      )}
+      {canEdit && container.latest_sds && (
+        <>
+          <SdsCorrectDialog
+            sds={container.latest_sds}
+            open={correctOpen}
+            onClose={() => setCorrectOpen(false)}
+            onWrongDocument={() => setReplaceOpen(true)}
+          />
+          <SdsUploadDialog
+            open={replaceOpen}
+            setOpen={setReplaceOpen}
+            containerId={container.id}
+            chemicalId={container.chemical}
+            manufacturer={container.manufacturer}
+            productNum={container.product_num}
+            replacing={container.latest_sds}
+          />
+        </>
       )}
       {canDiscard && (
         <DiscardDialog
@@ -232,6 +256,14 @@ export const ContainerDetail = ({ data, onClose, elevation }: ContainerDetailPro
                       <ListItemText>
                         {container.latest_sds ? 'Upload new SDS revision' : 'Upload SDS'}
                       </ListItemText>
+                    </MenuItem>
+                  )}
+                  {canEdit && container.latest_sds && (
+                    <MenuItem onClick={menuAction(() => setCorrectOpen(true))}>
+                      <ListItemIcon>
+                        <EditNote fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>Correct SDS</ListItemText>
                     </MenuItem>
                   )}
                   {canDiscard && (

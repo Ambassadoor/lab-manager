@@ -3763,6 +3763,13 @@
                     },
                     {
                         "in": "query",
+                        "name": "drive_id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
                         "name": "manufacturer",
                         "schema": {
                             "type": "string"
@@ -3907,6 +3914,134 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/SDS"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "inventory_sds_partial_update",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "A unique integer value identifying this sds.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSDSCorrection"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSDSCorrection"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSDSCorrection"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SDS"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorDetail"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/inventory/sds/{id}/replace/": {
+            "post": {
+                "operationId": "inventory_sds_replace_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "A unique integer value identifying this sds.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SDSReplace"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SDSReplace"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SDSReplace"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SDS"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorDetail"
                                 }
                             }
                         },
@@ -5753,6 +5888,32 @@
                     }
                 }
             },
+            "PatchedSDSCorrection": {
+                "type": "object",
+                "properties": {
+                    "revision_date": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "revision_number": {
+                        "type": "string",
+                        "nullable": true,
+                        "maxLength": 20
+                    },
+                    "ghs_pictograms": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/GhsPictogramsEnum"
+                        }
+                    },
+                    "file": {
+                        "type": "string",
+                        "format": "uri",
+                        "writeOnly": true
+                    }
+                }
+            },
             "PatchedUser": {
                 "type": "object",
                 "properties": {
@@ -5956,6 +6117,36 @@
                     "label",
                     "name"
                 ]
+            },
+            "SDSReplace": {
+                "type": "object",
+                "properties": {
+                    "file": {
+                        "type": "string",
+                        "format": "uri",
+                        "writeOnly": true
+                    },
+                    "existing_sds": {
+                        "type": "integer",
+                        "writeOnly": true
+                    },
+                    "revision_date": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "revision_number": {
+                        "type": "string",
+                        "nullable": true,
+                        "maxLength": 20
+                    },
+                    "ghs_pictograms": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/GhsPictogramsEnum"
+                        }
+                    }
+                }
             },
             "SDSWrite": {
                 "type": "object",
