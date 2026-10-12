@@ -191,7 +191,7 @@ export const ContainerDetail = ({ data, onClose, elevation }: ContainerDetailPro
                     color={checkedOut ? 'warning' : 'success'}
                     label={
                       checkedOut
-                        ? `Checked out by ${container.checkout_status?.user.full_name}`
+                        ? `Checked out by ${container.checkout_status?.holder_display}`
                         : 'Available'
                     }
                   />

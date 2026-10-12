@@ -139,7 +139,11 @@ class TestDiscardedCantBeUsed:
     def test_check_out(self, stockroom, make_container):
         make_container("gone", date_discarded=DISCARDED_ON)
 
-        response = stockroom.post("/api/inventory/containers/check_out/", ["gone"], format="json")
+        response = stockroom.post(
+            "/api/inventory/containers/check_out/",
+            {"containers": ["gone"], "holder": {"name": "Test Holder"}},
+            format="json",
+        )
 
         assert response.status_code == 400
         assert "Discarded" in response.data["detail"]
@@ -177,7 +181,11 @@ class TestDiscardedCantBeUsed:
         assert "Discarded" in response.data["detail"]
 
     def test_unknown_container_says_which(self, stockroom, db):
-        response = stockroom.post("/api/inventory/containers/check_out/", ["nope"], format="json")
+        response = stockroom.post(
+            "/api/inventory/containers/check_out/",
+            {"containers": ["nope"], "holder": {"name": "Test Holder"}},
+            format="json",
+        )
 
         assert response.status_code == 400
         assert "nope" in response.data["detail"]

@@ -46,6 +46,10 @@ followed by a new line. In the app, the same scan should open that container.
 
 If it types without the backtick, step 2 didn't take; repeat it. If characters go missing or come out garbled, lower **Bluetooth HID Transfer Rate** (p.6) to Slow.
 
+## Lipscomb ID cards
+
+On the Check Out tab, scanning someone's ID card fills "Checked out by". A card's barcode is 11 digits: one digit, the 8 digits of the Lipscomb ID, then two more, so `02274838901` is `L22748389`. Typing the ID (or the card's number) works the same. If an account has that ID, its name appears; if not, Check Out asks for the person's name and keeps the ID with it. The card is read through the same backtick prefix as a container label, so a card scan anywhere else is reported as not a label. The parsing is `frontend/src/scanner/lipscombId.ts`.
+
 ## On the iPad
 
 While the scanner is connected as a keyboard, iPadOS hides the on-screen keyboard. To type (for example, into the Actions page's "Add by ID" box), double-press the scanner's trigger to bring the on-screen keyboard back. This needs **Double press trigger to show/hide keyboard On** (p.6) set once.

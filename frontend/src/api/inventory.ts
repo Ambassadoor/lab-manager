@@ -131,10 +131,17 @@ export const restoreContainer = (slug: string): Promise<Container> => {
   return apiFetch(`/api/inventory/containers/${slug}/restore/`, { method: 'POST' });
 };
 
-export const checkOutContainers = (slugs: string[]): Promise<{ events: CheckoutEvent[] }> => {
+// Who is taking them: a Lipscomb ID (linked to their account if they have
+// one), a name, or an ID nobody has yet plus a name.
+export type CheckoutHolder = { lipscomb_id?: string; name?: string };
+
+export const checkOutContainers = (
+  slugs: string[],
+  holder: CheckoutHolder
+): Promise<{ events: CheckoutEvent[] }> => {
   return apiFetch(`/api/inventory/containers/check_out/`, {
     method: 'POST',
-    body: JSON.stringify(slugs),
+    body: JSON.stringify({ containers: slugs, holder }),
   });
 };
 

@@ -5,6 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.db.models.functions import Lower
 from django.http import Http404
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.decorators import action
@@ -15,6 +16,7 @@ from rest_framework.viewsets import ModelViewSet
 
 from apps.users.models import User
 from apps.users.permissions import role_at_least
+from apps.users.serializers import validate_lipscomb_id
 
 from ..filters import ContainerFilter
 from ..schema import ERROR_DETAIL, STORAGE_CONFLICT
@@ -39,6 +41,37 @@ SLUG_LIST = {"application/json": {"type": "array", "items": {"type": "string"}}}
 CHECKOUT_EVENTS = inline_serializer(
     name="CheckoutEvents", fields={"events": CheckoutEventWriteSerializer(many=True)}
 )
+
+
+# Who is taking the containers on a check out: a Lipscomb ID that matches
+# an account links that user; otherwise a name is needed, kept with the ID
+# if one was given (so they can be linked later, once IDs can be looked up).
+class CheckoutHolderSerializer(serializers.Serializer):
+    lipscomb_id = serializers.CharField(required=False, allow_blank=True)
+    name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+
+    def validate(self, attrs):
+        raw_id = attrs.get("lipscomb_id", "").strip()
+        lipscomb_id = validate_lipscomb_id(raw_id) if raw_id else None
+        name = attrs.get("name", "").strip()
+        user = User.objects.filter(lipscomb_id=lipscomb_id).first() if lipscomb_id else None
+        if user is None and not name:
+            raise serializers.ValidationError(
+                f"No account has the ID {lipscomb_id}; give their name too."
+                if lipscomb_id
+                else "Give a Lipscomb ID or a name for who is taking it."
+            )
+        return {
+            "holder": user,
+            "holder_name": "" if user else name,
+            "holder_lipscomb_id": lipscomb_id or "",
+        }
+
+
+class CheckOutSerializer(serializers.Serializer):
+    # Container ids as scanned or typed
+    containers = serializers.ListField(child=serializers.CharField(), allow_empty=False)
+    holder = CheckoutHolderSerializer()
 
 
 class DiscardSerializer(serializers.Serializer):
@@ -263,11 +296,19 @@ class ContainerView(ModelViewSet):
         return ContainerSerializer(Container.objects.for_display().get(pk=container.pk)).data
 
     # Creates checkout events for the provided containers
-    @extend_schema(request=SLUG_LIST, responses={201: CHECKOUT_EVENTS, 400: ERROR_DETAIL})
+    @extend_schema(
+        request=CheckOutSerializer,
+        # 400: ERROR_DETAIL for an unknown or discarded container, or a
+        # field-keyed validation error for the body
+        responses={201: CHECKOUT_EVENTS, 400: OpenApiTypes.OBJECT},
+    )
     @action(detail=False, methods=["POST"])
     def check_out(self, request):
+        body = CheckOutSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        holder = body.validated_data["holder"]
         containers = []
-        for slug in request.data:
+        for slug in body.validated_data["containers"]:
             try:
                 containers.append(Container.objects.get(slug=normalize_container_slug(slug)))
             except Container.DoesNotExist:
@@ -279,7 +320,16 @@ class ContainerView(ModelViewSet):
         if refused:
             return refused
 
-        events = [{"container": c.id, "action": "out"} for c in containers]
+        events = [
+            {
+                "container": c.id,
+                "action": "out",
+                "holder": holder["holder"].id if holder["holder"] else None,
+                "holder_name": holder["holder_name"],
+                "holder_lipscomb_id": holder["holder_lipscomb_id"],
+            }
+            for c in containers
+        ]
         serializer = CheckoutEventWriteSerializer(
             data=events, many=True, context={"request": request}
         )

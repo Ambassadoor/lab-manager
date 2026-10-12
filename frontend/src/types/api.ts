@@ -163,6 +163,31 @@ export interface paths {
     patch: operations['auth_users_partial_update'];
     trace?: never;
   };
+  '/api/auth/users/lookup/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * @description Admin/Lab Manager viewing and editing *other* users' accounts.
+     *
+     *     List/retrieve/update only — no create (registration already covers
+     *     that) and no destroy (account deactivation/deletion isn't in scope
+     *     yet). Every action shares the same LAB_MANAGER+ gate: unlike the
+     *     inventory views, there's no read/write split here — viewing another
+     *     user's info is itself the restricted thing, not just editing it.
+     */
+    get: operations['auth_users_lookup_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/auth/validate/': {
     parameters: {
       query?: never;
@@ -894,12 +919,23 @@ export interface components {
      * @enum {string}
      */
     CategoryEnum: 'confusing' | 'tedious' | 'idea' | 'other';
+    CheckOut: {
+      containers: string[];
+      holder: components['schemas']['CheckoutHolder'];
+    };
     CheckoutEvent: {
       readonly id: number;
       readonly user: components['schemas']['UserCheckoutEvent'];
+      /**
+       * @description Who has it, for display: the holder, else the name given, else
+       *     (events from before holders were recorded) whoever recorded it.
+       */
+      readonly holder_display: string;
       action: components['schemas']['ActionEnum'];
       /** Format: date-time */
       readonly timestamp: string;
+      holder_name?: string;
+      holder?: number | null;
       related_event?: number | null;
     };
     CheckoutEventWrite: {
@@ -907,11 +943,18 @@ export interface components {
       action: components['schemas']['ActionEnum'];
       /** Format: date-time */
       readonly timestamp: string;
+      holder_name?: string;
+      holder_lipscomb_id?: string;
       container: number;
+      holder?: number | null;
       related_event?: number | null;
     };
     CheckoutEvents: {
       events: components['schemas']['CheckoutEventWrite'][];
+    };
+    CheckoutHolder: {
+      lipscomb_id?: string;
+      name?: string;
     };
     Chemical: {
       readonly id: number;
@@ -1458,6 +1501,13 @@ export interface components {
     UserCheckoutEvent: {
       readonly full_name: string;
     };
+    UserLookup: {
+      id: number;
+      full_name: string;
+    };
+    UserLookupError: {
+      detail: string;
+    };
     WeighIn: {
       /** Format: decimal */
       weight: string;
@@ -1742,6 +1792,43 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['UserAdmin'];
+        };
+      };
+    };
+  };
+  auth_users_lookup_retrieve: {
+    parameters: {
+      query: {
+        lipscomb_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserLookup'];
+        };
+      };
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserLookupError'];
+        };
+      };
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserLookupError'];
         };
       };
     };
@@ -2755,9 +2842,11 @@ export interface operations {
       path?: never;
       cookie?: never;
     };
-    requestBody?: {
+    requestBody: {
       content: {
-        'application/json': string[];
+        'application/json': components['schemas']['CheckOut'];
+        'application/x-www-form-urlencoded': components['schemas']['CheckOut'];
+        'multipart/form-data': components['schemas']['CheckOut'];
       };
     };
     responses: {
@@ -2774,7 +2863,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ErrorDetail'];
+          'application/json': {
+            [key: string]: unknown;
+          };
         };
       };
     };

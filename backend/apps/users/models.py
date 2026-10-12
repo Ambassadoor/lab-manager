@@ -37,6 +37,10 @@ class User(AbstractUser):
     user_type = models.CharField(max_length=10, choices=UserType.choices, default=UserType.FULL)
     lipscomb_id = models.CharField(max_length=11, unique=True, null=True, blank=True)
 
+    @property
+    def full_name(self) -> str:
+        return f"{self.first_name} {self.last_name}".strip()
+
     def __str__(self) -> str:
         return self.username or self.lipscomb_id or f"Guest {self.pk}"
 
