@@ -72,6 +72,44 @@ def upload_sds_file(file, filename: str) -> str:
     return drive_id
 
 
+# Renames an SDS file on Drive, after a correction changes the revision its
+# name carries. The id, and so every link to it, stays the same.
+def rename_file(drive_id: str, name: str) -> None:
+    client = _get_client()
+    try:
+        client.files().update(
+            fileId=drive_id, body={"name": name}, supportsAllDrives=True
+        ).execute()
+    except HttpError as e:
+        raise DriveUploadError(f"Failed to rename the file on Google Drive: {e}") from e
+
+
+# Replaces an SDS file's content (a wrong PDF was uploaded) and renames it.
+# Same id and public link; Drive keeps the previous content in the file's
+# version history, so the wrong upload isn't lost outright.
+def replace_file_content(drive_id: str, file, name: str) -> None:
+    client = _get_client()
+    media = MediaInMemoryUpload(file.read(), mimetype=file.content_type or "application/pdf")
+    try:
+        client.files().update(
+            fileId=drive_id, body={"name": name}, media_body=media, supportsAllDrives=True
+        ).execute()
+    except HttpError as e:
+        raise DriveUploadError(f"Failed to replace the file on Google Drive: {e}") from e
+
+
+# Moves an SDS file no row uses any more to Drive's trash (kept about 30
+# days there before Drive deletes it).
+def trash_file(drive_id: str) -> None:
+    client = _get_client()
+    try:
+        client.files().update(
+            fileId=drive_id, body={"trashed": True}, supportsAllDrives=True
+        ).execute()
+    except HttpError as e:
+        raise DriveUploadError(f"Failed to trash the file on Google Drive: {e}") from e
+
+
 # Uploads a database backup (a local file path) to BACKUP_DRIVE_FOLDER_ID and
 # returns its Drive id. Deliberately NOT shared by link like SDS files: a dump
 # holds the whole database, user accounts included. Access comes only from the

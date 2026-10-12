@@ -27,6 +27,10 @@ export type ContainerListParams = {
   search?: string;
   checkout_status?: 'in' | 'out';
   ordering?: string;
+  // Unset hides discarded containers; true lists only discarded ones
+  is_discarded?: boolean;
+  // A location id: containers there and in every location under it
+  in_location?: number;
 };
 
 export const getContainers = (params?: ContainerListParams): Promise<Container[] | []> => {
@@ -50,10 +54,6 @@ export const editLocation = (data: EditLocationDefaults, id: string): Promise<Lo
     method: 'PATCH',
     body: JSON.stringify(data),
   });
-};
-
-export const getLocationContainers = (id: string): Promise<Location> => {
-  return apiFetch(`/api/inventory/locations/${id}/containers`);
 };
 
 export const getContainerMetaData = (): Promise<ContainerOptions> => {
@@ -119,10 +119,29 @@ export const checkIfDiscarded = (slug: string): Promise<ContainerValidation> => 
   return apiFetch(`/api/inventory/containers/${slug}/is_discarded/`);
 };
 
-export const checkOutContainers = (slugs: string[]): Promise<{ events: CheckoutEvent[] }> => {
+// Coordinator and up. `date` (YYYY-MM-DD) defaults to today on the server.
+export const discardContainer = (slug: string, date?: string): Promise<Container> => {
+  return apiFetch(`/api/inventory/containers/${slug}/discard/`, {
+    method: 'POST',
+    body: JSON.stringify(date ? { date } : {}),
+  });
+};
+
+export const restoreContainer = (slug: string): Promise<Container> => {
+  return apiFetch(`/api/inventory/containers/${slug}/restore/`, { method: 'POST' });
+};
+
+// Who is taking them: a Lipscomb ID (linked to their account if they have
+// one), a name, or an ID nobody has yet plus a name.
+export type CheckoutHolder = { lipscomb_id?: string; name?: string };
+
+export const checkOutContainers = (
+  slugs: string[],
+  holder: CheckoutHolder
+): Promise<{ events: CheckoutEvent[] }> => {
   return apiFetch(`/api/inventory/containers/check_out/`, {
     method: 'POST',
-    body: JSON.stringify(slugs),
+    body: JSON.stringify({ containers: slugs, holder }),
   });
 };
 

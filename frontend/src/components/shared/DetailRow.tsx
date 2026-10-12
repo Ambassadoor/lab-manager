@@ -13,7 +13,7 @@ export const DetailRow = ({ label, children }: DetailRowProps) => (
   <Box
     sx={{
       display: 'grid',
-      gridTemplateColumns: '130px 1fr',
+      gridTemplateColumns: { xs: '100px 1fr', sm: '130px 1fr' },
       columnGap: 2,
       alignItems: 'center',
     }}

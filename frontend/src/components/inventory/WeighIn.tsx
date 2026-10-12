@@ -21,6 +21,8 @@ import { useScanHandler, useScanner } from '../../scanner/ScannerContext';
 import type { ScanTarget } from '../../scanner/identify';
 import type { Container, WeighInDefaults } from '../../types';
 import { ActionFormCard } from '../shared/ActionFormCard';
+import { TareField } from './TareField';
+import { isValidTare } from '../shared/units';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { useConfirmDialog } from '../shared/useConfirmDialog';
 import { AddByIdField } from '../shared/scanList/AddByIdField';
@@ -98,23 +100,26 @@ export const WeighIn = () => {
     if (!added) notify(`${target.label} is already in the list`, 'info');
   };
 
-  useScanHandler((target) => {
-    if (!target) return false;
-    if (checkinConfirm.isOpen) {
-      notify('Confirm or cancel the check in first', 'warning');
-      return;
-    }
-    if (target.kind !== 'container') {
-      notify(`${target.label} is a location. Check In takes containers.`, 'info');
-      return;
-    }
-    // Scanned as it goes on the balance, so read it straight away.
-    addItem(target, true);
-  });
+  useScanHandler(
+    (target) => {
+      if (!target) return false;
+      if (checkinConfirm.isOpen) {
+        notify('Confirm or cancel the check in first', 'warning');
+        return;
+      }
+      if (target.kind !== 'container') {
+        notify(`${target.label} is a location. Check In takes containers.`, 'info');
+        return;
+      }
+      // Scanned as it goes on the balance, so read it straight away.
+      addItem(target, true);
+    },
+    { continuous: true }
+  );
 
   const rows = list.ready.map((item) => ({ item, ...(weights[item.key] ?? NO_WEIGHTS) }));
   const weightProblem = rows.some(
-    ({ weight, tare }) => !weight || !DECIMAL.test(weight) || (!!tare && !DECIMAL.test(tare))
+    ({ weight, tare }) => !weight || !DECIMAL.test(weight) || (!!tare && !isValidTare(tare))
   );
   const canSubmit =
     list.ready.length > 0 && !list.isLooking && !list.hasProblems && !weightProblem && !reading;
@@ -122,9 +127,12 @@ export const WeighIn = () => {
   const renderWeights = (item: ScanItem<CheckInDetail>) => {
     const value = weights[item.key] ?? NO_WEIGHTS;
     const badWeight = !!value.weight && !DECIMAL.test(value.weight);
-    const badTare = !!value.tare && !DECIMAL.test(value.tare);
     return (
-      <Stack direction="row" spacing={1} sx={{ flex: '1 1 260px' }}>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={1}
+        sx={{ flex: '1 1 400px', alignItems: 'flex-start' }}
+      >
         <TextField
           size="small"
           label="Weight"
@@ -149,17 +157,14 @@ export const WeighIn = () => {
               ),
             },
           }}
-          sx={{ flex: 1 }}
+          sx={{ flex: '1 1 150px' }}
         />
         {item.detail?.needsTare && (
-          <TextField
-            size="small"
-            label="Tare weight (g)"
-            value={value.tare}
-            onChange={(e) => setWeight(item.key, { tare: e.target.value })}
-            error={badTare}
-            helperText={badTare ? 'A number' : 'Optional: empty container'}
-            sx={{ flex: 1 }}
+          <TareField
+            container={item.detail.container}
+            weight={value.weight}
+            tare={value.tare}
+            onTareChange={(tare) => setWeight(item.key, { tare })}
           />
         )}
       </Stack>

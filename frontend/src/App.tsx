@@ -6,6 +6,7 @@ import {
   useRouteError,
   isRouteErrorResponse,
   Navigate,
+  useLocation,
 } from 'react-router-dom';
 import './App.css';
 import { Error as ErrorIcon } from '@mui/icons-material';
@@ -19,11 +20,10 @@ import { UserDetail } from './components/accounts/UserDetail';
 import { LabelTemplates } from './components/labels/LabelTemplates';
 import { hasRoleAtLeast } from './components/shared/roles';
 import type { Role } from './types';
-import { Containers } from './components/inventory/Containers';
+import { Inventory } from './components/inventory/Inventory';
 import { ContainerForm } from './components/inventory/ContainerForm';
 import { ContainerDetail } from './components/inventory/ContainerDetail';
 import { ContainerActions } from './components/inventory/ContainerActions';
-import { Locations } from './components/inventory/locations/Locations';
 import { Chemicals } from './components/inventory/chemicals/Chemicals';
 import { ChemicalDetail } from './components/inventory/chemicals/ChemicalDetail';
 import { Dashboard } from './components/inventory/Dashboard';
@@ -92,6 +92,13 @@ export function RequireRole({ role }: { role: Role }) {
   return <Outlet />;
 }
 
+// The Containers and Locations pages became one Inventory page. Old links
+// and bookmarks keep their ?view= or ?location= on the way there.
+function ToInventory() {
+  const { search } = useLocation();
+  return <Navigate to={{ pathname: '/inventory', search }} replace />;
+}
+
 export default function App() {
   const { user, loading } = useAuth();
 
@@ -147,11 +154,13 @@ export default function App() {
                 path: 'inventory',
                 element: <RequireAuth />,
                 children: [
+                  { index: true, element: <Inventory /> },
                   {
                     path: 'containers',
                     element: <Outlet />,
                     children: [
-                      { index: true, element: <Containers /> },
+                      // The old Containers page, merged into Inventory
+                      { index: true, element: <ToInventory /> },
                       {
                         path: 'new',
                         element: <RequireRole role="stockroom" />,
@@ -165,11 +174,8 @@ export default function App() {
                       },
                     ],
                   },
-                  {
-                    path: 'locations',
-                    element: <Outlet />,
-                    children: [{ index: true, element: <Locations /> }],
-                  },
+                  // The old Locations page, merged into Inventory
+                  { path: 'locations', element: <ToInventory /> },
                   {
                     path: 'chemicals',
                     element: <Outlet />,

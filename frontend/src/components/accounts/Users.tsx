@@ -1,13 +1,16 @@
-import { Box, Container, InputAdornment, Stack, TextField, Typography } from '@mui/material';
+import { Box, Container } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { type ColDef } from 'ag-grid-community';
-import { Search } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { getUsers } from '../../api/users';
 import { userKeys } from '../../api/queryKeys';
 import { DataTable } from '../shared/DataTable';
 import type { User } from '../../types';
+import { PageHeader } from '../shared/PageHeader';
+
+// What a phone has room for
+const PHONE_COLUMNS = ['first_name', 'last_name', 'role_display'];
 
 // Admin/Lab Manager-only — App.tsx's RequireRole keeps anyone else from
 // landing here, matching the backend's own role_at_least(LAB_MANAGER) gate
@@ -47,31 +50,11 @@ export const Users = () => {
 
   return (
     <Container maxWidth={false}>
-      <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant="h4">Users</Typography>
-          <Typography variant="body2" color="text.secondary">
-            View and manage user accounts.
-          </Typography>
-        </Box>
-        <TextField
-          type="search"
-          size="small"
-          placeholder="Search users…"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          sx={{ ml: 'auto', minWidth: 260 }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search fontSize="small" />
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
-      </Stack>
+      <PageHeader
+        title="Users"
+        subtitle="View and manage user accounts."
+        search={{ value: searchInput, onChange: setSearchInput, placeholder: 'Search users…' }}
+      />
       <Box>
         <DataTable<User>
           rowData={users}
@@ -79,6 +62,7 @@ export const Users = () => {
           isLoading={isPending}
           isError={isError}
           errorMessage={error instanceof Error ? error.message : undefined}
+          phoneColumns={PHONE_COLUMNS}
           onRowClicked={(e) => {
             navigate(`${e.data?.id}`, { state: e.data });
           }}

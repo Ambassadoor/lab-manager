@@ -66,7 +66,11 @@ Hooks live in `.githooks/` and need `git config core.hooksPath .githooks` once p
 
 ### Branching
 
-Work branches are `cp/<type>/<snake_name>`, branched from and merged into `develop`. `develop` is merged into `main` for releases, which are tagged (`v1.1.0`). The Pi deploys from `main`, so a change is not live until it is released and `deploy/pi/deploy.sh` is run. CI runs on push to `develop`/`main` and on pull requests into either; the `API types` workflow fails if `openapi.json` or `api.ts` is out of date.
+Work branches are `cp/<type>/<snake_name>`, branched from and merged into `develop`. `develop` is merged into `main` for releases, which are tagged (`v1.1.0`). The Pi deploys from `main`, so a change is not live until it is released and `deploy/pi/deploy.sh` is run. A test site on the same Pi, `https://test.cplabmanager.com`, runs `develop` against a copy of the live database (setup and use in [deploy/pi/README.md](deploy/pi/README.md#test-site)). CI runs on push to `develop`/`main` and on pull requests into either; the `API types` workflow fails if `openapi.json` or `api.ts` is out of date.
+
+### Commits
+
+Commit as you go, not once per PR. Each commit should be one step that builds, passes lint and tests on its own, and can be reviewed by itself: a new shared component, then each page moved onto it, then the docs. A PR is usually several commits. Use conventional prefixes (`feat(scope):`, `fix(scope):`, `docs:`, `refactor:`, `test:`) and say in the body why, not just what. Don't squash a branch's commits before pushing; the history is how a reviewer follows the change.
 
 ## Architecture
 
@@ -85,7 +89,8 @@ The bridge has no authentication of its own. `frontend/src/api/bridge.ts` is a s
 - **Label printer** (Brother PT-P950NW): `bridge/app/printer.py`, using the printer's P-touch Template command language. No Brother SDK, b-PAC or Windows dependency. Label layouts live on the printer as numbered templates (transferred once from P-touch Editor on Windows); the bridge selects a template, fills named objects, and prints. Transport is a raw TCP socket on port 9100 or the USB device (`PRINTER_CONNECTION=usb`, what the Pi uses). Status comes from `^SR` over USB or SNMP over the network. Protocol notes are in [bridge/PRINTER_PLAN.md](bridge/PRINTER_PLAN.md).
 - **Label template registry:** the `LabelTemplate` / `LabelTemplateField` tables record which templates are on the printer. The frontend (`components/shared/printTemplates.ts`) picks the template whose `media_width_mm` matches the tape the printer reports, then prints and checks printer status afterwards.
 - **Bluetooth barcode scanner** (Tera HW0002): an HID keyboard. Labels encode JSON such as `{"id":"CHEM-0292"}` or `{"id":"LOC-12"}`. The scanner is programmed to send a backtick prefix before each scan ([docs/Barcode-Scanner.md](docs/Barcode-Scanner.md)), and `frontend/src/scanner/` listens for it app-wide: `ScannerProvider` swallows the scan's keys wherever focus is and hands the scan to the newest `useScanHandler` (a page or field claiming scans), else opens the container or location. The Actions page's four tabs are lists built on `components/shared/scanList/` (`useScanList`, `ScanListView`, `AddByIdField`): scans and comma-separated ids add items, then one confirm submits. Unit-tested with Vitest (`pnpm test`).
-- Not built: phone-camera scanning and Brady waste labels (Milestone 3).
+- **Phone camera:** the navbar's `CameraButton` lazy-loads `scanner/CameraScanner.tsx`, which decodes QR codes from `getUserMedia` (native `BarcodeDetector` on Android Chrome, else the bundled zxing-wasm decoder, `scanner/detector.ts`) and feeds each read to the same handlers through `submitScan`. It stays open between reads when the top handler was registered with `{ continuous: true }` (the Actions tabs), and closes when a handler returns `'done'`. Needs HTTPS (or localhost).
+- Not built: Brady waste labels (Milestone 3).
 
 ### External services
 
@@ -102,7 +107,7 @@ Session-based. Frontend sequence on load:
 
 Registration (`/api/auth/register/`) is open to `@lipscomb.edu` and `@mail.lipscomb.edu` addresses. The address is not verified. New accounts get the lowest role; a Lab Manager raises it through `/api/auth/users/`.
 
-Six roles in four ranks (`apps/users/permissions.py`): Admin = Lab Manager (4), Coordinator = Faculty (3), Stockroom (2), Lab Assistant (1). Views gate actions with `role_at_least(User.Role.X)` in `get_permissions()`; `IsAuthenticated` is the global default. The usual pattern is: reads for any logged-in user, writes for Stockroom and up, deletes for Lab Manager and up. `frontend/src/components/shared/roles.ts` is a hand-kept copy of the rank table, used only to hide UI; the server enforces. The per-endpoint matrix is in [docs/Roles_and_Permissions.md](docs/Roles_and_Permissions.md).
+Six roles in four ranks (`apps/users/permissions.py`): Admin = Lab Manager (4), Coordinator = Faculty (3), Stockroom (2), Lab Assistant (1). Views gate actions with `role_at_least(User.Role.X)` in `get_permissions()`; `IsAuthenticated` is the global default. The usual pattern is: reads for any logged-in user, writes for Stockroom and up, discarding containers for Coordinator and up, deletes for Lab Manager and up. `frontend/src/components/shared/roles.ts` is a hand-kept copy of the rank table, used only to hide UI; the server enforces. The per-endpoint matrix is in [docs/Roles_and_Permissions.md](docs/Roles_and_Permissions.md).
 
 SDS list/retrieve and bug report/feedback creation are public (`AllowAny`).
 
@@ -110,10 +115,10 @@ SDS list/retrieve and bug report/feedback creation are public (`AllowAny`).
 
 - **Chemical** — catalog entry: name, IUPAC name, CAS (checksum-validated, unique), formula, PubChem CID, synonyms, molecular weight, `storage_category`. Mixtures are Chemicals linked to their components through **Ingredient**.
 - **ChemicalStorageCategories** — Flinn storage pattern categories (O1–O10, I1–I11). `apps/inventory/storage_rules.py` uses them to warn on incompatible storage (HTTP 409, confirmable).
-- **Container** — physical bottle; FK to Chemical and Location. Looked up by `slug` (`chem-292`). The `label` property is the zero-padded display form (`CHEM-0292`), which is what gets printed and scanned; `normalize_container_slug` converts any scanned form back to the slug. Holds quantity, unit, density, initial and tare weights, and dates. `percent_remaining` is a computed property and the only definition of that formula.
+- **Container** — physical bottle; FK to Chemical and Location. Looked up by `slug` (`chem-292`). The `label` property is the zero-padded display form (`CHEM-0292`), which is what gets printed and scanned; `normalize_container_slug` converts any scanned form back to the slug. Holds quantity, unit, density, initial and tare weights, and dates. A container is discarded (`date_discarded`, `discarded_by`; Coordinator and up, reversible) rather than deleted: `Container.objects.active()` leaves discarded ones out, and the container list, location containers and dashboard use it, while retrieve still returns them. `percent_remaining` is a computed property and the only definition of that formula.
 - **Location** — self-referencing tree (`parent` FK, nullable at root), `type` FK to **LocationTypes** (a table, not an enum), `barcode` of the form `LOC-<id>`.
-- **SDS** — FK to **Container**, not Chemical (the same chemical from two manufacturers has two SDS documents). Stores a Drive file id, generated file name, revision date and number, and GHS pictograms. Several rows can share one Drive file. No update or delete.
-- **CheckoutEvent** — audit log (container, user, action, timestamp); a check-in links to its check-out through `related_event`.
+- **SDS** — FK to **Container**, not Chemical (the same chemical from two manufacturers has two SDS documents). Stores a Drive file id, generated file name, revision date and number, and GHS pictograms. Several rows can share one Drive file. No delete. A correction either fixes the document for every row sharing its file (`PATCH`, renaming or replacing the Drive file in place) or replaces one row's document (`replace`); see [docs/Roles_and_Permissions.md](docs/Roles_and_Permissions.md).
+- **CheckoutEvent** — audit log (container, user, action, timestamp); a check-in links to its check-out through `related_event`. `user` is who recorded it; a check-out also records who took it: `holder` (an account matched by Lipscomb ID) or `holder_name` and `holder_lipscomb_id` for someone without one. `holder_display` picks whichever there is; the ID isn't sent to the frontend.
 - **WeightReading** — balance history (container, weight, `recorded_at`, `recorded_by`); usage is derived from readings, never stored. There is no `source` field, so typed and measured weights are not distinguished.
 - **LabelTemplate / LabelTemplateField** — the printer template registry (see Hardware).
 - **BugReport / Feedback** — in `apps/feedback`.

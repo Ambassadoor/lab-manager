@@ -412,6 +412,62 @@
                 }
             }
         },
+        "/api/auth/users/lookup/": {
+            "get": {
+                "operationId": "auth_users_lookup_retrieve",
+                "description": "Admin/Lab Manager viewing and editing *other* users' accounts.\n\nList/retrieve/update only — no create (registration already covers\nthat) and no destroy (account deactivation/deletion isn't in scope\nyet). Every action shares the same LAB_MANAGER+ gate: unlike the\ninventory views, there's no read/write split here — viewing another\nuser's info is itself the restricted thing, not just editing it.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "lipscomb_id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserLookup"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserLookupError"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserLookupError"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/auth/validate/": {
             "get": {
                 "operationId": "auth_validate_retrieve",
@@ -1567,6 +1623,13 @@
                     },
                     {
                         "in": "query",
+                        "name": "in_location",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "in": "query",
                         "name": "is_discarded",
                         "schema": {
                             "type": "boolean"
@@ -1897,6 +1960,70 @@
                 }
             }
         },
+        "/api/inventory/containers/{slug}/discard/": {
+            "post": {
+                "operationId": "inventory_containers_discard_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "slug",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Discard"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Discard"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Discard"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Container"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorDetail"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/inventory/containers/{slug}/is_discarded/": {
             "get": {
                 "operationId": "inventory_containers_is_discarded_retrieve",
@@ -1967,6 +2094,51 @@
                 }
             }
         },
+        "/api/inventory/containers/{slug}/restore/": {
+            "post": {
+                "operationId": "inventory_containers_restore_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "slug",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Container"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorDetail"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/inventory/containers/{slug}/weigh_in/": {
             "get": {
                 "operationId": "inventory_containers_weigh_in_list",
@@ -2027,6 +2199,13 @@
                         "name": "has_estimated_usage",
                         "schema": {
                             "type": "boolean"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "in_location",
+                        "schema": {
+                            "type": "number"
                         }
                     },
                     {
@@ -2228,7 +2407,14 @@
                         "description": ""
                     },
                     "400": {
-                        "description": "No response body"
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorDetail"
+                                }
+                            }
+                        },
+                        "description": ""
                     }
                 }
             }
@@ -2243,13 +2429,21 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
+                                "$ref": "#/components/schemas/CheckOut"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CheckOut"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CheckOut"
                             }
                         }
-                    }
+                    },
+                    "required": true
                 },
                 "security": [
                     {
@@ -2268,7 +2462,15 @@
                         "description": ""
                     },
                     "400": {
-                        "description": "No response body"
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {}
+                                }
+                            }
+                        },
+                        "description": ""
                     }
                 }
             }
@@ -2333,6 +2535,13 @@
                         "name": "has_estimated_usage",
                         "schema": {
                             "type": "boolean"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "in_location",
+                        "schema": {
+                            "type": "number"
                         }
                     },
                     {
@@ -3619,6 +3828,13 @@
                     },
                     {
                         "in": "query",
+                        "name": "drive_id",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
                         "name": "manufacturer",
                         "schema": {
                             "type": "string"
@@ -3763,6 +3979,134 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/SDS"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "inventory_sds_partial_update",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "A unique integer value identifying this sds.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSDSCorrection"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSDSCorrection"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedSDSCorrection"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SDS"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorDetail"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/inventory/sds/{id}/replace/": {
+            "post": {
+                "operationId": "inventory_sds_replace_create",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "A unique integer value identifying this sds.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SDSReplace"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SDSReplace"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SDSReplace"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SDS"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorDetail"
                                 }
                             }
                         },
@@ -4220,6 +4564,24 @@
                 "type": "string",
                 "description": "* `confusing` - Something was confusing\n* `tedious` - Something is slow or tedious\n* `idea` - I have an idea\n* `other` - Other"
             },
+            "CheckOut": {
+                "type": "object",
+                "properties": {
+                    "containers": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "holder": {
+                        "$ref": "#/components/schemas/CheckoutHolder"
+                    }
+                },
+                "required": [
+                    "containers",
+                    "holder"
+                ]
+            },
             "CheckoutEvent": {
                 "type": "object",
                 "properties": {
@@ -4235,6 +4597,11 @@
                         ],
                         "readOnly": true
                     },
+                    "holder_display": {
+                        "type": "string",
+                        "description": "Who has it, for display: the holder, else the name given, else\n(events from before holders were recorded) whoever recorded it.",
+                        "readOnly": true
+                    },
                     "action": {
                         "$ref": "#/components/schemas/ActionEnum"
                     },
@@ -4243,6 +4610,14 @@
                         "format": "date-time",
                         "readOnly": true
                     },
+                    "holder_name": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "holder": {
+                        "type": "integer",
+                        "nullable": true
+                    },
                     "related_event": {
                         "type": "integer",
                         "nullable": true
@@ -4250,6 +4625,7 @@
                 },
                 "required": [
                     "action",
+                    "holder_display",
                     "id",
                     "timestamp",
                     "user"
@@ -4270,8 +4646,20 @@
                         "format": "date-time",
                         "readOnly": true
                     },
+                    "holder_name": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "holder_lipscomb_id": {
+                        "type": "string",
+                        "maxLength": 11
+                    },
                     "container": {
                         "type": "integer"
+                    },
+                    "holder": {
+                        "type": "integer",
+                        "nullable": true
                     },
                     "related_event": {
                         "type": "integer",
@@ -4298,6 +4686,18 @@
                 "required": [
                     "events"
                 ]
+            },
+            "CheckoutHolder": {
+                "type": "object",
+                "properties": {
+                    "lipscomb_id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 150
+                    }
+                }
             },
             "Chemical": {
                 "type": "object",
@@ -4550,11 +4950,28 @@
                         ],
                         "nullable": true,
                         "readOnly": true
+                    },
+                    "date_discarded": {
+                        "type": "string",
+                        "format": "date",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "discarded_by": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/UserCheckoutEvent"
+                            }
+                        ],
+                        "readOnly": true,
+                        "nullable": true
                     }
                 },
                 "required": [
                     "checkout_status",
                     "chemical",
+                    "date_discarded",
+                    "discarded_by",
                     "has_estimated_usage",
                     "id",
                     "is_opened",
@@ -4714,6 +5131,15 @@
                     "recently_added",
                     "restock_soon"
                 ]
+            },
+            "Discard": {
+                "type": "object",
+                "properties": {
+                    "date": {
+                        "type": "string",
+                        "format": "date"
+                    }
+                }
             },
             "ErrorDetail": {
                 "type": "object",
@@ -5583,6 +6009,32 @@
                     }
                 }
             },
+            "PatchedSDSCorrection": {
+                "type": "object",
+                "properties": {
+                    "revision_date": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "revision_number": {
+                        "type": "string",
+                        "nullable": true,
+                        "maxLength": 20
+                    },
+                    "ghs_pictograms": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/GhsPictogramsEnum"
+                        }
+                    },
+                    "file": {
+                        "type": "string",
+                        "format": "uri",
+                        "writeOnly": true
+                    }
+                }
+            },
             "PatchedUser": {
                 "type": "object",
                 "properties": {
@@ -5787,6 +6239,36 @@
                     "name"
                 ]
             },
+            "SDSReplace": {
+                "type": "object",
+                "properties": {
+                    "file": {
+                        "type": "string",
+                        "format": "uri",
+                        "writeOnly": true
+                    },
+                    "existing_sds": {
+                        "type": "integer",
+                        "writeOnly": true
+                    },
+                    "revision_date": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "revision_number": {
+                        "type": "string",
+                        "nullable": true,
+                        "maxLength": 20
+                    },
+                    "ghs_pictograms": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/GhsPictogramsEnum"
+                        }
+                    }
+                }
+            },
             "SDSWrite": {
                 "type": "object",
                 "properties": {
@@ -5974,6 +6456,32 @@
                 },
                 "required": [
                     "full_name"
+                ]
+            },
+            "UserLookup": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "full_name": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "full_name",
+                    "id"
+                ]
+            },
+            "UserLookupError": {
+                "type": "object",
+                "properties": {
+                    "detail": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "detail"
                 ]
             },
             "WeighIn": {

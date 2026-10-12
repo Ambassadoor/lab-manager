@@ -1,23 +1,16 @@
 import {
   Alert,
-  Avatar,
   Box,
   Button,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
   IconButton,
-  InputLabel,
   List,
   ListItem,
-  ListItemAvatar,
   ListItemButton,
   ListItemText,
-  MenuItem,
-  Select,
   Stack,
   TextField,
   Tooltip,
@@ -28,12 +21,13 @@ import { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
-import { createSds, getSdsList, type PendingSdsSelection } from '../../api/sds';
+import { createSds, getSdsList, replaceSds, type PendingSdsSelection } from '../../api/sds';
 import { chemicalKeys, containerKeys, sdsKeys } from '../../api/queryKeys';
-import { GHS_PICTOGRAMS, ghsPictogramIconSrc, ghsPictogramLabel } from '../shared/ghsPictograms';
 import { RhfDateField } from '../shared/RhfDateField';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import type { GHSPictogram, SDS } from '../../types';
+import { useIsPhone } from '../shared/useIsPhone';
+import { GhsPictogramSelect } from './GhsPictogramSelect';
 
 type SdsUploadDialogProps = {
   open: boolean;
@@ -51,11 +45,15 @@ type SdsUploadDialogProps = {
   productNum?: string | null;
 } & (
   | {
-      // Immediate mode (ContainerDetail, the Containers table): the
+      // Immediate mode (ContainerDetail, the Inventory table): the
       // container already exists — submitting attaches the SDS right away.
       containerId: number | string;
       onUploaded?: (sds: SDS) => void;
       onSelect?: never;
+      // Replace mode: this container's SDS row is the wrong document, so
+      // the pick replaces it (POST sds/<id>/replace/) instead of adding a
+      // new revision. Other containers sharing the old document keep it.
+      replacing?: SDS;
     }
   | {
       // Deferred mode (ContainerForm): no container to attach to yet —
@@ -66,6 +64,7 @@ type SdsUploadDialogProps = {
       containerId?: undefined;
       onUploaded?: never;
       onSelect: (selection: PendingSdsSelection, label: string) => void;
+      replacing?: never;
     }
 );
 
@@ -93,7 +92,10 @@ export const SdsUploadDialog = ({
   productNum,
   onUploaded,
   onSelect,
+  replacing,
 }: SdsUploadDialogProps) => {
+  // On a phone a centred dialog leaves the fields a strip of the screen
+  const fullScreen = useIsPhone();
   const [file, setFile] = useState<File | null>(null);
   const [existingId, setExistingId] = useState<number | null>(null);
   // Only used in deferred mode, to label the staged selection back to the
@@ -135,11 +137,12 @@ export const SdsUploadDialog = ({
     if (!suggestions) return suggestions;
     const seen = new Set<string>();
     return suggestions.filter((s) => {
-      if (seen.has(s.drive_id)) return false;
+      // In replace mode, not the wrong document being replaced
+      if (seen.has(s.drive_id) || s.drive_id === replacing?.drive_id) return false;
       seen.add(s.drive_id);
       return true;
     });
-  }, [suggestions]);
+  }, [suggestions, replacing?.drive_id]);
 
   // Fills the revision fields from a picked suggestion (or clears them back
   // to blank when deselecting) — keeps what's shown in the form always
@@ -174,7 +177,9 @@ export const SdsUploadDialog = ({
 
   const mutation = useMutation({
     mutationFn: (selection: PendingSdsSelection) =>
-      createSds({ container: containerId!, ...selection }),
+      replacing
+        ? replaceSds(replacing.id, selection)
+        : createSds({ container: containerId!, ...selection }),
     onSuccess: (sds) => {
       // .all on every one — a new/attached SDS can change what's shown on
       // the container it's attached to, its chemical's SDS list, and any
@@ -251,6 +256,7 @@ export const SdsUploadDialog = ({
   return (
     <>
       <Dialog
+        fullScreen={fullScreen}
         fullWidth
         component="form"
         onSubmit={handleSubmit(onSubmit)}
@@ -258,7 +264,7 @@ export const SdsUploadDialog = ({
         onClose={() => setOpen(false)}
         disableRestoreFocus
       >
-        <DialogTitle>Attach SDS</DialogTitle>
+        <DialogTitle>{replacing ? 'Attach a different SDS' : 'Attach SDS'}</DialogTitle>
         <DialogContent>
           {mutation.isError && (
             <Alert severity="error" onClose={() => mutation.reset()} sx={{ mb: 2 }}>
@@ -355,55 +361,7 @@ export const SdsUploadDialog = ({
                 />
               )}
             />
-            <Controller
-              control={control}
-              name="ghs_pictograms"
-              render={({ field }) => (
-                <FormControl>
-                  <InputLabel id="ghs-pictograms">GHS Pictograms</InputLabel>
-                  <Select
-                    {...field}
-                    multiple
-                    labelId="ghs-pictograms"
-                    label="GHS Pictograms"
-                    renderValue={(selected) => (
-                      <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
-                        {(selected as GHSPictogram[]).map((value) => (
-                          <Chip
-                            key={value}
-                            avatar={
-                              // Transparent-background PNGs — bgcolor keeps
-                              // the glyph visible in dark mode (see
-                              // SdsViewer's fuller comment on the same fix).
-                              <Avatar
-                                src={ghsPictogramIconSrc(value)}
-                                alt=""
-                                sx={{ bgcolor: 'common.white' }}
-                              />
-                            }
-                            label={ghsPictogramLabel(value)}
-                            size="small"
-                          />
-                        ))}
-                      </Stack>
-                    )}
-                  >
-                    {GHS_PICTOGRAMS.map((p) => (
-                      <MenuItem key={p.value} value={p.value}>
-                        <ListItemAvatar>
-                          <Avatar
-                            src={ghsPictogramIconSrc(p.value)}
-                            alt=""
-                            sx={{ width: 28, height: 28, bgcolor: 'common.white' }}
-                          />
-                        </ListItemAvatar>
-                        <ListItemText primary={p.label} />
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
-            />
+            <GhsPictogramSelect control={control} name="ghs_pictograms" />
           </Stack>
         </DialogContent>
         <DialogActions>
@@ -413,7 +371,7 @@ export const SdsUploadDialog = ({
             loading={mutation.isPending}
             disabled={!canSubmit}
           >
-            {isDeferred ? 'Select' : existingId ? 'Attach' : 'Upload'}
+            {isDeferred ? 'Select' : replacing ? 'Replace' : existingId ? 'Attach' : 'Upload'}
           </Button>
           <Button
             onClick={() => {

@@ -163,6 +163,31 @@ export interface paths {
     patch: operations['auth_users_partial_update'];
     trace?: never;
   };
+  '/api/auth/users/lookup/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * @description Admin/Lab Manager viewing and editing *other* users' accounts.
+     *
+     *     List/retrieve/update only — no create (registration already covers
+     *     that) and no destroy (account deactivation/deletion isn't in scope
+     *     yet). Every action shares the same LAB_MANAGER+ gate: unlike the
+     *     inventory views, there's no read/write split here — viewing another
+     *     user's info is itself the restricted thing, not just editing it.
+     */
+    get: operations['auth_users_lookup_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/auth/validate/': {
     parameters: {
       query?: never;
@@ -439,6 +464,22 @@ export interface paths {
     patch: operations['inventory_containers_partial_update'];
     trace?: never;
   };
+  '/api/inventory/containers/{slug}/discard/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['inventory_containers_discard_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/inventory/containers/{slug}/is_discarded/': {
     parameters: {
       query?: never;
@@ -465,6 +506,22 @@ export interface paths {
     get: operations['inventory_containers_is_valid_retrieve'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/inventory/containers/{slug}/restore/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['inventory_containers_restore_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -756,6 +813,22 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
+    patch: operations['inventory_sds_partial_update'];
+    trace?: never;
+  };
+  '/api/inventory/sds/{id}/replace/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['inventory_sds_replace_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
     patch?: never;
     trace?: never;
   };
@@ -846,12 +919,23 @@ export interface components {
      * @enum {string}
      */
     CategoryEnum: 'confusing' | 'tedious' | 'idea' | 'other';
+    CheckOut: {
+      containers: string[];
+      holder: components['schemas']['CheckoutHolder'];
+    };
     CheckoutEvent: {
       readonly id: number;
       readonly user: components['schemas']['UserCheckoutEvent'];
+      /**
+       * @description Who has it, for display: the holder, else the name given, else
+       *     (events from before holders were recorded) whoever recorded it.
+       */
+      readonly holder_display: string;
       action: components['schemas']['ActionEnum'];
       /** Format: date-time */
       readonly timestamp: string;
+      holder_name?: string;
+      holder?: number | null;
       related_event?: number | null;
     };
     CheckoutEventWrite: {
@@ -859,11 +943,18 @@ export interface components {
       action: components['schemas']['ActionEnum'];
       /** Format: date-time */
       readonly timestamp: string;
+      holder_name?: string;
+      holder_lipscomb_id?: string;
       container: number;
+      holder?: number | null;
       related_event?: number | null;
     };
     CheckoutEvents: {
       events: components['schemas']['CheckoutEventWrite'][];
+    };
+    CheckoutHolder: {
+      lipscomb_id?: string;
+      name?: string;
     };
     Chemical: {
       readonly id: number;
@@ -938,6 +1029,9 @@ export interface components {
       readonly percent_remaining: number | null;
       readonly checkout_status: components['schemas']['CheckoutEvent'] | null;
       readonly latest_sds: components['schemas']['SDS'] | null;
+      /** Format: date */
+      readonly date_discarded: string | null;
+      readonly discarded_by: components['schemas']['UserCheckoutEvent'] | null;
     };
     ContainerDiscardStatus: {
       is_discarded?: boolean;
@@ -993,6 +1087,10 @@ export interface components {
       recently_added: components['schemas']['Container'][];
       checked_out: components['schemas']['Container'][];
       restock_soon: components['schemas']['Container'][];
+    };
+    Discard: {
+      /** Format: date */
+      date?: string;
     };
     ErrorDetail: {
       detail: string;
@@ -1267,6 +1365,14 @@ export interface components {
       type?: number;
       parent?: number | null;
     };
+    PatchedSDSCorrection: {
+      /** Format: date */
+      revision_date?: string | null;
+      revision_number?: string | null;
+      ghs_pictograms?: components['schemas']['GhsPictogramsEnum'][];
+      /** Format: uri */
+      file?: string;
+    };
     PatchedUser: {
       readonly id?: number;
       /** @description Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only. */
@@ -1334,6 +1440,15 @@ export interface components {
       readonly label: string;
       name: string;
     };
+    SDSReplace: {
+      /** Format: uri */
+      file?: string;
+      existing_sds?: number;
+      /** Format: date */
+      revision_date?: string | null;
+      revision_number?: string | null;
+      ghs_pictograms?: components['schemas']['GhsPictogramsEnum'][];
+    };
     SDSWrite: {
       readonly id: number;
       container: number;
@@ -1385,6 +1500,13 @@ export interface components {
     };
     UserCheckoutEvent: {
       readonly full_name: string;
+    };
+    UserLookup: {
+      id: number;
+      full_name: string;
+    };
+    UserLookupError: {
+      detail: string;
     };
     WeighIn: {
       /** Format: decimal */
@@ -1670,6 +1792,43 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['UserAdmin'];
+        };
+      };
+    };
+  };
+  auth_users_lookup_retrieve: {
+    parameters: {
+      query: {
+        lipscomb_id: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserLookup'];
+        };
+      };
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserLookupError'];
+        };
+      };
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserLookupError'];
         };
       };
     };
@@ -2288,6 +2447,7 @@ export interface operations {
         expiration_date_after?: string;
         expiration_date_before?: string;
         has_estimated_usage?: boolean;
+        in_location?: number;
         is_discarded?: boolean;
         is_opened?: boolean;
         location?: number;
@@ -2459,6 +2619,41 @@ export interface operations {
       };
     };
   };
+  inventory_containers_discard_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['Discard'];
+        'application/x-www-form-urlencoded': components['schemas']['Discard'];
+        'multipart/form-data': components['schemas']['Discard'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorDetail'];
+        };
+      };
+    };
+  };
   inventory_containers_is_discarded_retrieve: {
     parameters: {
       query?: never;
@@ -2501,6 +2696,35 @@ export interface operations {
       };
     };
   };
+  inventory_containers_restore_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'];
+        };
+      };
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorDetail'];
+        };
+      };
+    };
+  };
   inventory_containers_weigh_in_list: {
     parameters: {
       query?: {
@@ -2515,6 +2739,7 @@ export interface operations {
         expiration_date_after?: string;
         expiration_date_before?: string;
         has_estimated_usage?: boolean;
+        in_location?: number;
         is_discarded?: boolean;
         is_opened?: boolean;
         location?: number;
@@ -2600,12 +2825,13 @@ export interface operations {
           'application/json': components['schemas']['CheckoutEvents'];
         };
       };
-      /** @description No response body */
       400: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['ErrorDetail'];
+        };
       };
     };
   };
@@ -2616,9 +2842,11 @@ export interface operations {
       path?: never;
       cookie?: never;
     };
-    requestBody?: {
+    requestBody: {
       content: {
-        'application/json': string[];
+        'application/json': components['schemas']['CheckOut'];
+        'application/x-www-form-urlencoded': components['schemas']['CheckOut'];
+        'multipart/form-data': components['schemas']['CheckOut'];
       };
     };
     responses: {
@@ -2630,12 +2858,15 @@ export interface operations {
           'application/json': components['schemas']['CheckoutEvents'];
         };
       };
-      /** @description No response body */
       400: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': {
+            [key: string]: unknown;
+          };
+        };
       };
     };
   };
@@ -2653,6 +2884,7 @@ export interface operations {
         expiration_date_after?: string;
         expiration_date_before?: string;
         has_estimated_usage?: boolean;
+        in_location?: number;
         is_discarded?: boolean;
         is_opened?: boolean;
         location?: number;
@@ -3344,6 +3576,7 @@ export interface operations {
       query?: {
         chemical?: number;
         container?: number;
+        drive_id?: string;
         manufacturer?: string;
         /** @description Which field to use when ordering the results. */
         ordering?: string;
@@ -3412,6 +3645,78 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['SDS'];
+        };
+      };
+    };
+  };
+  inventory_sds_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this sds. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedSDSCorrection'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedSDSCorrection'];
+        'multipart/form-data': components['schemas']['PatchedSDSCorrection'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SDS'];
+        };
+      };
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorDetail'];
+        };
+      };
+    };
+  };
+  inventory_sds_replace_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this sds. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['SDSReplace'];
+        'application/x-www-form-urlencoded': components['schemas']['SDSReplace'];
+        'multipart/form-data': components['schemas']['SDSReplace'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SDS'];
+        };
+      };
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorDetail'];
         };
       };
     };

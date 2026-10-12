@@ -28,14 +28,14 @@ type WeightFieldProps<TFieldValues extends FieldValues> = {
   // field (e.g. swallowing a barcode scanner's trailing Enter keystroke
   // that lands here after a scan on another field shifts focus).
   onKeyDown?: TextFieldProps['onKeyDown'];
-  // Lets a caller with a sibling field (e.g. WeighIn's per-row slug) make
-  // this conditionally required instead of always required.
+  // Lets a caller make this conditionally required instead of always
+  // required.
   required?: boolean;
 };
 
-// Weight TextField wired to the USB balance's "read from scale" button —
-// shared by WeighIn.tsx and ContainerForm.tsx, which both want the exact
-// same scale-reading behavior on a differently-named field.
+// Weight TextField wired to the USB balance's "read from scale" button, for
+// react-hook-form fields (ContainerForm's initial weight). Check In's list
+// rows aren't a form, so WeighIn.tsx reads the balance itself.
 export function WeightField<TFieldValues extends FieldValues>({
   control,
   name,

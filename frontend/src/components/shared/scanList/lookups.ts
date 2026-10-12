@@ -19,6 +19,15 @@ export async function lookUpContainer(target: ScanTarget): Promise<Container> {
   }
 }
 
+// For lists that act on containers still on the shelves (Check Out, Move
+// Containers): a discarded one is refused on its row before submitting,
+// as the server would refuse it anyway.
+export async function lookUpUsableContainer(target: ScanTarget): Promise<Container> {
+  const container = await lookUpContainer(target);
+  if (container.date_discarded) throw new Error(`${target.label} has been discarded`);
+  return container;
+}
+
 export type LocationSummary = { id: number; full_path: string };
 
 // Locations come from the location menu, which every location picker

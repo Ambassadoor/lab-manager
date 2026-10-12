@@ -229,7 +229,9 @@ class TestWeighInBulk:
         container = make_container("c1")
 
         checkout_response = client.post(
-            "/api/inventory/containers/check_out/", [container.slug], format="json"
+            "/api/inventory/containers/check_out/",
+            {"containers": [container.slug], "holder": {"name": "Test Holder"}},
+            format="json",
         )
         assert checkout_response.status_code == 201
         checkout_event_id = checkout_response.data["events"][0]["id"]
@@ -364,8 +366,16 @@ class TestContainerFilters:
         checked_out = make_container("out-jar")
         checked_in = make_container("in-jar")
 
-        client.post("/api/inventory/containers/check_out/", [checked_out.slug], format="json")
-        client.post("/api/inventory/containers/check_out/", [checked_in.slug], format="json")
+        client.post(
+            "/api/inventory/containers/check_out/",
+            {"containers": [checked_out.slug], "holder": {"name": "Test Holder"}},
+            format="json",
+        )
+        client.post(
+            "/api/inventory/containers/check_out/",
+            {"containers": [checked_in.slug], "holder": {"name": "Test Holder"}},
+            format="json",
+        )
         client.post("/api/inventory/containers/check_in/", [checked_in.slug], format="json")
 
         response = client.get("/api/inventory/containers/?checkout_status=out")
@@ -666,7 +676,9 @@ class TestRolePermissions:
         assert client.delete(f"/api/inventory/containers/{container.slug}/").status_code == 403
         assert (
             client.post(
-                "/api/inventory/containers/check_out/", [container.slug], format="json"
+                "/api/inventory/containers/check_out/",
+                {"containers": [container.slug], "holder": {"name": "Test Holder"}},
+                format="json",
             ).status_code
             == 403
         )
@@ -681,7 +693,9 @@ class TestRolePermissions:
 
         assert (
             client.post(
-                "/api/inventory/containers/check_out/", [container.slug], format="json"
+                "/api/inventory/containers/check_out/",
+                {"containers": [container.slug], "holder": {"name": "Test Holder"}},
+                format="json",
             ).status_code
             == 201
         )
@@ -961,14 +975,20 @@ class TestScannedContainerIds:
         assert container.label.startswith("CHEM-0")
 
         response = client.post(
-            "/api/inventory/containers/check_out/", [container.label], format="json"
+            "/api/inventory/containers/check_out/",
+            {"containers": [container.label], "holder": {"name": "Test Holder"}},
+            format="json",
         )
 
         assert response.status_code == 201
         assert CheckoutEvent.objects.filter(container=container, action="out").exists()
 
     def test_check_out_and_check_in_accept_a_padded_id(self, client, container, padded):
-        out = client.post("/api/inventory/containers/check_out/", [padded], format="json")
+        out = client.post(
+            "/api/inventory/containers/check_out/",
+            {"containers": [padded], "holder": {"name": "Test Holder"}},
+            format="json",
+        )
         back = client.post("/api/inventory/containers/check_in/", [padded], format="json")
 
         assert out.status_code == 201
@@ -1170,3 +1190,67 @@ class TestContainerCreate:
 
         assert response.status_code == 400
         assert "chemicals" in response.data
+
+
+@pytest.mark.django_db
+class TestInLocationFilter:
+    def test_includes_every_level_below(self, client_as, make_container, make_location):
+        building = make_location("Building")
+        room = make_location("Room", parent=building)
+        shelf = make_location("Shelf", parent=room)
+        elsewhere = make_location("Elsewhere")
+        make_container("in-building", location=building)
+        make_container("on-shelf", location=shelf)
+        make_container("elsewhere", location=elsewhere)
+        reader = client_as("lab_assistant")
+
+        response = reader.get(f"/api/inventory/containers/?in_location={building.id}")
+
+        assert response.status_code == 200
+        assert {c["slug"] for c in response.data} == {"in-building", "on-shelf"}
+        shelf_only = reader.get(f"/api/inventory/containers/?in_location={shelf.id}")
+        assert {c["slug"] for c in shelf_only.data} == {"on-shelf"}
+
+    def test_combines_with_search_and_discarded(self, client_as, make_container, make_location):
+        room = make_location("Room")
+        make_container("acetone", location=room)
+        make_container("ethanol", location=room)
+        make_container("old-acetone", location=room, date_discarded=date(2026, 1, 1))
+        make_container("acetone-2")
+        reader = client_as("lab_assistant")
+
+        response = reader.get(f"/api/inventory/containers/?in_location={room.id}&search=acetone")
+        assert {c["slug"] for c in response.data} == {"acetone"}
+
+        response = reader.get(
+            f"/api/inventory/containers/?in_location={room.id}&search=acetone&is_discarded=true"
+        )
+        assert {c["slug"] for c in response.data} == {"old-acetone"}
+
+
+@pytest.mark.django_db
+class TestWeighInTareValidation:
+    @pytest.mark.parametrize("tare", ["0", "-5", "abc"])
+    def test_rejects_a_tare_of_zero_or_less(self, client_as, make_container, tare):
+        make_container("jar")
+
+        response = client_as("stockroom").post(
+            "/api/inventory/containers/weigh_in_bulk/",
+            {"checkin": [{"slug": "jar", "weight": "500", "tare_weight": tare}]},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "Tare weight" in response.data["detail"]
+
+    def test_accepts_a_positive_tare(self, client_as, make_container):
+        make_container("jar")
+
+        response = client_as("stockroom").post(
+            "/api/inventory/containers/weigh_in_bulk/",
+            {"checkin": [{"slug": "jar", "weight": "500", "tare_weight": "212.5"}]},
+            format="json",
+        )
+
+        assert response.status_code == 201
+        assert str(Container.objects.get(slug="jar").tare_weight) == "212.5000"

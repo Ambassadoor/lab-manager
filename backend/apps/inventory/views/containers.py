@@ -1,8 +1,11 @@
 import re
+from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
+from django.utils import timezone
 from django.db.models.functions import Lower
 from django.http import Http404
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.decorators import action
@@ -13,6 +16,7 @@ from rest_framework.viewsets import ModelViewSet
 
 from apps.users.models import User
 from apps.users.permissions import role_at_least
+from apps.users.serializers import validate_lipscomb_id
 
 from ..filters import ContainerFilter
 from ..schema import ERROR_DETAIL, STORAGE_CONFLICT
@@ -37,6 +41,66 @@ SLUG_LIST = {"application/json": {"type": "array", "items": {"type": "string"}}}
 CHECKOUT_EVENTS = inline_serializer(
     name="CheckoutEvents", fields={"events": CheckoutEventWriteSerializer(many=True)}
 )
+
+
+# Who is taking the containers on a check out: a Lipscomb ID that matches
+# an account links that user; otherwise a name is needed, kept with the ID
+# if one was given (so they can be linked later, once IDs can be looked up).
+class CheckoutHolderSerializer(serializers.Serializer):
+    lipscomb_id = serializers.CharField(required=False, allow_blank=True)
+    name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+
+    def validate(self, attrs):
+        raw_id = attrs.get("lipscomb_id", "").strip()
+        lipscomb_id = validate_lipscomb_id(raw_id) if raw_id else None
+        name = attrs.get("name", "").strip()
+        user = User.objects.filter(lipscomb_id=lipscomb_id).first() if lipscomb_id else None
+        if user is None and not name:
+            raise serializers.ValidationError(
+                f"No account has the ID {lipscomb_id}; give their name too."
+                if lipscomb_id
+                else "Give a Lipscomb ID or a name for who is taking it."
+            )
+        return {
+            "holder": user,
+            "holder_name": "" if user else name,
+            "holder_lipscomb_id": lipscomb_id or "",
+        }
+
+
+class CheckOutSerializer(serializers.Serializer):
+    # Container ids as scanned or typed
+    containers = serializers.ListField(child=serializers.CharField(), allow_empty=False)
+    holder = CheckoutHolderSerializer()
+
+
+class DiscardSerializer(serializers.Serializer):
+    # When it was thrown out; today if not given. Not in the future.
+    date = serializers.DateField(required=False)
+
+    def validate_date(self, value):
+        if value > timezone.localdate():
+            raise serializers.ValidationError("Can't be in the future.")
+        return value
+
+
+def _is_positive_number(value) -> bool:
+    try:
+        return Decimal(str(value)) > 0
+    except InvalidOperation:
+        return False
+
+
+# A discarded container is gone from the shelves, so nothing can check it
+# out, check it in or move it. Returns the refusal, or None if all are fine.
+def refuse_discarded(containers):
+    discarded = sorted(c.label for c in containers if c.date_discarded is not None)
+    if not discarded:
+        return None
+    return Response(
+        {"detail": f"Discarded, so it can't be used: {', '.join(discarded)}"},
+        status=status.HTTP_400_BAD_REQUEST,
+    )
 
 
 # Turns any form a container id arrives in into its stored slug. Printed
@@ -85,10 +149,11 @@ class ContainerView(ModelViewSet):
 
     # Deleting a container is Manager/Admin-only, unchanged from before roles
     # were fleshed out — containers get marked discarded rather than
-    # deleted in normal operation. Every other write (creating/editing a
-    # container, checking in/out, weighing in, transferring) needs at least
-    # Stockroom; plain reads (list/retrieve/is_discarded/is_valid) stay open
-    # to any authenticated role, Lab Assistant included.
+    # deleted in normal operation, which (and undoing it) is Coordinator and
+    # up. Every other write (creating/editing a container, checking in/out,
+    # weighing in, transferring) needs at least Stockroom; plain reads
+    # (list/retrieve/is_discarded/is_valid) stay open to any authenticated
+    # role, Lab Assistant included.
     WRITE_ACTIONS = {
         "create",
         "update",
@@ -102,6 +167,8 @@ class ContainerView(ModelViewSet):
     def get_permissions(self):
         if self.action == "destroy":
             return [role_at_least(User.Role.LAB_MANAGER)()]
+        if self.action in {"discard", "restore"}:
+            return [role_at_least(User.Role.COORDINATOR)()]
         # weigh_in is a combined GET/POST action (fetch history vs. record a
         # reading) — only its write side needs gating.
         if self.action == "weigh_in" and self.request.method == "POST":
@@ -122,8 +189,14 @@ class ContainerView(ModelViewSet):
     # Reads load everything ContainerSerializer needs in a fixed number of
     # queries (finding 5). Writes and custom actions don't serialize a list,
     # so they keep the plain queryset.
+    #
+    # The list hides discarded containers unless ?is_discarded= asks about
+    # them (true: only discarded, false: only active). Retrieve doesn't, so
+    # a scan or link still opens one.
     def get_queryset(self):
         queryset = super().get_queryset()
+        if self.action == "list" and "is_discarded" not in self.request.query_params:
+            queryset = queryset.active()
         if self.action in {"list", "retrieve"}:
             return queryset.for_display()
         return queryset
@@ -180,19 +253,83 @@ class ContainerView(ModelViewSet):
         except Http404:
             return Response({"is_valid": False}, status=status.HTTP_200_OK)
 
+    # Marks a container discarded (Coordinator and up). It leaves every list
+    # (see get_queryset) but keeps its history, and can be restored.
+    @extend_schema(
+        request=DiscardSerializer,
+        responses={200: ContainerSerializer, 400: ERROR_DETAIL},
+    )
+    @action(detail=True, methods=["post"])
+    def discard(self, request, slug=None):
+        container = self.get_object()
+        if container.date_discarded is not None:
+            return Response(
+                {
+                    "detail": f"{container.label} was already discarded on {container.date_discarded}."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        serializer = DiscardSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        container.date_discarded = serializer.validated_data.get("date", timezone.localdate())
+        container.discarded_by = request.user
+        container.save(update_fields=["date_discarded", "discarded_by"])
+        return Response(self._displayed(container))
+
+    # Undoes discard, for a container marked discarded by mistake
+    @extend_schema(request=None, responses={200: ContainerSerializer, 400: ERROR_DETAIL})
+    @action(detail=True, methods=["post"])
+    def restore(self, request, slug=None):
+        container = self.get_object()
+        if container.date_discarded is None:
+            return Response(
+                {"detail": f"{container.label} isn't discarded."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        container.date_discarded = None
+        container.discarded_by = None
+        container.save(update_fields=["date_discarded", "discarded_by"])
+        return Response(self._displayed(container))
+
+    @staticmethod
+    def _displayed(container):
+        return ContainerSerializer(Container.objects.for_display().get(pk=container.pk)).data
+
     # Creates checkout events for the provided containers
-    @extend_schema(request=SLUG_LIST, responses={201: CHECKOUT_EVENTS, 400: None})
+    @extend_schema(
+        request=CheckOutSerializer,
+        # 400: ERROR_DETAIL for an unknown or discarded container, or a
+        # field-keyed validation error for the body
+        responses={201: CHECKOUT_EVENTS, 400: OpenApiTypes.OBJECT},
+    )
     @action(detail=False, methods=["POST"])
     def check_out(self, request):
-        data = request.data
-
-        events = []
-        for slug in data:
+        body = CheckOutSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        holder = body.validated_data["holder"]
+        containers = []
+        for slug in body.validated_data["containers"]:
             try:
-                container = Container.objects.get(slug=normalize_container_slug(slug))
-                events.append({"container": container.id, "action": "out"})
+                containers.append(Container.objects.get(slug=normalize_container_slug(slug)))
             except Container.DoesNotExist:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"detail": f"Container not found: {slug}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        refused = refuse_discarded(containers)
+        if refused:
+            return refused
+
+        events = [
+            {
+                "container": c.id,
+                "action": "out",
+                "holder": holder["holder"].id if holder["holder"] else None,
+                "holder_name": holder["holder_name"],
+                "holder_lipscomb_id": holder["holder_lipscomb_id"],
+            }
+            for c in containers
+        ]
         serializer = CheckoutEventWriteSerializer(
             data=events, many=True, context={"request": request}
         )
@@ -201,36 +338,41 @@ class ContainerView(ModelViewSet):
             return Response({"events": serializer.data}, status=status.HTTP_201_CREATED)
 
     # Creates check in events for the provided containers
-    @extend_schema(request=SLUG_LIST, responses={201: CHECKOUT_EVENTS, 400: None})
+    @extend_schema(request=SLUG_LIST, responses={201: CHECKOUT_EVENTS, 400: ERROR_DETAIL})
     @action(detail=False, methods=["POST"])
     def check_in(self, request):
-        data = request.data
+        containers = []
+        for slug in request.data:
+            try:
+                containers.append(Container.objects.get(slug=normalize_container_slug(slug)))
+            except Container.DoesNotExist:
+                return Response(
+                    {"detail": f"Container not found: {slug}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        refused = refuse_discarded(containers)
+        if refused:
+            return refused
 
         events = []
-        for slug in data:
-            try:
-                container = Container.objects.get(slug=normalize_container_slug(slug))
-                # Adds a relation to the most recent event only if it is a checkout
-                # event that hasn't already been checked in (a "related_event" is
-                # only ever set on "in" events, so checking it on the "out" event
-                # itself is a no-op — we need the reverse `check_in_event` relation).
-                last_check_out = (
-                    container.events.filter(action="out").order_by("-timestamp").first()
-                )
-                if (
-                    last_check_out is not None
-                    and CheckoutEvent.objects.filter(related_event=last_check_out).exists()
-                ):
-                    last_check_out = None
-                events.append(
-                    {
-                        "container": container.id,
-                        "action": "in",
-                        "related_event": last_check_out.id if last_check_out is not None else None,
-                    }
-                )
-            except Container.DoesNotExist:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+        for container in containers:
+            # Adds a relation to the most recent event only if it is a checkout
+            # event that hasn't already been checked in (a "related_event" is
+            # only ever set on "in" events, so checking it on the "out" event
+            # itself is a no-op — we need the reverse `check_in_event` relation).
+            last_check_out = container.events.filter(action="out").order_by("-timestamp").first()
+            if (
+                last_check_out is not None
+                and CheckoutEvent.objects.filter(related_event=last_check_out).exists()
+            ):
+                last_check_out = None
+            events.append(
+                {
+                    "container": container.id,
+                    "action": "in",
+                    "related_event": last_check_out.id if last_check_out is not None else None,
+                }
+            )
         serializer = CheckoutEventWriteSerializer(
             data=events, many=True, context={"request": request}
         )
@@ -443,6 +585,9 @@ class ContainerView(ModelViewSet):
                 {"detail": f"Container(s) not found: {', '.join(sorted(missing))}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        refused = refuse_discarded(containers)
+        if refused:
+            return refused
         # Validate every container before saving any of them — collecting
         # all of the batch's storage warnings up front means one combined
         # confirmation covers the whole transfer, and (since a mid-loop
@@ -533,13 +678,29 @@ class ContainerView(ModelViewSet):
             for c in checkin
             if c.get("tare_weight") not in (None, "")
         }
-        containers = Container.objects.annotate(slug_lower=Lower("slug")).filter(
-            slug_lower__in=slugs
+        containers = list(
+            Container.objects.annotate(slug_lower=Lower("slug")).filter(slug_lower__in=slugs)
         )
         missing = set(slugs) - {c.slug_lower for c in containers}
         if missing:
             return Response(
                 {"detail": f"Container(s) not found: {', '.join(sorted(missing))}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        refused = refuse_discarded(containers)
+        if refused:
+            return refused
+        # An empty container always weighs something; 0 or less is a typo
+        # (and would read as "no tare" anyway, see has_estimated_usage)
+        bad_tares = sorted(
+            c.label
+            for c in containers
+            if c.slug_lower in tare_weights_by_slug
+            and not _is_positive_number(tare_weights_by_slug[c.slug_lower])
+        )
+        if bad_tares:
+            return Response(
+                {"detail": f"Tare weight must be more than 0 g: {', '.join(bad_tares)}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

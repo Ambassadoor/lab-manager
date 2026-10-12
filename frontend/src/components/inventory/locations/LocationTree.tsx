@@ -1,35 +1,26 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  deleteLocation,
-  getContainers,
-  getLocationContainers,
-  getLocations,
-} from '../../../api/inventory';
-import { locationKeys } from '../../../api/queryKeys';
-import {
+  AcUnit,
+  AddBox,
   Business,
+  BusinessTwoTone,
+  Delete,
+  DoorSliding,
+  Edit,
   ExpandLess,
   ExpandMore,
   Inventory,
-  Pallet,
   Kitchen,
-  AcUnit,
-  Shelves,
-  DoorSliding,
   MeetingRoom,
-  BusinessTwoTone,
-  AddBox,
-  Edit,
-  Delete,
-  Print,
   MoreVert,
+  Pallet,
+  Print,
+  Shelves,
 } from '@mui/icons-material';
 import {
   Alert,
   Box,
   CircularProgress,
   Collapse,
-  Container,
   Divider,
   IconButton,
   List,
@@ -39,28 +30,23 @@ import {
   Menu,
   MenuItem,
   Paper,
-  Stack,
-  Tooltip,
-  Typography,
   useMediaQuery,
 } from '@mui/material';
-import type { Container as ContainerType, Location } from '../../../types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { AddLocation } from './AddLocation';
-import { type ColDef } from 'ag-grid-community';
-import { EditLocation } from './EditLocation';
+import { deleteLocation, getLocationMenu, getLocations } from '../../../api/inventory';
+import { locationKeys, printerKeys } from '../../../api/queryKeys';
 import { useAuth } from '../../../context/AuthContext';
-import { DataTable } from '../../shared/DataTable';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { printerKeys } from '../../../api/queryKeys';
+import type { Location } from '../../../types';
 import { ConfirmDialog } from '../../shared/ConfirmDialog';
-import { useConfirmDialog } from '../../shared/useConfirmDialog';
 import { PrintResultSnackbar } from '../../shared/PrintResultSnackbar';
 import { printLocationLabels, type LocationLabelTarget } from '../../shared/printTemplates';
 import { hasRoleAtLeast } from '../../shared/roles';
-import { ContainerDetail } from '../ContainerDetail';
+import { useConfirmDialog } from '../../shared/useConfirmDialog';
+import { AddLocation } from './AddLocation';
+import { EditLocation } from './EditLocation';
 
-type LocationProps = {
+type LocationRowProps = {
   location: Location;
   parent?: Location;
   // Names from the root down to this location, for its printed label
@@ -72,7 +58,7 @@ type LocationProps = {
   // Stockroom+ — shows the row actions menu
   canEdit: boolean;
   onRequestDelete: (target: { id: string; name: string }) => void;
-  // Lifted to the top-level Locations component (see its own comment) —
+  // Lifted to LocationTree (see its own comment) —
   // every row in this recursively-rendered tree calls the same one, so
   // printing two rows in a row doesn't spawn two uncoordinated mutations
   // or snackbars.
@@ -95,7 +81,7 @@ const containsLocation = (location: Location, id: string): boolean =>
   String(location.id) === id || location.children.some((c) => containsLocation(c, id));
 
 //Self referencing location component to allow for tiered location listing
-const Location = ({
+const LocationRow = ({
   location,
   parent,
   path,
@@ -105,7 +91,7 @@ const Location = ({
   canEdit,
   onRequestDelete,
   onPrint,
-}: LocationProps) => {
+}: LocationRowProps) => {
   // Start expanded when the selection (e.g. from a bookmarked ?location= link)
   // is somewhere below this row, so the selected row is actually visible.
   const [expanded, setExpanded] = useState(() =>
@@ -150,7 +136,7 @@ const Location = ({
       <ListItemButton
         selected={selectedLocation === String(location.id)}
         onClick={() => setSelectedLocation(String(location.id))}
-        sx={{ pl: 2 + depth * 2 }}
+        sx={{ pl: { xs: 1 + depth * 1.5, sm: 2 + depth * 2 } }}
       >
         <ListItemIcon sx={{ minWidth: 40 }}>
           {location.type.icon && iconMap.get(location.type.icon)}
@@ -231,7 +217,7 @@ const Location = ({
           {/* dense must be repeated — each List resets it for its own children */}
           <List component="div" disablePadding dense>
             {location.children.map((l) => (
-              <Location
+              <LocationRow
                 key={l.id}
                 location={l}
                 parent={location}
@@ -251,115 +237,85 @@ const Location = ({
   );
 };
 
-// Component for viewing/editing locations and their assigned containers
-export const Locations = () => {
+type LocationTreeProps = {
+  // The selected location's id, or '' for all locations
+  selectedLocation: string;
+  onSelect: (id: string) => void;
+  // After a location is deleted, so the page can drop it if selected
+  onDeleted: (id: string) => void;
+  // The "add root location" dialog, opened from the page header
+  addRootOpen: boolean;
+  setAddRootOpen: React.Dispatch<React.SetStateAction<boolean>>;
+};
+
+// The location tree panel: pick a location (or all of them), and, for
+// Stockroom and up, each row's menu to add a child, edit, print or delete.
+// Below md (phones, a narrow window) it sits above the grid instead of
+// beside it, and folds into one row showing the selected location.
+export const LocationTree = ({
+  selectedLocation,
+  onSelect,
+  onDeleted,
+  addRootOpen,
+  setAddRootOpen,
+}: LocationTreeProps) => {
   const { user } = useAuth();
   const canEdit = hasRoleAtLeast(user, 'stockroom');
-
-  const [open, setOpen] = useState(false);
-  // Selection lives in the URL (?location=<id>) rather than local state, so
-  // a link to a specific location's container list can be bookmarked/shared
-  // and survives back/forward navigation.
-  const [searchParams, setSearchParams] = useSearchParams();
-  const selectedLocation = searchParams.get('location') ?? '';
-  const setSelectedLocation = (id: string) => {
-    setSearchParams(id ? { location: id } : {});
-    // The previewed container likely isn't in the new location's list
-    setPreviewSlug(null);
-  };
-  // Slug rather than the row object, so the preview re-derives from the
-  // latest list data after a refetch (e.g. after editing in the panel).
-  const [previewSlug, setPreviewSlug] = useState<string | null>(null);
-  // Tree (360px) + grid + a 25dvw preview only fit comfortably from xl up;
-  // below that the preview is dropped so the tree and grid keep the room
-  // (double-click still opens a container's full page).
-  const showPreview = useMediaQuery((theme) => theme.breakpoints.up('xl'));
-  const {
-    data: locations,
-    isPending: isLocationsPending,
-    isError: isLocationsError,
-    error: locationsError,
-  } = useQuery({
-    queryKey: locationKeys.list(),
-    queryFn: getLocations,
-  });
-
   const qc = useQueryClient();
 
-  // Lifted above the recursive Location tree (rather than one mutation per
-  // row) — one print at a time, one snackbar to show its result, regardless
-  // of which row in the tree triggered it. See PrintResultSnackbar for why
-  // it can watch this mutation directly with no onSuccess/onError here.
+  const stacked = useMediaQuery((theme) => theme.breakpoints.down('md'));
+  // Starts folded when opened at a location (a scan, a link)
+  const [treeOpen, setTreeOpen] = useState(!selectedLocation);
+  const select = (id: string) => {
+    onSelect(id);
+    // Stacked, fold the tree away so the location's containers are in view
+    if (stacked) setTreeOpen(false);
+  };
+
+  const {
+    data: locations,
+    isPending,
+    isError,
+    error,
+  } = useQuery({ queryKey: locationKeys.list(), queryFn: getLocations });
+  const { data: locationMenu } = useQuery({
+    queryKey: locationKeys.menu(),
+    queryFn: getLocationMenu,
+    enabled: stacked,
+  });
+  const selectedPath = selectedLocation
+    ? (locationMenu?.find((l) => String(l.id) === selectedLocation)?.full_path ?? '…')
+    : 'All locations';
+
+  // Lifted above the recursive tree (rather than one mutation per row) —
+  // one print at a time, one snackbar to show its result, regardless of
+  // which row triggered it. See PrintResultSnackbar for why it can watch
+  // this mutation directly with no onSuccess/onError here.
   const printMutation = useMutation({
     mutationFn: printLocationLabels,
     // A print attempt is the one place in the app where the printer's own
     // hardware state (media, errors) is guaranteed to have just changed —
-    // refetch the nav bar's status indicator instead of waiting up to
-    // POLL_INTERVAL_MS for it to notice on its own.
+    // refetch the nav bar's status indicator instead of waiting for its poll.
     onSettled: () => qc.invalidateQueries({ queryKey: printerKeys.status() }),
   });
-  const handlePrint = (targets: LocationLabelTarget[]) => {
-    printMutation.mutate(targets);
-  };
+  const handlePrint = (targets: LocationLabelTarget[]) => printMutation.mutate(targets);
   const printCount = printMutation.variables?.length ?? 1;
 
-  //Get's all containers for selected location and any child locations
-  const { isPending, data: locationContainers } = useQuery({
-    queryKey: locationKeys.containers(selectedLocation),
-    queryFn: async () => {
-      if (selectedLocation.length > 0) {
-        const location = await getLocationContainers(selectedLocation);
-        return location.containers;
-      } else {
-        return await getContainers();
-      }
-    },
-  });
-
-  const previewContainer = previewSlug
-    ? locationContainers?.find((c) => c.slug === previewSlug)
-    : undefined;
-
-  // Tracks which location (if any) is pending a delete confirmation, shared
-  // by every row in the recursive tree below.
+  // Which location (if any) is pending a delete confirmation, shared by
+  // every row in the tree.
   const deleteConfirm = useConfirmDialog<{ id: string; name: string }>();
-
-  //Invalidates location data after successful deletion
-  const mutation = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteLocation(id),
     onSuccess: (_data, deletedId) => {
-      // Clear the selection first so the invalidation below refetches
-      // containers for '' (getContainers) instead of re-requesting the
-      // now-deleted location's containers endpoint (404). Reads the
-      // latest search params at apply time (not the value captured when
-      // the mutation started) so this can't clear a different location
-      // selected while the delete was in flight.
-      setSearchParams((prev) => {
-        if (prev.get('location') !== deletedId) return prev;
-        const next = new URLSearchParams(prev);
-        next.delete('location');
-        return next;
-      });
-      // .all — a deleted location can also affect the menu dropdown and any open containers view
-      qc.invalidateQueries({
-        queryKey: locationKeys.all,
-      });
+      onDeleted(deletedId);
+      // .all — a deleted location also affects the menu dropdown
+      qc.invalidateQueries({ queryKey: locationKeys.all });
       deleteConfirm.cancel();
     },
   });
 
-  const [colDefs] = useState<ColDef[]>([
-    { field: 'label', headerName: 'ID' },
-    { field: 'name' },
-    { field: 'manufacturer' },
-    { field: 'quantity' },
-    { field: 'product_num', headerName: 'Product #' },
-  ]);
-
-  const navigate = useNavigate();
-
   return (
-    <Container maxWidth={false}>
+    <>
       <ConfirmDialog
         open={deleteConfirm.isOpen}
         title="Delete location"
@@ -369,78 +325,82 @@ export const Locations = () => {
         }
         confirmLabel="Delete"
         confirmColor="error"
-        loading={mutation.isPending}
-        error={mutation.isError ? mutation.error.message : null}
+        loading={deleteMutation.isPending}
+        error={deleteMutation.isError ? deleteMutation.error.message : null}
         onCancel={() => {
-          mutation.reset();
+          deleteMutation.reset();
           deleteConfirm.cancel();
         }}
         onConfirm={() => {
-          if (deleteConfirm.target) mutation.mutate(deleteConfirm.target.id);
+          if (deleteConfirm.target) deleteMutation.mutate(deleteConfirm.target.id);
         }}
       />
       <PrintResultSnackbar
         mutation={printMutation}
         label={printCount > 1 ? `${printCount} location labels` : 'Location label'}
       />
-      {isLocationsError && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {locationsError instanceof Error ? locationsError.message : 'Failed to load locations.'}
-        </Alert>
-      )}
-      <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Stack direction={'row'} spacing={2}>
-            <Typography variant="h4">Locations</Typography>
-            <AddLocation
-              id={''}
-              open={open}
-              setOpen={setOpen}
-              onCreated={(created, print) => {
-                if (print) handlePrint(created.map((c) => ({ id: c.id, path: [c.name] })));
-              }}
-            />
-            {canEdit && (
-              <Tooltip title="Add root location">
-                <IconButton onClick={() => setOpen(true)}>
-                  <AddBox />
-                </IconButton>
-              </Tooltip>
-            )}
-          </Stack>
-          <Typography variant="body2" color="text.secondary">
-            Browse locations and the containers stored in them.
-          </Typography>
-        </Box>
-      </Stack>
-      <Stack direction={'row'} spacing={2}>
-        {/* Same elevation as DataTable's default, so both panels share a
-            surface color in dark mode */}
-        <Paper
-          elevation={4}
-          sx={{ flexShrink: 0, width: 360, maxWidth: 500, height: '75dvh', overflowY: 'auto' }}
-        >
-          {isLocationsPending ? (
+      <AddLocation
+        id={''}
+        open={addRootOpen}
+        setOpen={setAddRootOpen}
+        onCreated={(created, print) => {
+          if (print) handlePrint(created.map((c) => ({ id: c.id, path: [c.name] })));
+        }}
+      />
+      {/* Same elevation as DataTable's default, so both panels share a
+          surface color in dark mode */}
+      <Paper
+        elevation={4}
+        sx={{
+          flexShrink: 0,
+          width: { xs: '100%', md: 360 },
+          maxWidth: { md: 500 },
+          height: { md: '75dvh' },
+          maxHeight: { xs: '50dvh', md: 'none' },
+          overflowY: 'auto',
+        }}
+      >
+        {isError && (
+          <Alert severity="error" sx={{ m: 1 }}>
+            {error instanceof Error ? error.message : 'Failed to load locations.'}
+          </Alert>
+        )}
+        {stacked && (
+          <ListItemButton
+            onClick={() => setTreeOpen((prev) => !prev)}
+            aria-expanded={treeOpen}
+            // The Paper's colour, and in dark mode its elevation overlay too
+            sx={{
+              position: 'sticky',
+              top: 0,
+              zIndex: 1,
+              backgroundColor: 'inherit',
+              backgroundImage: 'inherit',
+            }}
+          >
+            <ListItemText secondary="Location" primary={selectedPath} />
+            {treeOpen ? <ExpandLess /> : <ExpandMore />}
+          </ListItemButton>
+        )}
+        <Collapse in={!stacked || treeOpen}>
+          {isPending ? (
             <CircularProgress size={24} sx={{ m: 2 }} />
           ) : (
             <List component="nav" dense>
               {/* Explicit way back to the unfiltered container list */}
-              <ListItemButton
-                selected={selectedLocation === ''}
-                onClick={() => setSelectedLocation('')}
-              >
+              <ListItemButton selected={selectedLocation === ''} onClick={() => select('')}>
                 <ListItemIcon sx={{ minWidth: 40 }}>
                   <Inventory />
                 </ListItemIcon>
                 <ListItemText primary="All locations" />
               </ListItemButton>
               {locations?.map((l) => (
-                <Location
+                <LocationRow
                   location={l}
                   key={l.id}
                   path={[l.name]}
                   selectedLocation={selectedLocation}
-                  setSelectedLocation={setSelectedLocation}
+                  setSelectedLocation={select}
                   canEdit={canEdit}
                   onRequestDelete={deleteConfirm.request}
                   onPrint={handlePrint}
@@ -448,52 +408,8 @@ export const Locations = () => {
               ))}
             </List>
           )}
-        </Paper>
-        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-          <DataTable<ContainerType>
-            align="start"
-            isLoading={isPending}
-            rowData={locationContainers}
-            columnDefs={colDefs}
-            height="75dvh"
-            onRowClicked={(e) => {
-              if (showPreview && e.data) setPreviewSlug(e.data.slug);
-            }}
-            onCellDoubleClicked={(e) => {
-              navigate(`/inventory/containers/${e.data?.slug}`, { state: e.data });
-            }}
-          />
-        </Box>
-        {showPreview && (
-          <Box sx={{ flexShrink: 0, width: '25dvw' }}>
-            {previewContainer ? (
-              // key: remount per container so an in-progress edit on one
-              // doesn't carry over to the next
-              <ContainerDetail
-                key={previewContainer.slug}
-                data={previewContainer}
-                elevation={4}
-                onClose={() => setPreviewSlug(null)}
-              />
-            ) : (
-              <Paper
-                elevation={4}
-                sx={{
-                  height: '75dvh',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  p: 3,
-                }}
-              >
-                <Typography color="text.secondary" align="center">
-                  Select a container to preview it here. Double-click to open its full page.
-                </Typography>
-              </Paper>
-            )}
-          </Box>
-        )}
-      </Stack>
-    </Container>
+        </Collapse>
+      </Paper>
+    </>
   );
 };

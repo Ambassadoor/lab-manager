@@ -13,6 +13,10 @@ switch back to the pre-Pi setup, is in
 | `labmanager-backup.timer` | `/etc/systemd/system/` | Runs the backup nightly at 02:00 (or at next boot if missed) |
 | `labmanager.nginx` | `/etc/nginx/sites-available/labmanager`, symlinked into `sites-enabled/` | One origin, `https://app.cplabmanager.com` on port 443: SPA, `/api/`, `/admin/`, `/static/`, `/bridge/`. Port 80 only redirects there. Needs the certificate from [HTTPS](#https) first |
 | `deploy.sh` | Run in place from the repo | Updates the Pi to the latest code (see [Deploying updates](#deploying-updates)) |
+| `labmanager-test-api.service` | `/etc/systemd/system/` | The [test site](#test-site)'s Django on `127.0.0.1:8001` |
+| `labmanager-test.nginx` | `/etc/nginx/sites-available/labmanager-test`, symlinked into `sites-enabled/` | `https://test.cplabmanager.com` |
+| `test.env.example` | `/opt/lab-manager-test/backend/.env` | The test site's settings |
+| `refresh-test-db.sh` | Run in place from the test checkout | Resets the test database from a backup |
 
 The services run as `User=ambassadoor`; change that line for a different
 account. That account needs the `plugdev` group (balance adapter) and `lp`
@@ -149,6 +153,77 @@ sudo nginx -t && sudo systemctl restart labmanager-api labmanager-bridge && sudo
 ```
 
 Use the IP address afterwards. A browser that visited the HTTPS site keeps insisting on HTTPS for `app.cplabmanager.com` for up to a day (the `Strict-Transport-Security` header in the nginx file).
+
+## Test site
+
+`https://test.cplabmanager.com` runs `develop` on the same Pi, against a copy of the live database, so a change can be tried on real devices before it is released. It is a second checkout, `/opt/lab-manager-test`, with its own gunicorn (`:8001`), its own database (`labmanager_test`) and its own `.env`. Like the live site, it only works on campus.
+
+What it shares with the live site:
+
+- **The hardware bridge.** The balance's serial port can only be open in one process, so the test site's `/bridge/` goes to the live bridge on `:8200`. Test prints come out of the real printer and test weigh-ins read the real balance. Changes to `bridge/` on `develop` can't be tried here; they go live with the release.
+- **The accounts.** The copied database has everyone's real account, so people log in with their usual password. Sessions don't carry over, since the sites have different `SECRET_KEY`s.
+
+What it doesn't do: open GitHub issues for bug reports (no GitHub App settings, so reports are saved with a failed status), upload database backups, or (unless you give it a separate test folder) upload SDS files. Existing SDS still display, since they are links to the Drive files. Every page shows an orange "Test site" strip, and the tab title starts with `[TEST]`.
+
+### Setting it up (one time)
+
+1. **DNS.** In Cloudflare, add an `A` record `test` → `10.200.61.211`, **DNS only** (grey cloud), like `app`.
+2. **Certificate.** On the Pi, with the token file already in place from the live site:
+
+   ```bash
+   sudo certbot certonly --dns-cloudflare \
+     --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini \
+     -d test.cplabmanager.com \
+     --deploy-hook "systemctl reload nginx"
+   ```
+
+3. **The checkout.**
+
+   ```bash
+   sudo install -d -o ambassadoor -g ambassadoor /opt/lab-manager-test
+   git clone "$(git -C /opt/lab-manager remote get-url origin)" /opt/lab-manager-test
+   git -C /opt/lab-manager-test checkout develop
+   cp /opt/lab-manager-test/deploy/pi/test.env.example /opt/lab-manager-test/backend/.env
+   nano /opt/lab-manager-test/backend/.env
+   ```
+
+   In `.env`, set `SECRET_KEY` to a new value (the command is in `backend/.env.example`; not the live one), and `DB_PASSWORD` to the same password as the live `.env` (same database user).
+4. **Database, service and nginx.**
+
+   ```bash
+   sudo -u postgres createdb --owner=labmanager labmanager_test
+   sudo cp /opt/lab-manager-test/deploy/pi/labmanager-test-api.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable labmanager-test-api
+   sudo cp /opt/lab-manager-test/deploy/pi/labmanager-test.nginx /etc/nginx/sites-available/labmanager-test
+   sudo ln -s /etc/nginx/sites-available/labmanager-test /etc/nginx/sites-enabled/labmanager-test
+   sudo nginx -t && sudo systemctl reload nginx
+   ```
+
+5. **First deploy, then the data.** From your laptop:
+
+   ```bash
+   ssh -t labmanager /opt/lab-manager-test/deploy/pi/deploy.sh          # installs, builds, migrates an empty database
+   ssh -t labmanager /opt/lab-manager-test/deploy/pi/refresh-test-db.sh # copies in last night's live data
+   ```
+
+   Then open `https://test.cplabmanager.com`.
+
+The second gunicorn uses roughly 150–250 MB of memory; `free -h` shows what's left.
+
+### Using it
+
+- **Deploy `develop`:** `ssh -t labmanager /opt/lab-manager-test/deploy/pi/deploy.sh`. It is the same script as the live site's; the test `.env` makes it restart only `labmanager-test-api` and skip the backup (`DEPLOY_SERVICES`, `DEPLOY_BACKUP`). To try a branch that isn't merged yet, pass its name.
+- **Reset the data:** `ssh -t labmanager /opt/lab-manager-test/deploy/pi/refresh-test-db.sh` restores the newest nightly backup (or a dump you name) and runs `develop`'s migrations. Everything done on the test site since the last reset is lost. It refuses to run unless `DB_NAME` ends in `_test`.
+- **Before a release:** deploy `develop` here, try it on the lab computer, the iPad and a phone, then open the release PR into `main`.
+
+### Turning it off
+
+```bash
+sudo systemctl disable --now labmanager-test-api
+sudo rm /etc/nginx/sites-enabled/labmanager-test && sudo systemctl reload nginx
+sudo -u postgres dropdb labmanager_test        # optional: the copied data
+```
 
 ## Uninstall (switching back)
 

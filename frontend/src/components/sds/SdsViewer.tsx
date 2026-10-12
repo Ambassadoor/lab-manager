@@ -1,4 +1,6 @@
-import { Box, Container, Stack, Typography } from '@mui/material';
+import { EditNote } from '@mui/icons-material';
+import { Box, Button, Container, Stack, Typography } from '@mui/material';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getSdsById } from '../../api/sds';
@@ -6,6 +8,9 @@ import { sdsKeys } from '../../api/queryKeys';
 import { SafetyHeader } from './SafetyHeader';
 import { NotFound } from '../shared/NotFound';
 import { ghsPictogramIconSrc, ghsPictogramLabel } from '../shared/ghsPictograms';
+import { useAuth } from '../../context/AuthContext';
+import { hasRoleAtLeast } from '../shared/roles';
+import { SdsCorrectDialog } from './SdsCorrectDialog';
 
 // Fully public — no login, matching the "SDS viewing is public safety
 // information" decision. Embeds the document itself via Drive's own
@@ -13,6 +18,9 @@ import { ghsPictogramIconSrc, ghsPictogramLabel } from '../shared/ghsPictograms'
 // read it.
 export const SdsViewer = () => {
   const { id } = useParams();
+  const { user } = useAuth();
+  const canCorrect = hasRoleAtLeast(user, 'stockroom');
+  const [correctOpen, setCorrectOpen] = useState(false);
 
   const {
     data: sds,
@@ -28,10 +36,20 @@ export const SdsViewer = () => {
   if (isPending || !sds) return null;
 
   return (
-    <Container sx={{ py: 3 }}>
+    <Container sx={{ py: { xs: 2, sm: 3 } }}>
       <SafetyHeader />
       <Stack spacing={1} sx={{ mb: 2 }}>
-        <Typography variant="h5">{sds.container.name}</Typography>
+        <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="h5">{sds.container.name}</Typography>
+          {canCorrect && (
+            <Button startIcon={<EditNote />} onClick={() => setCorrectOpen(true)}>
+              Correct
+            </Button>
+          )}
+        </Stack>
+        {canCorrect && (
+          <SdsCorrectDialog sds={sds} open={correctOpen} onClose={() => setCorrectOpen(false)} />
+        )}
         <Typography variant="body2" color="text.secondary">
           {sds.file_name}
           {sds.revision_date && ` · Rev. date ${sds.revision_date}`}
@@ -77,7 +95,12 @@ export const SdsViewer = () => {
         component="iframe"
         src={sds.view_url}
         title={sds.file_name}
-        sx={{ width: '100%', height: '80dvh', border: 'none', borderRadius: 1 }}
+        sx={{
+          width: '100%',
+          height: { xs: '70dvh', sm: '80dvh' },
+          border: 'none',
+          borderRadius: 1,
+        }}
       />
     </Container>
   );

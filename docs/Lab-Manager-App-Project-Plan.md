@@ -83,9 +83,9 @@ The guiding principle: **inventory is the spine**, and almost everything else ha
 
 | # | Milestone | Depends on | Notes | Status (Oct 1, 2026) |
 |---|-----------|-----------|-------|----------------------|
-| 0 | **Spikes / de-risking** | — | Mostly complete — see below | Done, except phone-camera scanning and the Brady workflow |
+| 0 | **Spikes / de-risking** | — | Mostly complete — see below | Done, except the Brady workflow |
 | 1 | **MVP: Inventory + Locations** | 0 | Deployed and replacing Notion | Built, signed off July 7 and deployed September 30. The cut-over from Notion had not been scheduled as of that date, so the "Notion is no longer opened" test in Section 9 is not yet met |
-| 2 | **Labels + Barcodes + Scanning** | 1 | Delivered together; they only deliver value as a bundle | Largely built: container and location labels, Bluetooth scanning for check-out, check-in, transfer and move. Phone-camera scanning is not built |
+| 2 | **Labels + Barcodes + Scanning** | 1 | Delivered together; they only deliver value as a bundle | Largely built: container and location labels, Bluetooth and phone-camera scanning for check-out, check-in, transfer and move |
 | 3 | **Chemical Waste Management** | 1 | Waste containers reference chemicals | Not started |
 | 4 | **USB-balance usage tracking** | 1, 2 | Scanning helps identify which container is on the balance | Largely built: balance read and tare, weigh-in on check-in, percent remaining |
 | 5 | **Lab Information + Scheduling** | 1 | Built together; scheduling links to lab info | Not started |
@@ -111,7 +111,7 @@ Remaining milestone-0 work is small:
 > **As built:**
 > - **Balance:** an Adam CKT8UH over RS-232 through a USB-to-serial cable. It prints a reading every couple of seconds and also answers a `P` command with a full report; the bridge uses the command. The protocol is recorded in [bridge/README.md](../bridge/README.md) and `bridge/app/balance.py`.
 > - **Brother printer:** a PT-P950NW. The SDK (b-PAC) is Windows-only, so it was dropped in favour of the printer's own P-touch Template commands, which work from Linux. See [bridge/PRINTER_PLAN.md](../bridge/PRINTER_PLAN.md).
-> - **Phone-camera scanning** and the **Brady workflow** are still unproven.
+> - The **Brady workflow** is still unproven. **Phone-camera scanning** is built (October 2026) and still to be tried on phones on campus Wi-Fi.
 
 ### Definition of "shippable" per milestone
 
@@ -158,7 +158,7 @@ The **Brady printer** requires no integration: Django generates an `.xlsx` file 
 
 Browser camera access only works in a **secure context**. Only `localhost` is exempt. Therefore, phone-camera scanning requires the application to be served over real TLS — a proper hostname and a valid certificate. This is an IT decision and must be resolved before Milestone 2 (see Section 6). Do not architect the camera feature until TLS availability is confirmed.
 
-> **As built:** resolved on October 1, 2026, without IT. IT gave the Pi a reserved IP address but no hostname, so Milestone 2 went ahead over HTTP with the Bluetooth scanner only. The app now has its own domain and a Let's Encrypt certificate (see [deploy/pi/README.md](../deploy/pi/README.md#https)), so TLS no longer blocks camera scanning. What remains unconfirmed for that feature is whether phones on campus Wi-Fi can reach the Pi.
+> **As built:** resolved on October 1, 2026, without IT. IT gave the Pi a reserved IP address but no hostname, so Milestone 2 went ahead over HTTP with the Bluetooth scanner only. The app now has its own domain and a Let's Encrypt certificate (see [deploy/pi/README.md](../deploy/pi/README.md#https)), so TLS no longer blocks camera scanning. Camera scanning was built on October 7, 2026 ([docs/Barcode-Scanner.md](Barcode-Scanner.md#phone-camera)); what remains to confirm is that phones on campus Wi-Fi can reach the Pi.
 
 ---
 
@@ -282,7 +282,7 @@ The existing Notion database has a usable API and its current schema is effectiv
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Hardware integration unknowns | **Reduced** — balance, Brother printer (P-touch Template, not the SDK), and scanner are all built and in use | Document the working configurations; only phone-camera scanning and the Brady/Excel workflow remain to prove |
+| Hardware integration unknowns | **Reduced** — balance, Brother printer (P-touch Template, not the SDK), and scanner are all built and in use | Document the working configurations; phone-camera scanning is built but untried on campus phones; the Brady/Excel workflow remains to prove |
 | Abandonment / loss of momentum — large project built around a full-time job | High | Keep milestones small; each must reach real daily use; "deployed and used" beats "feature complete" |
 | Continuity / bus factor — solo developer building something meant to outlive them | High | Boring, documented stack (done); university-owned git repo; write the README and setup steps as you go |
 | IT dependency unresolved — hosting and TLS | Medium | Complete the IT conversation in Section 6 before Milestone 2; do not build the camera feature before TLS is confirmed |

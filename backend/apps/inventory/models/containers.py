@@ -19,7 +19,18 @@ def highest_container_pk_subquery():
     return Subquery(Container.objects.order_by("-pk").values("pk")[:1])
 
 
+# Container.quantity_unit to grams (mass) or millilitres (volume)
+GRAMS_PER_UNIT = {"mg": Decimal("0.001"), "g": Decimal(1), "kg": Decimal(1000)}
+ML_PER_UNIT = {"mL": Decimal(1), "L": Decimal(1000)}
+
+
 class ContainerQuerySet(models.QuerySet):
+    def active(self):
+        """Containers still in the inventory: not marked discarded. The
+        default manager deliberately includes discarded ones, so a scan, a
+        link or the admin can still open them; lists apply this."""
+        return self.filter(date_discarded__isnull=True)
+
     def for_display(self):
         """Everything ContainerSerializer reads, loaded up front.
 
@@ -32,7 +43,7 @@ class ContainerQuerySet(models.QuerySet):
         nothing was prefetched, so both paths return the same rows.
         """
         return (
-            self.select_related("location")
+            self.select_related("location", "discarded_by")
             .annotate(highest_pk=highest_container_pk_subquery())
             .prefetch_related(
                 Prefetch(
@@ -44,7 +55,7 @@ class ContainerQuerySet(models.QuerySet):
                 ),
                 Prefetch(
                     "events",
-                    queryset=CheckoutEvent.objects.select_related("user")
+                    queryset=CheckoutEvent.objects.select_related("user", "holder")
                     .order_by("container_id", *CheckoutEvent.NEWEST_FIRST)
                     .distinct("container_id"),
                     to_attr="latest_events",
@@ -84,6 +95,14 @@ class Container(models.Model):
     date_received = models.DateField("received on", default=timezone.now, null=True, blank=True)
     date_opened = models.DateField("opened on", null=True, blank=True)
     date_discarded = models.DateField("discarded on", null=True, blank=True)
+    # Who marked it discarded (Coordinator and up, ContainerView.discard)
+    discarded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="discarded_containers",
+    )
     # Four decimal places: densities are commonly given as 1.0493 g/mL.
     # Seven digits leaves room for the densest liquids (mercury, 13.534).
     density = models.DecimalField(
@@ -118,13 +137,25 @@ class Container(models.Model):
         return self.date_opened is not None
 
     @property
-    def initial_content_mass(self):
-        if self.density is not None and not self.quantity_unit.endswith("g"):
-            return self.initial_quantity * self.density
-        return self.initial_quantity
+    def initial_content_mass(self) -> Decimal | None:
+        """The original contents' mass in grams, the unit the balance
+        weighs in: a mass quantity converted to grams, or a volume (mL, L)
+        times its density (g/mL). None when it can't be known: no quantity
+        or unit, or a volume with no density.
+        """
+        if self.initial_quantity is None or not self.quantity_unit:
+            return None
+        quantity = Decimal(self.initial_quantity)
+        if self.quantity_unit in GRAMS_PER_UNIT:
+            return quantity * GRAMS_PER_UNIT[self.quantity_unit]
+        if self.quantity_unit in ML_PER_UNIT and self.density is not None:
+            return quantity * ML_PER_UNIT[self.quantity_unit] * self.density
+        return None
 
     @property
-    def container_weight(self):
+    def container_weight(self) -> Decimal | None:
+        if self.initial_weight is None or self.initial_content_mass is None:
+            return None
         return self.initial_weight - self.initial_content_mass
 
     @property
@@ -184,7 +215,7 @@ class Container(models.Model):
         if latest is None:
             return None
         try:
-            mass = Decimal(str(self.initial_content_mass))
+            mass = self.initial_content_mass
             current_weight = Decimal(str(latest.weight))
             tare_weight = Decimal(str(self.tare_weight))
             result = ((current_weight - tare_weight) / mass) * 100
@@ -225,9 +256,22 @@ class CheckoutEvent(models.Model):
     container = models.ForeignKey(Container, on_delete=models.CASCADE, related_name="events")
     action = models.CharField(max_length=3, choices=ACTION_CHOICES)
     timestamp = models.DateTimeField(auto_now=True)
+    # Who recorded the event: the logged-in Stockroom worker
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, related_name="events"
     )
+    # Who took it (check outs since Oct 2026): a user matched by Lipscomb
+    # ID, or for someone not in the system yet, their name and the ID if
+    # they gave one, so they can be linked once IDs can be looked up.
+    holder = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="held_checkouts",
+    )
+    holder_name = models.CharField(max_length=150, blank=True)
+    holder_lipscomb_id = models.CharField(max_length=11, blank=True)
     related_event = models.OneToOneField(
         "self",
         null=True,
@@ -236,6 +280,16 @@ class CheckoutEvent(models.Model):
         related_name="check_in_event",
         unique=True,
     )
+
+    @property
+    def holder_display(self) -> str:
+        """Who has it, for display: the holder, else the name given, else
+        (events from before holders were recorded) whoever recorded it."""
+        if self.holder is not None:
+            return self.holder.full_name
+        if self.holder_name:
+            return self.holder_name
+        return self.user.full_name
 
     def __str__(self):
         return f"{self.container.name}: {self.action}"

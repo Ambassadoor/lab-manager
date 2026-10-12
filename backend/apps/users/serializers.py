@@ -98,7 +98,7 @@ class UserCheckoutEventSerializer(serializers.ModelSerializer):
         fields = ["full_name"]
 
     def get_full_name(self, obj) -> str:
-        return f"{obj.first_name} {obj.last_name}"
+        return obj.full_name
 
 
 # Serializer to use for new account creation

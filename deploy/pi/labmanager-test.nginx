@@ -1,0 +1,36 @@
+# The test site: develop's code and a copy of the live database (README.md,
+# Test site). A separate file from labmanager.nginx, so it can be disabled
+# by removing its link in sites-enabled without touching the live site.
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name test.cplabmanager.com;
+    return 301 https://test.cplabmanager.com$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name test.cplabmanager.com;
+
+    # Its own certificate, issued the same way as the live site's.
+    ssl_certificate     /etc/letsencrypt/live/test.cplabmanager.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/test.cplabmanager.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    # Keep it out of search results, should the name ever be reachable.
+    add_header X-Robots-Tag "noindex, nofollow" always;
+
+    client_max_body_size 25m;
+    root /opt/lab-manager-test/frontend/dist;
+
+    location /api/    { proxy_pass http://127.0.0.1:8001; include proxy_params; }
+    location /admin/  { proxy_pass http://127.0.0.1:8001; include proxy_params; }
+    location /static/ { alias /opt/lab-manager-test/backend/staticfiles/; }
+    # The live site's bridge: the balance's serial port can only be open in
+    # one process, so the two sites share it. Test prints and weigh-ins use
+    # the real printer and balance.
+    location /bridge/ { proxy_pass http://127.0.0.1:8200/; include proxy_params; }
+    location /        { try_files $uri /index.html; }
+}

@@ -75,38 +75,43 @@ export const Move = () => {
     if (!list.add(target)) notify(`${target.label} is already in the list`, 'info');
   };
 
-  useScanHandler((target) => {
-    if (!target) return false;
-    if (moveConfirm.isOpen) {
-      notify('Confirm or cancel the move first', 'warning');
-      return;
-    }
-    if (target.kind !== 'location') {
-      notify(`${target.label} is a container. Move Locations takes locations.`, 'info');
-      return;
-    }
-    if (lastScan.current !== target.id) {
-      lastScan.current = target.id;
-      addItem(target);
-      return;
-    }
-    // The same location twice in a row: it's the new parent. Its first scan
-    // added it to the list, so take it back out.
-    lastScan.current = null;
-    if (!locationMenu?.some((l) => l.id === target.id)) {
-      notify(`No location ${target.label}`, 'warning');
-      return;
-    }
-    list.remove(targetKey(target));
-    setValue('parent', String(target.id));
-    clearErrors('parent');
-    const children = list.ready.filter((item) => item.key !== targetKey(target));
-    if (children.length > 0 && !list.isLooking && !list.hasProblems) {
-      requestMove(String(target.id), children);
-    } else {
-      notify(`New parent: ${pathOf(String(target.id))}`, 'success');
-    }
-  });
+  useScanHandler(
+    (target) => {
+      if (!target) return false;
+      if (moveConfirm.isOpen) {
+        notify('Confirm or cancel the move first', 'warning');
+        return;
+      }
+      if (target.kind !== 'location') {
+        notify(`${target.label} is a container. Move Locations takes locations.`, 'info');
+        return;
+      }
+      if (lastScan.current !== target.id) {
+        lastScan.current = target.id;
+        addItem(target);
+        return;
+      }
+      // The same location twice in a row: it's the new parent. Its first scan
+      // added it to the list, so take it back out.
+      lastScan.current = null;
+      if (!locationMenu?.some((l) => l.id === target.id)) {
+        notify(`No location ${target.label}`, 'warning');
+        return;
+      }
+      list.remove(targetKey(target));
+      setValue('parent', String(target.id));
+      clearErrors('parent');
+      const children = list.ready.filter((item) => item.key !== targetKey(target));
+      if (children.length > 0 && !list.isLooking && !list.hasProblems) {
+        requestMove(String(target.id), children);
+        // Closes the camera, if open, so the confirm dialog is in view
+        return 'done';
+      } else {
+        notify(`New parent: ${pathOf(String(target.id))}`, 'success');
+      }
+    },
+    { continuous: true }
+  );
 
   return (
     <>

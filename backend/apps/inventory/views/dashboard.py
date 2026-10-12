@@ -22,7 +22,9 @@ class _SingleObjectSchema(AutoSchema):
 # Container at /dashboard/<pk>/ behind nothing but IsAuthenticated, bypassing
 # ContainerView's role checks.
 class DashboardView(mixins.ListModelMixin, GenericViewSet):
-    queryset = Container.objects.all()
+    # Discarded containers are gone from the shelves, so none of the cards
+    # show them.
+    queryset = Container.objects.active()
     serializer_class = ContainerSerializer
 
     permission_classes = [IsAuthenticated]
@@ -49,7 +51,7 @@ class DashboardView(mixins.ListModelMixin, GenericViewSet):
             .order_by("-date_received")[:5]
         )
         checked_out = (
-            Container.objects.for_display()
+            queryset.for_display()
             .annotate(most_recent_event=Subquery(self.most_recent_event))
             .annotate(most_recent_event_action=Subquery(self.most_recent_event_action))
             .order_by("-most_recent_event")
@@ -65,7 +67,7 @@ class DashboardView(mixins.ListModelMixin, GenericViewSet):
         # in the database. for_display() prefetches each candidate's latest
         # reading, so scoring them costs no query per container.
         candidates = (
-            Container.objects.filter(readings__isnull=False, tare_weight__gt=0)
+            queryset.filter(readings__isnull=False, tare_weight__gt=0)
             .distinct()
             .for_display()
             # Ties on percent_remaining keep this order, so which containers

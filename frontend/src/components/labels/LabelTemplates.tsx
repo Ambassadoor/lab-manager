@@ -1,5 +1,5 @@
 import { Add, Delete, Edit } from '@mui/icons-material';
-import { Alert, Box, Container, IconButton, Stack, Tooltip, Typography } from '@mui/material';
+import { Alert, Box, Container, IconButton, Stack, Tooltip } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type ColDef } from 'ag-grid-community';
 import { type CustomCellRendererProps } from 'ag-grid-react';
@@ -11,6 +11,7 @@ import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { useConfirmDialog } from '../shared/useConfirmDialog';
 import type { LabelTemplate } from '../../types';
 import { LabelTemplateDialog } from './LabelTemplateDialog';
+import { PageHeader } from '../shared/PageHeader';
 
 const KIND_LABELS: Record<LabelTemplate['kind'], string> = {
   container: 'Container',
@@ -43,6 +44,9 @@ const ActionsCellRenderer = ({ data, onEdit, onDelete }: ActionsCellRendererProp
     </Stack>
   );
 };
+
+// What a phone has room for
+const PHONE_COLUMNS = ['name', 'media_width_mm', 'actions'];
 
 // Admin/Lab Manager-only — App.tsx's RequireRole keeps anyone else from
 // landing here, matching the backend's own role_at_least(LAB_MANAGER) gate
@@ -118,10 +122,11 @@ export const LabelTemplates = () => {
 
   return (
     <Container maxWidth={false}>
-      <Stack direction="row" spacing={2} sx={{ alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Stack direction="row" spacing={2}>
-            <Typography variant="h4">Label Templates</Typography>
+      <PageHeader
+        title="Label Templates"
+        subtitle="Templates already transferred onto the printer via P-touch Transfer Manager, registered here so the app knows which one to use for a given label kind and media size."
+        titleActions={
+          <>
             <Tooltip title="Add template">
               <IconButton
                 onClick={() => {
@@ -132,13 +137,9 @@ export const LabelTemplates = () => {
                 <Add />
               </IconButton>
             </Tooltip>
-          </Stack>
-          <Typography variant="body2" color="text.secondary">
-            Templates already transferred onto the printer via P-touch Transfer Manager, registered
-            here so the app knows which one to use for a given label kind and media size.
-          </Typography>
-        </Box>
-      </Stack>
+          </>
+        }
+      />
       {isError && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error instanceof Error ? error.message : 'Failed to load label templates.'}
@@ -150,6 +151,7 @@ export const LabelTemplates = () => {
           columnDefs={colDefs}
           isLoading={isPending}
           getRowId={(p) => String(p.data.id)}
+          phoneColumns={PHONE_COLUMNS}
         />
       </Box>
       <LabelTemplateDialog

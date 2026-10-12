@@ -11,7 +11,7 @@ A role has a rank, and a permission asks for a minimum rank. A higher rank can d
 | Rank | Roles | Notes |
 |------|-------|-------|
 | 4 | Admin, Lab Manager | The same permissions. Kept as two values so IT could hold Admin while a non-technical person is Lab Manager. |
-| 3 | Coordinator, Faculty | The same permissions. Nothing currently requires rank 3, so in practice these match Stockroom. |
+| 3 | Coordinator, Faculty | The same permissions. Everything Stockroom can do, plus discarding and restoring containers. |
 | 2 | Stockroom Worker | Day-to-day inventory work. |
 | 1 | Lab Assistant | Read-only. The default for a new account. |
 
@@ -33,12 +33,17 @@ Anyone with an `@lipscomb.edu` or `@mail.lipscomb.edu` address can register. The
 | Storage categories | Any user | Stockroom | Lab Manager |
 | Containers | Any user | Stockroom | Lab Manager |
 | Container actions: check out, check in, weigh in, transfer | — | Stockroom | — |
+| Discard a container, or restore a discarded one | — | Coordinator | — |
 | Weight readings | Any user | Stockroom | Lab Manager |
 | Locations | Any user | Stockroom (create, add child, rename, re-parent, move) | Stockroom |
 | Location types | Any user | Stockroom | Lab Manager |
-| SDS | **Visitor** | Stockroom (create only; an SDS cannot be edited) | Not possible |
+| SDS | **Visitor** | Stockroom (attach, correct, replace) | Not possible |
 | Label templates | Any user | Lab Manager | Lab Manager |
 | Dashboard | Any user | — | — |
+
+An SDS can be corrected two ways, both Stockroom and up. **Fix this document** (`PATCH sds/<id>/`) changes the revision date, number, pictograms or PDF of a document for every container sharing it, renaming the Drive file to match; a new PDF replaces the file's content in place, so its link stays the same. **Replace** (`POST sds/<id>/replace/`) points one container's SDS at a different document, and trashes the old Drive file once nothing uses it.
+
+A discarded container drops out of the container list (unless `?is_discarded=` asks for it), a location's containers and the dashboard, and check out, check in, weigh in and transfer refuse it. It still opens by link or scan, and keeps its history.
 
 Deleting a location is open to Stockroom because the database refuses to delete one that still has children or containers.
 
@@ -48,6 +53,7 @@ Deleting a location is open to Stockroom because the database refuses to delete 
 |--------|-----|
 | Register, log in | Visitor |
 | View and edit own profile (not own role) | Any user |
+| Look up a name by Lipscomb ID (Check Out's "checked out by") | Stockroom |
 | List, view and edit other users; change a role | Lab Manager |
 | Delete or deactivate a user | Not possible in the app (Django admin only) |
 
@@ -81,4 +87,4 @@ The original notes for this document described a different model. None of the fo
 - **Guest accounts and elevation requests.** The idea was that a new account starts as a guest and files a request for staff access, which a Lab Manager approves. `User.user_type` has a `guest` value, but nothing sets or checks it. Today a Lab Manager simply changes the role.
 - **A Coordinator tier with wider rights than Stockroom** (creating chemicals, containers and SDS, with Stockroom limited to moving containers and recording weights). Stockroom does all of that today.
 - **Student Worker** as a role. The read-only tier is Lab Assistant.
-- **SDS update and delete.** An SDS is replaced by attaching a newer one.
+- **SDS delete.** A newer revision is attached alongside the old one; a wrong one is corrected or replaced (below).

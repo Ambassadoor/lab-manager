@@ -10,6 +10,7 @@ from .models import (
     LabelTemplate,
     Location,
     SDS,
+    descendant_location_ids,
     most_recent_checkout_event_subquery,
 )
 
@@ -28,12 +29,18 @@ class ContainerFilter(df.FilterSet):
     checkout_status = df.ChoiceFilter(
         choices=CheckoutEvent.ACTION_CHOICES, method="filter_checkout_status"
     )
+    # A location and everything under it (the plain `location` filter is
+    # that one location only)
+    in_location = df.NumberFilter(method="filter_in_location")
 
     class Meta:
         model = Container
         # chemical/location (FK) and quantity_unit (choices field) get their
         # exact-match filters auto-generated from the model field type.
         fields = ["name", "manufacturer", "product_num", "chemical", "location", "quantity_unit"]
+
+    def filter_in_location(self, queryset, name, value):
+        return queryset.filter(location_id__in=descendant_location_ids(int(value)))
 
     def filter_is_opened(self, queryset, name, value):
         return queryset.filter(date_opened__isnull=not value)
@@ -87,6 +94,9 @@ class SDSFilter(df.FilterSet):
             "product_num",
             "revision_date",
             "revision_number",
+            # Every row sharing one Drive file: a correction changes them all,
+            # and the correction dialog says how many that is
+            "drive_id",
         ]
 
     # One combined search box covers Chemical name, Product name, CAS #,
