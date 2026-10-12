@@ -1,4 +1,5 @@
 import re
+from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
 from django.utils import timezone
@@ -48,6 +49,13 @@ class DiscardSerializer(serializers.Serializer):
         if value > timezone.localdate():
             raise serializers.ValidationError("Can't be in the future.")
         return value
+
+
+def _is_positive_number(value) -> bool:
+    try:
+        return Decimal(str(value)) > 0
+    except InvalidOperation:
+        return False
 
 
 # A discarded container is gone from the shelves, so nothing can check it
@@ -632,6 +640,19 @@ class ContainerView(ModelViewSet):
         refused = refuse_discarded(containers)
         if refused:
             return refused
+        # An empty container always weighs something; 0 or less is a typo
+        # (and would read as "no tare" anyway, see has_estimated_usage)
+        bad_tares = sorted(
+            c.label
+            for c in containers
+            if c.slug_lower in tare_weights_by_slug
+            and not _is_positive_number(tare_weights_by_slug[c.slug_lower])
+        )
+        if bad_tares:
+            return Response(
+                {"detail": f"Tare weight must be more than 0 g: {', '.join(bad_tares)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         readings_data = []
         events_data = []

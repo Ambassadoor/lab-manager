@@ -46,23 +46,7 @@ import { MixtureFields } from './MixtureFields';
 import { requiredRule, required, decimalPatternRule } from '../shared/formRules';
 import { LocationSelect } from '../shared/LocationSelect';
 import { QuantityUnitField } from '../shared/QuantityUnitField';
-
-// Converts a quantity from currentUnit to defaultUnit's unit family (mass or volume).
-const convertUnits = (defaultUnit: string, currentUnit: string, quantity: string | number) => {
-  const massUnits = ['mg', 'g', 'kg'];
-  const volumeUnits = ['mL', 'L'];
-  const q = new Decimal(parseFloat(String(quantity)));
-  if (defaultUnit.includes('g')) {
-    const power = massUnits.indexOf(currentUnit) - massUnits.indexOf(defaultUnit);
-    const result = q.times(1000 ** power).toNumber();
-    return result;
-  } else if (defaultUnit.includes('L')) {
-    const power = volumeUnits.indexOf(currentUnit) - volumeUnits.indexOf(defaultUnit);
-    const result = q.times(1000 ** power).toNumber();
-    return result;
-  }
-  return parseFloat(String(quantity));
-};
+import { convertUnits } from '../shared/units';
 
 // Every field below uses a shared wrapper where one fits: RhfTextField,
 // RhfDateField, and RhfSelect for plain text/date/select, LocationSelect for

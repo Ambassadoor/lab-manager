@@ -1206,3 +1206,31 @@ class TestInLocationFilter:
             f"/api/inventory/containers/?in_location={room.id}&search=acetone&is_discarded=true"
         )
         assert {c["slug"] for c in response.data} == {"old-acetone"}
+
+
+@pytest.mark.django_db
+class TestWeighInTareValidation:
+    @pytest.mark.parametrize("tare", ["0", "-5", "abc"])
+    def test_rejects_a_tare_of_zero_or_less(self, client_as, make_container, tare):
+        make_container("jar")
+
+        response = client_as("stockroom").post(
+            "/api/inventory/containers/weigh_in_bulk/",
+            {"checkin": [{"slug": "jar", "weight": "500", "tare_weight": tare}]},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert "Tare weight" in response.data["detail"]
+
+    def test_accepts_a_positive_tare(self, client_as, make_container):
+        make_container("jar")
+
+        response = client_as("stockroom").post(
+            "/api/inventory/containers/weigh_in_bulk/",
+            {"checkin": [{"slug": "jar", "weight": "500", "tare_weight": "212.5"}]},
+            format="json",
+        )
+
+        assert response.status_code == 201
+        assert str(Container.objects.get(slug="jar").tare_weight) == "212.5000"
