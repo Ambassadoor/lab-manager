@@ -3,7 +3,9 @@ import re
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from ..drive import DriveUploadError, upload_sds_file
+from django.db import transaction
+
+from ..drive import DriveUploadError, rename_file, replace_file_content, upload_sds_file
 from ..models import (
     SDS,
     Chemical,
@@ -32,7 +34,9 @@ def _build_sds_filename(container, revision_date, revision_number) -> str:
         _slugify_filename_part(container.product_num or "NA"),
         _slugify_filename_part(container.chemical.name),
     ]
-    if revision_number is not None:
+    # Truthiness, not `is not None`: a blank revision number would name the
+    # file "..._Rev.pdf"
+    if revision_number:
         parts.append(f"Rev{revision_number}")
     if revision_date is not None:
         parts.append(str(revision_date))
@@ -225,6 +229,43 @@ class SDSWriteSerializer(serializers.ModelSerializer):
                 validated_data["ghs_pictograms"] = existing_sds.ghs_pictograms
 
         return SDS.objects.create(**validated_data)
+
+
+# "Fix this document": corrects an SDS's revision date/number and pictograms,
+# and optionally swaps in the right PDF, for every SDS row that shares its
+# Drive file (they are the same document, attached to several containers).
+# The file is renamed to match on Drive, and replaced in place if a new PDF
+# is given, so its link doesn't change.
+class SDSCorrectionSerializer(serializers.ModelSerializer):
+    file = serializers.FileField(write_only=True, required=False)
+
+    class Meta:
+        model = SDS
+        fields = ["revision_date", "revision_number", "ghs_pictograms", "file"]
+
+    validate_file = SDSWriteSerializer.validate_file
+
+    def update(self, instance, validated_data):
+        file = validated_data.pop("file", None)
+        revision_date = validated_data.get("revision_date", instance.revision_date)
+        revision_number = validated_data.get("revision_number", instance.revision_number)
+        file_name = _build_sds_filename(instance.container, revision_date, revision_number)
+
+        # Drive first: if it fails, nothing in the database has changed
+        try:
+            if file is not None:
+                replace_file_content(instance.drive_id, file, file_name)
+            elif file_name != instance.file_name:
+                rename_file(instance.drive_id, file_name)
+        except DriveUploadError as e:
+            raise serializers.ValidationError({"file" if file else "detail": str(e)}) from e
+
+        with transaction.atomic():
+            SDS.objects.filter(drive_id=instance.drive_id).update(
+                file_name=file_name, **validated_data
+            )
+        instance.refresh_from_db()
+        return instance
 
 
 class IngredientSerializer(serializers.ModelSerializer):

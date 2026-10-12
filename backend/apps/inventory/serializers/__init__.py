@@ -3,6 +3,7 @@ from .chemicals import (
     ChemicalStorageCategoriesSerializer,
     ChemicalWriteSerializer,
     IngredientSerializer,
+    SDSCorrectionSerializer,
     SDSSerializer,
     SDSWriteSerializer,
 )
@@ -39,6 +40,7 @@ __all__ = [
     "LocationSerializer",
     "LocationTypeSerializer",
     "LocationWriteSerializer",
+    "SDSCorrectionSerializer",
     "SDSSerializer",
     "SDSWriteSerializer",
     "WeightReadingReadSerializer",

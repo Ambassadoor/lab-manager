@@ -294,3 +294,110 @@ class TestChemicalAndContainerSdsAggregation:
         response = client.get(f"/api/inventory/containers/{container.slug}/")
 
         assert response.data["chemical"] == chemical.id
+
+
+@pytest.fixture
+def shared_sds(make_container):
+    """One document (one Drive file) attached to two containers."""
+    first = make_container("c1", manufacturer="Acme", product_num="P-1")
+    second = make_container("c2", manufacturer="Acme", product_num="P-1")
+    rows = [
+        SDS.objects.create(
+            container=c,
+            file_name="Acme_P-1_Water_Rev2_2024-01-01.pdf",
+            drive_id="drive-shared",
+            revision_date=date(2024, 1, 1),
+            revision_number="2",
+        )
+        for c in (first, second)
+    ]
+    return rows
+
+
+@pytest.mark.django_db
+class TestSDSCorrection:
+    @patch("apps.inventory.serializers.chemicals.rename_file")
+    def test_fix_applies_to_every_row_sharing_the_file(self, mock_rename, client_as, shared_sds):
+        client = client_as(User.Role.STOCKROOM)
+
+        response = client.patch(
+            f"/api/inventory/sds/{shared_sds[0].id}/",
+            {"revision_number": "3", "revision_date": "2025-02-03"},
+            format="multipart",
+        )
+
+        assert response.status_code == 200
+        expected = "Acme_P-1_Water_Rev3_2025-02-03.pdf"
+        mock_rename.assert_called_once_with("drive-shared", expected)
+        assert response.data["file_name"] == expected
+        for row in SDS.objects.filter(drive_id="drive-shared"):
+            assert row.revision_number == "3"
+            assert row.revision_date == date(2025, 2, 3)
+            assert row.file_name == expected
+
+    @patch("apps.inventory.serializers.chemicals.rename_file")
+    @patch("apps.inventory.serializers.chemicals.replace_file_content")
+    def test_new_pdf_replaces_the_content_in_place(
+        self, mock_replace, mock_rename, client_as, shared_sds
+    ):
+        client = client_as(User.Role.STOCKROOM)
+
+        response = client.patch(
+            f"/api/inventory/sds/{shared_sds[0].id}/", {"file": make_pdf()}, format="multipart"
+        )
+
+        assert response.status_code == 200
+        mock_replace.assert_called_once_with(
+            "drive-shared", ANY, "Acme_P-1_Water_Rev2_2024-01-01.pdf"
+        )
+        mock_rename.assert_not_called()
+        assert set(SDS.objects.values_list("drive_id", flat=True)) == {"drive-shared"}
+
+    @patch("apps.inventory.serializers.chemicals.rename_file")
+    def test_unchanged_name_doesnt_touch_drive(self, mock_rename, client_as, shared_sds):
+        client = client_as(User.Role.STOCKROOM)
+
+        response = client.patch(
+            f"/api/inventory/sds/{shared_sds[0].id}/",
+            {"ghs_pictograms": ["flammable"]},
+            format="multipart",
+        )
+
+        assert response.status_code == 200
+        mock_rename.assert_not_called()
+        assert all(r.ghs_pictograms == ["flammable"] for r in SDS.objects.all())
+
+    @patch("apps.inventory.serializers.chemicals.rename_file")
+    def test_drive_failure_changes_nothing(self, mock_rename, client_as, shared_sds):
+        from apps.inventory.drive import DriveUploadError
+
+        mock_rename.side_effect = DriveUploadError("Drive is down")
+        client = client_as(User.Role.STOCKROOM)
+
+        response = client.patch(
+            f"/api/inventory/sds/{shared_sds[0].id}/", {"revision_number": "3"}, format="multipart"
+        )
+
+        assert response.status_code == 400
+        assert set(SDS.objects.values_list("revision_number", flat=True)) == {"2"}
+
+    def test_lab_assistant_and_visitor_cannot_correct(self, client_as, shared_sds):
+        url = f"/api/inventory/sds/{shared_sds[0].id}/"
+
+        assert (
+            client_as(User.Role.LAB_ASSISTANT).patch(url, {"revision_number": "3"}).status_code
+            == 403
+        )
+        assert APIClient().patch(url, {"revision_number": "3"}).status_code == 403
+
+    def test_put_and_delete_are_not_allowed(self, client_as, shared_sds):
+        client = client_as(User.Role.STOCKROOM)
+        url = f"/api/inventory/sds/{shared_sds[0].id}/"
+
+        assert client.put(url, {"revision_number": "3"}).status_code == 405
+        assert client.delete(url).status_code == 405
+
+    def test_drive_id_filter_counts_sharing_rows(self, shared_sds):
+        response = APIClient().get("/api/inventory/sds/?drive_id=drive-shared")
+
+        assert len(response.data) == 2

@@ -788,7 +788,7 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    patch?: never;
+    patch: operations['inventory_sds_partial_update'];
     trace?: never;
   };
   '/api/inventory/weight_readings/': {
@@ -1305,6 +1305,14 @@ export interface components {
       name?: string;
       type?: number;
       parent?: number | null;
+    };
+    PatchedSDSCorrection: {
+      /** Format: date */
+      revision_date?: string | null;
+      revision_number?: string | null;
+      ghs_pictograms?: components['schemas']['GhsPictogramsEnum'][];
+      /** Format: uri */
+      file?: string;
     };
     PatchedUser: {
       readonly id?: number;
@@ -3452,6 +3460,7 @@ export interface operations {
       query?: {
         chemical?: number;
         container?: number;
+        drive_id?: string;
         manufacturer?: string;
         /** @description Which field to use when ordering the results. */
         ordering?: string;
@@ -3520,6 +3529,42 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['SDS'];
+        };
+      };
+    };
+  };
+  inventory_sds_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description A unique integer value identifying this sds. */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['PatchedSDSCorrection'];
+        'application/x-www-form-urlencoded': components['schemas']['PatchedSDSCorrection'];
+        'multipart/form-data': components['schemas']['PatchedSDSCorrection'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SDS'];
+        };
+      };
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorDetail'];
         };
       };
     };
