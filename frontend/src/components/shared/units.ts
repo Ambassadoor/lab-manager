@@ -68,3 +68,7 @@ export function percentRemaining(weight: number, tare: number, contentMassG: num
     .toDecimalPlaces(0, Decimal.ROUND_HALF_UP)
     .toNumber();
 }
+
+// A tare weight Check In can send: a plain number above 0 (the server
+// refuses 0 or less; an empty container always weighs something).
+export const isValidTare = (tare: string) => /^\d+(\.\d+)?$/.test(tare) && Number(tare) > 0;

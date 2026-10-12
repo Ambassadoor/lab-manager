@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { contentMassGrams, convertUnits, estimateTare, percentRemaining } from './units';
+import {
+  contentMassGrams,
+  convertUnits,
+  estimateTare,
+  isValidTare,
+  percentRemaining,
+} from './units';
 
 describe('contentMassGrams', () => {
   it.each([
@@ -57,5 +63,14 @@ describe('convertUnits', () => {
   it('converts within a family', () => {
     expect(convertUnits('g', 'kg', 2)).toBe(2000);
     expect(convertUnits('mL', 'L', '1.5')).toBe(1500);
+  });
+});
+
+describe('isValidTare', () => {
+  it('takes a number above 0 only', () => {
+    expect(isValidTare('212.5')).toBe(true);
+    expect(isValidTare('0')).toBe(false);
+    expect(isValidTare('-100')).toBe(false);
+    expect(isValidTare('abc')).toBe(false);
   });
 });
