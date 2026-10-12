@@ -2429,13 +2429,21 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
+                                "$ref": "#/components/schemas/CheckOut"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CheckOut"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CheckOut"
                             }
                         }
-                    }
+                    },
+                    "required": true
                 },
                 "security": [
                     {
@@ -2457,7 +2465,8 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ErrorDetail"
+                                    "type": "object",
+                                    "additionalProperties": {}
                                 }
                             }
                         },
@@ -4555,6 +4564,24 @@
                 "type": "string",
                 "description": "* `confusing` - Something was confusing\n* `tedious` - Something is slow or tedious\n* `idea` - I have an idea\n* `other` - Other"
             },
+            "CheckOut": {
+                "type": "object",
+                "properties": {
+                    "containers": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "holder": {
+                        "$ref": "#/components/schemas/CheckoutHolder"
+                    }
+                },
+                "required": [
+                    "containers",
+                    "holder"
+                ]
+            },
             "CheckoutEvent": {
                 "type": "object",
                 "properties": {
@@ -4659,6 +4686,18 @@
                 "required": [
                     "events"
                 ]
+            },
+            "CheckoutHolder": {
+                "type": "object",
+                "properties": {
+                    "lipscomb_id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 150
+                    }
+                }
             },
             "Chemical": {
                 "type": "object",

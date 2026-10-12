@@ -79,3 +79,62 @@ class TestUserLookup:
 
     def test_stockroom_still_cannot_list_users(self, client_as):
         assert client_as("stockroom").get("/api/auth/users/").status_code == 403
+
+
+@pytest.mark.django_db
+class TestCheckOutHolder:
+    URL = "/api/inventory/containers/check_out/"
+
+    def check_out(self, client, holder):
+        return client.post(self.URL, {"containers": ["jar"], "holder": holder}, format="json")
+
+    def test_matching_id_links_the_user(self, client_as, make_container):
+        make_container("jar")
+        student = make_user("student", "Ada", "Lovelace", lipscomb_id="L12345678")
+
+        response = self.check_out(client_as("stockroom"), {"lipscomb_id": "L12345678"})
+
+        assert response.status_code == 201
+        event = CheckoutEvent.objects.get()
+        assert event.holder == student
+        assert event.holder_name == ""
+        assert event.user.username == "user-stockroom"
+
+    def test_unknown_id_needs_a_name_and_keeps_both(self, client_as, make_container):
+        make_container("jar")
+        client = client_as("stockroom")
+
+        assert self.check_out(client, {"lipscomb_id": "L87654321"}).status_code == 400
+        response = self.check_out(client, {"lipscomb_id": "L87654321", "name": "Grace Hopper"})
+
+        assert response.status_code == 201
+        event = CheckoutEvent.objects.get()
+        assert (event.holder, event.holder_name, event.holder_lipscomb_id) == (
+            None,
+            "Grace Hopper",
+            "L87654321",
+        )
+
+    def test_a_name_alone_is_enough(self, client_as, make_container):
+        make_container("jar")
+
+        response = self.check_out(client_as("stockroom"), {"name": "Grace Hopper"})
+
+        assert response.status_code == 201
+        assert CheckoutEvent.objects.get().holder_display == "Grace Hopper"
+
+    def test_someone_must_be_named(self, client_as, make_container):
+        make_container("jar")
+        client = client_as("stockroom")
+
+        assert self.check_out(client, {}).status_code == 400
+        assert self.check_out(client, {"name": "  "}).status_code == 400
+        assert client.post(self.URL, ["jar"], format="json").status_code == 400
+        assert not CheckoutEvent.objects.exists()
+
+    def test_malformed_id_is_refused(self, client_as, make_container):
+        make_container("jar")
+
+        response = self.check_out(client_as("stockroom"), {"lipscomb_id": "123", "name": "X"})
+
+        assert response.status_code == 400

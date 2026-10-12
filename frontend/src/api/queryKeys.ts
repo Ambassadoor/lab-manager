@@ -44,6 +44,7 @@ export const userKeys = {
   // See containerKeys.list's comment — same partial-match reasoning applies.
   list: (params?: UserListParams) => [...userKeys.all, 'list', params ?? {}] as const,
   detail: (id: string) => [...userKeys.all, 'detail', id] as const,
+  lookup: (lipscombId: string) => [...userKeys.all, 'lookup', lipscombId] as const,
 };
 
 export const sdsKeys = {

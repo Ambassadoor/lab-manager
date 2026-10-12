@@ -166,7 +166,7 @@ export const Dashboard = () => {
           loading={isLoading}
           viewKey="checked_out"
           secondary={(c) =>
-            `${c.label}${c.checkout_status ? ` · by ${c.checkout_status.user.full_name}` : ''}`
+            `${c.label}${c.checkout_status ? ` · by ${c.checkout_status.holder_display}` : ''}`
           }
         />
         <Card elevation={2} sx={{ flex: '1 1 300px', minWidth: 280, opacity: 0.6 }}>

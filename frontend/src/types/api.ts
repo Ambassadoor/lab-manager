@@ -919,6 +919,10 @@ export interface components {
      * @enum {string}
      */
     CategoryEnum: 'confusing' | 'tedious' | 'idea' | 'other';
+    CheckOut: {
+      containers: string[];
+      holder: components['schemas']['CheckoutHolder'];
+    };
     CheckoutEvent: {
       readonly id: number;
       readonly user: components['schemas']['UserCheckoutEvent'];
@@ -947,6 +951,10 @@ export interface components {
     };
     CheckoutEvents: {
       events: components['schemas']['CheckoutEventWrite'][];
+    };
+    CheckoutHolder: {
+      lipscomb_id?: string;
+      name?: string;
     };
     Chemical: {
       readonly id: number;
@@ -2834,9 +2842,11 @@ export interface operations {
       path?: never;
       cookie?: never;
     };
-    requestBody?: {
+    requestBody: {
       content: {
-        'application/json': string[];
+        'application/json': components['schemas']['CheckOut'];
+        'application/x-www-form-urlencoded': components['schemas']['CheckOut'];
+        'multipart/form-data': components['schemas']['CheckOut'];
       };
     };
     responses: {
@@ -2853,7 +2863,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ErrorDetail'];
+          'application/json': {
+            [key: string]: unknown;
+          };
         };
       };
     };

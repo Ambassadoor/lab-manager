@@ -229,7 +229,9 @@ class TestWeighInBulk:
         container = make_container("c1")
 
         checkout_response = client.post(
-            "/api/inventory/containers/check_out/", [container.slug], format="json"
+            "/api/inventory/containers/check_out/",
+            {"containers": [container.slug], "holder": {"name": "Test Holder"}},
+            format="json",
         )
         assert checkout_response.status_code == 201
         checkout_event_id = checkout_response.data["events"][0]["id"]
@@ -364,8 +366,16 @@ class TestContainerFilters:
         checked_out = make_container("out-jar")
         checked_in = make_container("in-jar")
 
-        client.post("/api/inventory/containers/check_out/", [checked_out.slug], format="json")
-        client.post("/api/inventory/containers/check_out/", [checked_in.slug], format="json")
+        client.post(
+            "/api/inventory/containers/check_out/",
+            {"containers": [checked_out.slug], "holder": {"name": "Test Holder"}},
+            format="json",
+        )
+        client.post(
+            "/api/inventory/containers/check_out/",
+            {"containers": [checked_in.slug], "holder": {"name": "Test Holder"}},
+            format="json",
+        )
         client.post("/api/inventory/containers/check_in/", [checked_in.slug], format="json")
 
         response = client.get("/api/inventory/containers/?checkout_status=out")
@@ -666,7 +676,9 @@ class TestRolePermissions:
         assert client.delete(f"/api/inventory/containers/{container.slug}/").status_code == 403
         assert (
             client.post(
-                "/api/inventory/containers/check_out/", [container.slug], format="json"
+                "/api/inventory/containers/check_out/",
+                {"containers": [container.slug], "holder": {"name": "Test Holder"}},
+                format="json",
             ).status_code
             == 403
         )
@@ -681,7 +693,9 @@ class TestRolePermissions:
 
         assert (
             client.post(
-                "/api/inventory/containers/check_out/", [container.slug], format="json"
+                "/api/inventory/containers/check_out/",
+                {"containers": [container.slug], "holder": {"name": "Test Holder"}},
+                format="json",
             ).status_code
             == 201
         )
@@ -961,14 +975,20 @@ class TestScannedContainerIds:
         assert container.label.startswith("CHEM-0")
 
         response = client.post(
-            "/api/inventory/containers/check_out/", [container.label], format="json"
+            "/api/inventory/containers/check_out/",
+            {"containers": [container.label], "holder": {"name": "Test Holder"}},
+            format="json",
         )
 
         assert response.status_code == 201
         assert CheckoutEvent.objects.filter(container=container, action="out").exists()
 
     def test_check_out_and_check_in_accept_a_padded_id(self, client, container, padded):
-        out = client.post("/api/inventory/containers/check_out/", [padded], format="json")
+        out = client.post(
+            "/api/inventory/containers/check_out/",
+            {"containers": [padded], "holder": {"name": "Test Holder"}},
+            format="json",
+        )
         back = client.post("/api/inventory/containers/check_in/", [padded], format="json")
 
         assert out.status_code == 201
