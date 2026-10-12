@@ -1567,6 +1567,13 @@
                     },
                     {
                         "in": "query",
+                        "name": "in_location",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "in": "query",
                         "name": "is_discarded",
                         "schema": {
                             "type": "boolean"
@@ -2140,6 +2147,13 @@
                     },
                     {
                         "in": "query",
+                        "name": "in_location",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "in": "query",
                         "name": "is_discarded",
                         "schema": {
                             "type": "boolean"
@@ -2456,6 +2470,13 @@
                         "name": "has_estimated_usage",
                         "schema": {
                             "type": "boolean"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "in_location",
+                        "schema": {
+                            "type": "number"
                         }
                     },
                     {

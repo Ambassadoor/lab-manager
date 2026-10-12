@@ -1170,3 +1170,39 @@ class TestContainerCreate:
 
         assert response.status_code == 400
         assert "chemicals" in response.data
+
+
+@pytest.mark.django_db
+class TestInLocationFilter:
+    def test_includes_every_level_below(self, client_as, make_container, make_location):
+        building = make_location("Building")
+        room = make_location("Room", parent=building)
+        shelf = make_location("Shelf", parent=room)
+        elsewhere = make_location("Elsewhere")
+        make_container("in-building", location=building)
+        make_container("on-shelf", location=shelf)
+        make_container("elsewhere", location=elsewhere)
+        reader = client_as("lab_assistant")
+
+        response = reader.get(f"/api/inventory/containers/?in_location={building.id}")
+
+        assert response.status_code == 200
+        assert {c["slug"] for c in response.data} == {"in-building", "on-shelf"}
+        shelf_only = reader.get(f"/api/inventory/containers/?in_location={shelf.id}")
+        assert {c["slug"] for c in shelf_only.data} == {"on-shelf"}
+
+    def test_combines_with_search_and_discarded(self, client_as, make_container, make_location):
+        room = make_location("Room")
+        make_container("acetone", location=room)
+        make_container("ethanol", location=room)
+        make_container("old-acetone", location=room, date_discarded=date(2026, 1, 1))
+        make_container("acetone-2")
+        reader = client_as("lab_assistant")
+
+        response = reader.get(f"/api/inventory/containers/?in_location={room.id}&search=acetone")
+        assert {c["slug"] for c in response.data} == {"acetone"}
+
+        response = reader.get(
+            f"/api/inventory/containers/?in_location={room.id}&search=acetone&is_discarded=true"
+        )
+        assert {c["slug"] for c in response.data} == {"old-acetone"}

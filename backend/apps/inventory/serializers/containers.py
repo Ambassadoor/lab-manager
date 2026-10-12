@@ -3,7 +3,14 @@ from rest_framework import serializers
 
 from apps.users.serializers import UserCheckoutEventSerializer
 
-from ..models import Chemical, CheckoutEvent, Container, Location, WeightReading
+from ..models import (
+    Chemical,
+    CheckoutEvent,
+    Container,
+    Location,
+    WeightReading,
+    descendant_location_ids,
+)
 from ..storage_rules import check_storage_conflicts
 from .chemicals import SDSSerializer
 from .locations import LocationSerializer, LocationTypeSerializer
@@ -197,36 +204,10 @@ class LocationContainersSerializer(serializers.ModelSerializer):
         model = Location
         fields = ["id", "name", "type", "full_path", "containers"]
 
-    # Get's all containers for selected location and any of it's children locations.
-    #
-    # Two queries total regardless of the tree's depth/shape: one to load
-    # every location's (id, parent_id) pair and build a parent -> children
-    # map in Python, then a plain BFS over that map to collect descendant
-    # ids — versus the previous obj.children.all() recursion, which fired
-    # one query per node visited.
+    # Every active container in this location or any location under it
     @extend_schema_field(ContainerSerializer(many=True))
     def get_containers(self, obj):
-        children_by_parent: dict[int | None, list[int]] = {}
-        for child_id, parent_id in Location.objects.values_list("id", "parent_id"):
-            children_by_parent.setdefault(parent_id, []).append(child_id)
-
-        # `visited` guards against a corrupted parent chain (a cycle) turning
-        # this into an infinite loop. Location.clean() blocks cycles through
-        # normal save(), but nothing stops a bulk .update() from introducing
-        # one directly — without this guard, a cycle would requeue the same
-        # ids forever instead of failing.
-        location_ids = [obj.id]
-        visited = {obj.id}
-        queue = [obj.id]
-        while queue:
-            current = queue.pop()
-            for child_id in children_by_parent.get(current, []):
-                if child_id in visited:
-                    continue
-                visited.add(child_id)
-                location_ids.append(child_id)
-                queue.append(child_id)
-
+        location_ids = descendant_location_ids(obj.id)
         containers = Container.objects.active().for_display().filter(location__id__in=location_ids)
         serializer = ContainerSerializer(containers, many=True)
         return serializer.data
