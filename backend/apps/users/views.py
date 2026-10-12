@@ -2,6 +2,7 @@ from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import mixins, status, serializers
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -10,7 +11,12 @@ from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParam
 from drf_spectacular.types import OpenApiTypes
 from .models import User
 from .permissions import role_at_least
-from .serializers import UserSerializer, UserAdminSerializer, NewUserSerializer
+from .serializers import (
+    NewUserSerializer,
+    UserAdminSerializer,
+    UserSerializer,
+    validate_lipscomb_id,
+)
 
 
 @method_decorator(ensure_csrf_cookie, name="get")
@@ -90,6 +96,9 @@ class MeView(APIView):
         return Response(serializer.data)
 
 
+LOOKUP_ERROR = inline_serializer(name="UserLookupError", fields={"detail": serializers.CharField()})
+
+
 class UserView(
     mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, GenericViewSet
 ):
@@ -108,6 +117,43 @@ class UserView(
     search_fields = ["username", "first_name", "last_name", "email"]
     filterset_fields = ["role"]
     ordering_fields = ["username", "first_name", "last_name", "role"]
+
+    # The one exception: Check Out (Stockroom) looks up who's taking a
+    # container by their Lipscomb ID, and gets back only a name
+    def get_permissions(self):
+        if self.action == "lookup":
+            return [role_at_least(User.Role.STOCKROOM)()]
+        return super().get_permissions()
+
+    @extend_schema(
+        parameters=[OpenApiParameter("lipscomb_id", str, required=True)],
+        responses={
+            200: inline_serializer(
+                name="UserLookup",
+                fields={"id": serializers.IntegerField(), "full_name": serializers.CharField()},
+            ),
+            400: LOOKUP_ERROR,
+            404: LOOKUP_ERROR,
+        },
+    )
+    @action(detail=False, methods=["get"])
+    def lookup(self, request):
+        try:
+            lipscomb_id = validate_lipscomb_id(request.query_params.get("lipscomb_id", ""))
+        except serializers.ValidationError:
+            lipscomb_id = None
+        if lipscomb_id is None:
+            return Response(
+                {"detail": "A Lipscomb ID looks like L12345678."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user = User.objects.filter(lipscomb_id=lipscomb_id).first()
+        if user is None:
+            return Response(
+                {"detail": f"No account has the ID {lipscomb_id}."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response({"id": user.id, "full_name": user.full_name})
 
 
 class RegisterView(APIView):

@@ -412,6 +412,62 @@
                 }
             }
         },
+        "/api/auth/users/lookup/": {
+            "get": {
+                "operationId": "auth_users_lookup_retrieve",
+                "description": "Admin/Lab Manager viewing and editing *other* users' accounts.\n\nList/retrieve/update only — no create (registration already covers\nthat) and no destroy (account deactivation/deletion isn't in scope\nyet). Every action shares the same LAB_MANAGER+ gate: unlike the\ninventory views, there's no read/write split here — viewing another\nuser's info is itself the restricted thing, not just editing it.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "lipscomb_id",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserLookup"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserLookupError"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserLookupError"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/api/auth/validate/": {
             "get": {
                 "operationId": "auth_validate_retrieve",
@@ -6361,6 +6417,32 @@
                 },
                 "required": [
                     "full_name"
+                ]
+            },
+            "UserLookup": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "full_name": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "full_name",
+                    "id"
+                ]
+            },
+            "UserLookupError": {
+                "type": "object",
+                "properties": {
+                    "detail": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "detail"
                 ]
             },
             "WeighIn": {
