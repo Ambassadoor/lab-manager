@@ -122,8 +122,14 @@ class ContainerView(ModelViewSet):
     # Reads load everything ContainerSerializer needs in a fixed number of
     # queries (finding 5). Writes and custom actions don't serialize a list,
     # so they keep the plain queryset.
+    #
+    # The list hides discarded containers unless ?is_discarded= asks about
+    # them (true: only discarded, false: only active). Retrieve doesn't, so
+    # a scan or link still opens one.
     def get_queryset(self):
         queryset = super().get_queryset()
+        if self.action == "list" and "is_discarded" not in self.request.query_params:
+            queryset = queryset.active()
         if self.action in {"list", "retrieve"}:
             return queryset.for_display()
         return queryset

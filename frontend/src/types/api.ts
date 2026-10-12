@@ -938,6 +938,9 @@ export interface components {
       readonly percent_remaining: number | null;
       readonly checkout_status: components['schemas']['CheckoutEvent'] | null;
       readonly latest_sds: components['schemas']['SDS'] | null;
+      /** Format: date */
+      readonly date_discarded: string | null;
+      readonly discarded_by: components['schemas']['UserCheckoutEvent'] | null;
     };
     ContainerDiscardStatus: {
       is_discarded?: boolean;

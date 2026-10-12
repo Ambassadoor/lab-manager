@@ -4550,11 +4550,28 @@
                         ],
                         "nullable": true,
                         "readOnly": true
+                    },
+                    "date_discarded": {
+                        "type": "string",
+                        "format": "date",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "discarded_by": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/UserCheckoutEvent"
+                            }
+                        ],
+                        "readOnly": true,
+                        "nullable": true
                     }
                 },
                 "required": [
                     "checkout_status",
                     "chemical",
+                    "date_discarded",
+                    "discarded_by",
                     "has_estimated_usage",
                     "id",
                     "is_opened",
