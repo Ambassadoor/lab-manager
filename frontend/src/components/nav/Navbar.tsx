@@ -178,14 +178,8 @@ export const Navbar = (): JSX.Element | null => {
                 </Button>
                 {user && (
                   <>
-                    <Button
-                      component={NavLink}
-                      to="/inventory/containers/"
-                      color="inherit"
-                      sx={navLinkSx}
-                      end
-                    >
-                      Containers
+                    <Button component={NavLink} to="/inventory/" color="inherit" sx={navLinkSx} end>
+                      Inventory
                     </Button>
                     {hasRoleAtLeast(user, 'stockroom') && (
                       <>
@@ -247,15 +241,6 @@ export const Navbar = (): JSX.Element | null => {
                         </Box>
                       </>
                     )}
-                    <Button
-                      component={NavLink}
-                      to="/inventory/locations/"
-                      color="inherit"
-                      sx={navLinkSx}
-                      end
-                    >
-                      Locations
-                    </Button>
                     <Button
                       component={NavLink}
                       to="/inventory/chemicals"
@@ -378,12 +363,12 @@ export const Navbar = (): JSX.Element | null => {
               <>
                 <ListItemButton
                   component={NavLink}
-                  to="/inventory/containers/"
+                  to="/inventory/"
                   end
                   sx={navLinkSx}
                   onClick={closeMobileMenu}
                 >
-                  <ListItemText primary="Containers" />
+                  <ListItemText primary="Inventory" />
                 </ListItemButton>
                 {hasRoleAtLeast(user, 'stockroom') && (
                   <>
@@ -415,15 +400,6 @@ export const Navbar = (): JSX.Element | null => {
                     <Divider />
                   </>
                 )}
-                <ListItemButton
-                  component={NavLink}
-                  to="/inventory/locations/"
-                  end
-                  sx={navLinkSx}
-                  onClick={closeMobileMenu}
-                >
-                  <ListItemText primary="Locations" />
-                </ListItemButton>
                 <ListItemButton
                   component={NavLink}
                   to="/inventory/chemicals"

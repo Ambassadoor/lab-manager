@@ -31,7 +31,6 @@ export const chemicalKeys = {
 export const locationKeys = {
   all: ['locations'] as const,
   list: () => [...locationKeys.all, 'list'] as const,
-  containers: (locationId: string) => [...locationKeys.all, 'containers', locationId] as const,
   types: () => [...locationKeys.all, 'types'] as const,
   menu: () => [...locationKeys.all, 'menu'] as const,
 };

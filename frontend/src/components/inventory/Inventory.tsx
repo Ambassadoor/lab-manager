@@ -6,10 +6,13 @@ import {
   Drawer,
   FormControlLabel,
   IconButton,
+  Paper,
   Snackbar,
+  Stack,
   Switch,
   Tooltip,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getContainers, patchContainer, type ContainerListParams } from '../../api/inventory';
@@ -25,7 +28,7 @@ import { ContainerDetail } from './ContainerDetail';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DataTable } from '../shared/DataTable';
 import type { Container as ContainerType, ContainerPatch, EditableKeys } from '../../types';
-import { AddBox, Description, Print, UploadFile } from '@mui/icons-material';
+import { AddBox, CreateNewFolder, Description, Print, UploadFile } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { hasRoleAtLeast } from '../shared/roles';
@@ -34,6 +37,7 @@ import { PrintResultSnackbar } from '../shared/PrintResultSnackbar';
 import { printContainerLabel } from '../shared/printTemplates';
 import { PageHeader } from '../shared/PageHeader';
 import { useIsPhone } from '../shared/useIsPhone';
+import { LocationTree } from './locations/LocationTree';
 
 // The three dashboard-card slices "View More" can land here with, via
 // ?view=. `checked_out` and `recently_added` translate straight to backend
@@ -125,7 +129,7 @@ const SdsCellRenderer = (params: CustomCellRendererProps<ContainerType>) => {
 
 // The print column's cellRenderer — unlike SdsCellRenderer, it doesn't own
 // a mutation itself: one print at a time, one snackbar for whichever row
-// triggered it, same reasoning as Locations.tsx's recursive tree. `onPrint`
+// triggered it, same reasoning as LocationTree's. `onPrint`
 // comes from the parent's cellRendererParams instead.
 type PrintCellRendererProps = CustomCellRendererProps<ContainerType> & {
   onPrint: (container: ContainerType) => void;
@@ -144,20 +148,36 @@ const PrintCellRenderer = ({ data, onPrint }: PrintCellRendererProps) => {
   );
 };
 
-// What a phone has room for
-const PHONE_COLUMNS = ['label', 'name', 'location.full_path'];
+// What a phone has room for. Not the location: three columns cut the IDs
+// short, and the tree's header above already says where you are.
+const PHONE_COLUMNS = ['label', 'name'];
 
-// Fetches its own container list rather than receiving it as a prop — this
-// only pays for itself once a second consumer needs the same data (App.tsx
-// renders this at exactly one route today, so there's no duplicate fetch to
-// eliminate yet). Revisit if/when a sibling route needs the same list.
-export const Containers = () => {
+// The inventory: the location tree beside every container in the selected
+// location (and the locations under it), searchable, editable in place,
+// with SDS and label actions. Replaces the separate Containers and
+// Locations pages; /inventory/containers and /inventory/locations redirect
+// here (App.tsx).
+export const Inventory = () => {
   const { user } = useAuth();
   const canEdit = hasRoleAtLeast(user, 'stockroom');
 
   const [searchParams, setSearchParams] = useSearchParams();
   const viewParam = searchParams.get('view');
   const view = isContainersViewKey(viewParam) ? viewParam : null;
+  // Selection lives in the URL (?location=<id>), so a location can be
+  // linked to, scanned to, and survives back/forward. '' is all locations.
+  const selectedLocation = searchParams.get('location') ?? '';
+  const setSelectedLocation = (id: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (id) next.set('location', id);
+      else next.delete('location');
+      return next;
+    });
+    // The previewed container likely isn't in the new location's list
+    setPreviewSlug(null);
+  };
+  const [addRootOpen, setAddRootOpen] = useState(false);
 
   // Local (not URL) state — kept independent of `?view=` so the banner's
   // "Clear" button below only clears the view, not an in-progress search.
@@ -177,8 +197,9 @@ export const Containers = () => {
     if (view === 'checked_out') params.checkout_status = 'out';
     if (view === 'recently_added') params.ordering = '-date_received';
     if (discardedOnly) params.is_discarded = true;
+    if (selectedLocation) params.in_location = Number(selectedLocation);
     return params;
-  }, [debouncedSearch, view, discardedOnly]);
+  }, [debouncedSearch, view, discardedOnly, selectedLocation]);
 
   const {
     isPending,
@@ -195,8 +216,17 @@ export const Containers = () => {
     [containers, view]
   );
 
+  // The side drawer (narrower desktops, the iPad) and the preview panel
+  // (xl and up, where tree + grid + panel all fit)
   const [open, setOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<ContainerType | undefined>(undefined);
+  const showPreview = useMediaQuery((theme) => theme.breakpoints.up('xl'));
+  // Slug rather than the row, so the preview re-derives from the latest
+  // list data after a refetch (e.g. after editing in the panel)
+  const [previewSlug, setPreviewSlug] = useState<string | null>(null);
+  const previewContainer = previewSlug
+    ? filteredContainers?.find((c) => c.slug === previewSlug)
+    : undefined;
   const [editError, setEditError] = useState<string | null>(null);
 
   const qc = useQueryClient();
@@ -287,23 +317,23 @@ export const Containers = () => {
   return (
     <Container maxWidth={false}>
       <PageHeader
-        title="Containers"
-        subtitle="Browse and edit containers in inventory."
+        title="Inventory"
+        subtitle="Browse containers by location, search them, and edit them."
         titleActions={
-          <>
-            {canEdit && (
+          canEdit && (
+            <>
               <Tooltip title="Add container">
-                <IconButton
-                  onClick={() => {
-                    navigate('new');
-                    setOpen(true);
-                  }}
-                >
+                <IconButton onClick={() => navigate('/inventory/containers/new')}>
                   <AddBox />
                 </IconButton>
               </Tooltip>
-            )}
-          </>
+              <Tooltip title="Add location">
+                <IconButton onClick={() => setAddRootOpen(true)}>
+                  <CreateNewFolder />
+                </IconButton>
+              </Tooltip>
+            </>
+          )
         }
         search={{ value: searchInput, onChange: setSearchInput, placeholder: 'Search containers…' }}
       />
@@ -319,7 +349,17 @@ export const Containers = () => {
           severity="info"
           sx={{ mb: 2 }}
           action={
-            <Button color="inherit" size="small" onClick={() => setSearchParams({})}>
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() =>
+                setSearchParams((prev) => {
+                  const next = new URLSearchParams(prev);
+                  next.delete('view');
+                  return next;
+                })
+              }
+            >
               Clear
             </Button>
           }
@@ -328,30 +368,83 @@ export const Containers = () => {
           {filteredContainers ? ` (${filteredContainers.length})` : ''}
         </Alert>
       )}
-      <Box>
-        <DataTable<ContainerType>
-          rowData={filteredContainers}
-          columnDefs={colDefs}
-          rowSelection={rowSelection}
-          pageSize={50}
-          getRowId={getRowId}
-          isLoading={isPending}
-          isError={isError}
-          errorMessage={error instanceof Error ? error.message : undefined}
-          singleClickEdit
-          phoneColumns={PHONE_COLUMNS}
-          onRowOpen={(row) => {
-            // The side drawer would be too narrow on a phone
-            if (isPhone) {
-              navigate(`/inventory/containers/${row.slug}`, { state: row });
-              return;
-            }
-            setSelectedRow(row);
-            setOpen(true);
-          }}
-          onCellValueChanged={onCellValueChanged}
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+        <LocationTree
+          selectedLocation={selectedLocation}
+          onSelect={setSelectedLocation}
+          onDeleted={(deletedId) =>
+            // Reads the latest params at apply time, so this can't clear a
+            // different location selected while the delete was in flight
+            setSearchParams((prev) => {
+              if (prev.get('location') !== deletedId) return prev;
+              const next = new URLSearchParams(prev);
+              next.delete('location');
+              return next;
+            })
+          }
+          addRootOpen={addRootOpen}
+          setAddRootOpen={setAddRootOpen}
         />
-      </Box>
+        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+          <DataTable<ContainerType>
+            align="start"
+            height="75dvh"
+            rowData={filteredContainers}
+            columnDefs={colDefs}
+            rowSelection={rowSelection}
+            pageSize={50}
+            getRowId={getRowId}
+            isLoading={isPending}
+            isError={isError}
+            errorMessage={error instanceof Error ? error.message : undefined}
+            singleClickEdit
+            phoneColumns={PHONE_COLUMNS}
+            onRowClicked={(e) => {
+              if (showPreview && e.data) setPreviewSlug(e.data.slug);
+            }}
+            onRowOpen={(row) => {
+              // Phone: no room for a drawer. xl: the preview panel already
+              // shows it, so a double-click goes to its full page.
+              if (isPhone || showPreview) {
+                navigate(`/inventory/containers/${row.slug}`, { state: row });
+                return;
+              }
+              setSelectedRow(row);
+              setOpen(true);
+            }}
+            onCellValueChanged={onCellValueChanged}
+          />
+        </Box>
+        {showPreview && (
+          <Box sx={{ flexShrink: 0, width: '25dvw' }}>
+            {previewContainer ? (
+              // key: remount per container so an in-progress edit on one
+              // doesn't carry over to the next
+              <ContainerDetail
+                key={previewContainer.slug}
+                data={previewContainer}
+                elevation={4}
+                onClose={() => setPreviewSlug(null)}
+              />
+            ) : (
+              <Paper
+                elevation={4}
+                sx={{
+                  height: '75dvh',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  p: 3,
+                }}
+              >
+                <Typography color="text.secondary" align="center">
+                  Select a container to preview it here. Double-click to open its full page.
+                </Typography>
+              </Paper>
+            )}
+          </Box>
+        )}
+      </Stack>
       <Drawer
         open={open}
         onClose={() => setOpen((prev) => !prev)}

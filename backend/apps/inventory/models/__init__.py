@@ -9,7 +9,7 @@ from .containers import (
     most_recent_checkout_event_subquery,
 )
 from .labels import LabelTemplate, LabelTemplateField
-from .locations import Location, LocationTypes
+from .locations import Location, LocationTypes, descendant_location_ids
 
 __all__ = [
     "Chemical",
@@ -24,6 +24,7 @@ __all__ = [
     "LocationTypes",
     "SDS",
     "WeightReading",
+    "descendant_location_ids",
     "highest_container_pk_subquery",
     "most_recent_checkout_event_subquery",
     "validate_cas",

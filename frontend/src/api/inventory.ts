@@ -29,6 +29,8 @@ export type ContainerListParams = {
   ordering?: string;
   // Unset hides discarded containers; true lists only discarded ones
   is_discarded?: boolean;
+  // A location id: containers there and in every location under it
+  in_location?: number;
 };
 
 export const getContainers = (params?: ContainerListParams): Promise<Container[] | []> => {
@@ -52,10 +54,6 @@ export const editLocation = (data: EditLocationDefaults, id: string): Promise<Lo
     method: 'PATCH',
     body: JSON.stringify(data),
   });
-};
-
-export const getLocationContainers = (id: string): Promise<Location> => {
-  return apiFetch(`/api/inventory/locations/${id}/containers`);
 };
 
 export const getContainerMetaData = (): Promise<ContainerOptions> => {

@@ -22,7 +22,7 @@ import { useNavigate } from 'react-router-dom';
 import { getDashboard } from '../../api/inventory';
 import { dashboardKeys } from '../../api/queryKeys';
 import type { Container as ContainerType } from '../../types';
-import type { ContainersViewKey } from './Containers';
+import type { ContainersViewKey } from './Inventory';
 
 const EmptyState = ({ label }: { label: string }) => (
   <ListItem>
@@ -103,7 +103,7 @@ const DashboardSection = ({
           <Button
             size="small"
             sx={{ alignSelf: 'flex-end', mt: 1 }}
-            onClick={() => navigate(`/inventory/containers/?view=${viewKey}`)}
+            onClick={() => navigate(`/inventory/?view=${viewKey}`)}
           >
             View More
           </Button>

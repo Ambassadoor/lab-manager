@@ -2327,6 +2327,7 @@ export interface operations {
         expiration_date_after?: string;
         expiration_date_before?: string;
         has_estimated_usage?: boolean;
+        in_location?: number;
         is_discarded?: boolean;
         is_opened?: boolean;
         location?: number;
@@ -2618,6 +2619,7 @@ export interface operations {
         expiration_date_after?: string;
         expiration_date_before?: string;
         has_estimated_usage?: boolean;
+        in_location?: number;
         is_discarded?: boolean;
         is_opened?: boolean;
         location?: number;
@@ -2758,6 +2760,7 @@ export interface operations {
         expiration_date_after?: string;
         expiration_date_before?: string;
         has_estimated_usage?: boolean;
+        in_location?: number;
         is_discarded?: boolean;
         is_opened?: boolean;
         location?: number;

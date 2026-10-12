@@ -42,10 +42,7 @@ export const ContainerView = ({ container, showCurrentWeight }: ContainerViewPro
       <Stack spacing={1.5}>
         <DetailRow label="Location">
           {container.location && (
-            <Link
-              component={RouterLink}
-              to={`/inventory/locations?location=${container.location.id}`}
-            >
+            <Link component={RouterLink} to={`/inventory/?location=${container.location.id}`}>
               {container.location.full_path}
             </Link>
           )}

@@ -12,6 +12,35 @@ class LocationTypes(models.Model):
         return self.name
 
 
+def descendant_location_ids(location_id: int) -> list[int]:
+    """The location and every location under it, at any depth.
+
+    Two-step and query-count-flat whatever the tree's shape: one query loads
+    every (id, parent_id) pair, then a walk over that map in Python collects
+    the descendants (one query per node, as a recursive children.all()
+    would, gets slow on a deep tree).
+    """
+    children_by_parent: dict[int | None, list[int]] = {}
+    for child_id, parent_id in Location.objects.values_list("id", "parent_id"):
+        children_by_parent.setdefault(parent_id, []).append(child_id)
+
+    # `visited` guards against a corrupted parent chain (a cycle) turning
+    # this into an infinite loop. Location.clean() blocks cycles through
+    # normal save(), but nothing stops a bulk .update() from introducing one.
+    location_ids = [location_id]
+    visited = {location_id}
+    queue = [location_id]
+    while queue:
+        current = queue.pop()
+        for child_id in children_by_parent.get(current, []):
+            if child_id in visited:
+                continue
+            visited.add(child_id)
+            location_ids.append(child_id)
+            queue.append(child_id)
+    return location_ids
+
+
 class Location(models.Model):
     name = models.CharField(max_length=20)
     type = models.ForeignKey(LocationTypes, on_delete=models.DO_NOTHING, related_name="locations")
