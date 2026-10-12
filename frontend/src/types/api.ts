@@ -897,9 +897,16 @@ export interface components {
     CheckoutEvent: {
       readonly id: number;
       readonly user: components['schemas']['UserCheckoutEvent'];
+      /**
+       * @description Who has it, for display: the holder, else the name given, else
+       *     (events from before holders were recorded) whoever recorded it.
+       */
+      readonly holder_display: string;
       action: components['schemas']['ActionEnum'];
       /** Format: date-time */
       readonly timestamp: string;
+      holder_name?: string;
+      holder?: number | null;
       related_event?: number | null;
     };
     CheckoutEventWrite: {
@@ -907,7 +914,10 @@ export interface components {
       action: components['schemas']['ActionEnum'];
       /** Format: date-time */
       readonly timestamp: string;
+      holder_name?: string;
+      holder_lipscomb_id?: string;
       container: number;
+      holder?: number | null;
       related_event?: number | null;
     };
     CheckoutEvents: {

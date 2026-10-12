@@ -4514,6 +4514,11 @@
                         ],
                         "readOnly": true
                     },
+                    "holder_display": {
+                        "type": "string",
+                        "description": "Who has it, for display: the holder, else the name given, else\n(events from before holders were recorded) whoever recorded it.",
+                        "readOnly": true
+                    },
                     "action": {
                         "$ref": "#/components/schemas/ActionEnum"
                     },
@@ -4522,6 +4527,14 @@
                         "format": "date-time",
                         "readOnly": true
                     },
+                    "holder_name": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "holder": {
+                        "type": "integer",
+                        "nullable": true
+                    },
                     "related_event": {
                         "type": "integer",
                         "nullable": true
@@ -4529,6 +4542,7 @@
                 },
                 "required": [
                     "action",
+                    "holder_display",
                     "id",
                     "timestamp",
                     "user"
@@ -4549,8 +4563,20 @@
                         "format": "date-time",
                         "readOnly": true
                     },
+                    "holder_name": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "holder_lipscomb_id": {
+                        "type": "string",
+                        "maxLength": 11
+                    },
                     "container": {
                         "type": "integer"
+                    },
+                    "holder": {
+                        "type": "integer",
+                        "nullable": true
                     },
                     "related_event": {
                         "type": "integer",

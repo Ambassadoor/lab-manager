@@ -33,10 +33,14 @@ class WeightReadingReadSerializer(serializers.ModelSerializer):
 
 class CheckoutEventSerializer(serializers.ModelSerializer):
     user = UserCheckoutEventSerializer(read_only=True)
+    # Who has it: the holder, the name given, or (older events) the recorder
+    holder_display = serializers.ReadOnlyField()
 
     class Meta:
         model = CheckoutEvent
-        exclude = ["container"]
+        # The holder's Lipscomb ID is kept for linking them up later, but not
+        # shown: checkout status is visible to every logged-in user
+        exclude = ["container", "holder_lipscomb_id"]
 
 
 class CheckoutEventWriteSerializer(serializers.ModelSerializer):

@@ -55,7 +55,7 @@ class ContainerQuerySet(models.QuerySet):
                 ),
                 Prefetch(
                     "events",
-                    queryset=CheckoutEvent.objects.select_related("user")
+                    queryset=CheckoutEvent.objects.select_related("user", "holder")
                     .order_by("container_id", *CheckoutEvent.NEWEST_FIRST)
                     .distinct("container_id"),
                     to_attr="latest_events",
@@ -256,9 +256,22 @@ class CheckoutEvent(models.Model):
     container = models.ForeignKey(Container, on_delete=models.CASCADE, related_name="events")
     action = models.CharField(max_length=3, choices=ACTION_CHOICES)
     timestamp = models.DateTimeField(auto_now=True)
+    # Who recorded the event: the logged-in Stockroom worker
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, related_name="events"
     )
+    # Who took it (check outs since Oct 2026): a user matched by Lipscomb
+    # ID, or for someone not in the system yet, their name and the ID if
+    # they gave one, so they can be linked once IDs can be looked up.
+    holder = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="held_checkouts",
+    )
+    holder_name = models.CharField(max_length=150, blank=True)
+    holder_lipscomb_id = models.CharField(max_length=11, blank=True)
     related_event = models.OneToOneField(
         "self",
         null=True,
@@ -267,6 +280,16 @@ class CheckoutEvent(models.Model):
         related_name="check_in_event",
         unique=True,
     )
+
+    @property
+    def holder_display(self) -> str:
+        """Who has it, for display: the holder, else the name given, else
+        (events from before holders were recorded) whoever recorded it."""
+        if self.holder is not None:
+            return self.holder.full_name
+        if self.holder_name:
+            return self.holder_name
+        return self.user.full_name
 
     def __str__(self):
         return f"{self.container.name}: {self.action}"
