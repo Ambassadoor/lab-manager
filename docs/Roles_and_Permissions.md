@@ -53,6 +53,7 @@ Deleting a location is open to Stockroom because the database refuses to delete 
 |--------|-----|
 | Register, log in | Visitor |
 | View and edit own profile (not own role) | Any user |
+| Look up a name by Lipscomb ID (Check Out's "checked out by") | Stockroom |
 | List, view and edit other users; change a role | Lab Manager |
 | Delete or deactivate a user | Not possible in the app (Django admin only) |
 
