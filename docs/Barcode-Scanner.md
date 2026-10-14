@@ -48,7 +48,7 @@ If it types without the backtick, step 2 didn't take; repeat it. If characters g
 
 ## Lipscomb ID cards
 
-On the Check Out tab, scanning someone's ID card fills "Checked out by". A card's barcode is 11 digits: one digit, the 8 digits of the Lipscomb ID, then two more, so `02274838901` is `L22748389`. Typing the ID (or the card's number) works the same. If an account has that ID, its name appears; if not, Check Out asks for the person's name and keeps the ID with it. The card is read through the same backtick prefix as a container label, so a card scan anywhere else is reported as not a label. The parsing is `frontend/src/scanner/lipscombId.ts`.
+On the Check Out tab, scanning someone's ID card fills "Checked out by". A card's barcode is 11 digits: one digit, the 8 digits of the Lipscomb ID, then two more, so `02274838901` is `L22748389`. Typing the ID (or the card's number) works the same. If an account has that ID, its name appears; if not, Check Out asks for the person's name and keeps the ID with it. The phone camera reads cards here too (see [Phone camera](#phone-camera)). With the Bluetooth scanner, the card is read through the same backtick prefix as a container label, so a card scan anywhere else is reported as not a label. The parsing is `frontend/src/scanner/lipscombId.ts`.
 
 ## On the iPad
 
@@ -65,8 +65,9 @@ Without the prefix, scanning only works while a field that can read a label has 
 Phones (and any device with a camera) can scan labels without the scanner: tap the **QR code icon** in the top bar. A camera scan does exactly what a scanner scan does on that page.
 
 - **One scan or a list:** on most pages the camera closes after one label. On the Actions tabs it stays open, beeping (and on Android, vibrating) for each label and counting them, until you tap **Done**. It closes by itself when a scan opens a confirmation, such as scanning the destination in Move Containers.
+- **ID cards:** on the Check Out tab the camera also reads ID cards' barcodes (Code 39), and its aiming box turns wider to fit one. Hold the card flat and level, with the barcode across the box. Other pages read QR codes only, which keeps decoding fast.
 - **Scanning a label twice:** a label held in view counts once. To scan the same label again (the new parent in Move Locations), point away from it for a second, then back.
 - **HTTPS only:** browsers only allow the camera on a secure page, so it works at `https://app.cplabmanager.com` (and `localhost` in development), not over plain `http`. Like the rest of the app, that address only works on campus.
 - **Permission:** the first time, the browser asks to use the camera. If it was refused, allow it again: on an iPhone in Settings › Apps › Safari › Camera, in Chrome from the icon beside the address bar.
 
-The camera code is in `frontend/src/scanner/` (`CameraButton`, `CameraScanner`, `detector.ts`). Android Chrome decodes QR codes with its built-in detector; other browsers, including iPhone Safari, use the zxing WebAssembly decoder, which is bundled with the app and loaded the first time the camera opens.
+The camera code is in `frontend/src/scanner/` (`CameraButton`, `CameraScanner`, `detector.ts`). Android Chrome decodes with its built-in detector when it supports every format the page asks for; other browsers, including iPhone Safari, use the zxing WebAssembly decoder, which is bundled with the app and loaded the first time the camera opens.

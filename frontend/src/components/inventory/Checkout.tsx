@@ -77,7 +77,8 @@ export const Checkout = () => {
       }
       addItem(target);
     },
-    { continuous: true }
+    // ID cards: the camera reads their barcodes here too
+    { continuous: true, idCards: true }
   );
 
   const canSubmit =

@@ -3,8 +3,9 @@ import { Alert, Box, Button, Dialog, IconButton, Stack, Typography } from '@mui/
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { beep } from './beep';
-import { createQrDetector } from './detector';
+import { createDetector, type Detector } from './detector';
 import { identify } from './identify';
+import { lipscombIdFrom } from './lipscombId';
 import { createReadFilter } from './readFilter';
 import { useScanner } from './ScannerContext';
 
@@ -24,12 +25,13 @@ function describeCameraError(error: unknown): string {
   return `Couldn't start the camera: ${error instanceof Error ? error.message : String(error)}`;
 }
 
-// Full-screen camera view that reads label QR codes and hands each one to
-// the scanner's handlers, exactly like a scan from the barcode scanner. On
-// a page that takes a list (the Actions tabs) it stays open between reads;
-// elsewhere it closes after one. Loaded only when opened (CameraButton).
+// Full-screen camera view that reads label QR codes (and ID cards' Code 39
+// barcodes, on a page that takes them) and hands each one to the scanner's
+// handlers, exactly like a scan from the barcode scanner. On a page that
+// takes a list (the Actions tabs) it stays open between reads; elsewhere it
+// closes after one. Loaded only when opened (CameraButton).
 export default function CameraScanner({ onClose }: { onClose: () => void }) {
-  const { submitScan, wantsContinuous } = useScanner();
+  const { submitScan, wantsContinuous, wantsIdCards } = useScanner();
   const videoRef = useRef<HTMLVideoElement>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
   const [starting, setStarting] = useState(true);
@@ -38,6 +40,7 @@ export default function CameraScanner({ onClose }: { onClose: () => void }) {
   const [torchOn, setTorchOn] = useState<boolean | null>(null);
   const [reads, setReads] = useState<{ count: number; last: string } | null>(null);
   const continuous = wantsContinuous();
+  const idCards = wantsIdCards();
 
   const onCloseRef = useRef(onClose);
   useEffect(() => {
@@ -56,6 +59,17 @@ export default function CameraScanner({ onClose }: { onClose: () => void }) {
     let stream: MediaStream | null = null;
     let frame = 0;
     const isNew = createReadFilter();
+    // QR only, or QR and Code 39 while the page takes ID cards; each made
+    // once, the first time it's needed
+    const detectors = new Map<boolean, Promise<Detector>>();
+    const detectorFor = (cards: boolean) => {
+      let detector = detectors.get(cards);
+      if (!detector) {
+        detector = createDetector(cards ? ['qr_code', 'code_39'] : ['qr_code']);
+        detectors.set(cards, detector);
+      }
+      return detector;
+    };
 
     const start = async () => {
       stream = await navigator.mediaDevices.getUserMedia({
@@ -63,14 +77,20 @@ export default function CameraScanner({ onClose }: { onClose: () => void }) {
         audio: false,
       });
       const video = videoRef.current;
-      if (stopped || !video) return;
+      if (stopped || !video) {
+        // Closed while the camera was starting (or StrictMode's dev
+        // remount): cleanup already ran with no stream to stop, so stop
+        // this one here or the camera stays on.
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       video.srcObject = stream;
       await video.play();
       const track = stream.getVideoTracks()[0];
       trackRef.current = track;
       const capabilities = track.getCapabilities?.() as { torch?: boolean } | undefined;
       if (capabilities?.torch) setTorchOn(false);
-      const detector = await createQrDetector();
+      await detectorFor(wantsIdCards());
       if (stopped) return;
       setStarting(false);
 
@@ -83,6 +103,8 @@ export default function CameraScanner({ onClose }: { onClose: () => void }) {
         busy = true;
         lastDecode = now;
         try {
+          // Asked each frame: a dialog opened over the page can change it
+          const detector = await detectorFor(wantsIdCards());
           const codes = await detector.detect(video);
           for (const raw of isNew(
             codes.map((c) => c.rawValue),
@@ -91,7 +113,8 @@ export default function CameraScanner({ onClose }: { onClose: () => void }) {
             if (stopped) return;
             beep();
             const outcome = submitScan(raw);
-            setReads((r) => ({ count: (r?.count ?? 0) + 1, last: identify(raw)?.label ?? raw }));
+            const last = identify(raw)?.label ?? lipscombIdFrom(raw) ?? raw;
+            setReads((r) => ({ count: (r?.count ?? 0) + 1, last }));
             if (outcome === 'done' || !wantsContinuous()) {
               onCloseRef.current();
               return;
@@ -117,7 +140,7 @@ export default function CameraScanner({ onClose }: { onClose: () => void }) {
       cancelAnimationFrame(frame);
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, [submitScan, wantsContinuous]);
+  }, [submitScan, wantsContinuous, wantsIdCards]);
 
   const toggleTorch = () => {
     const track = trackRef.current;
@@ -133,7 +156,9 @@ export default function CameraScanner({ onClose }: { onClose: () => void }) {
     ? 'Starting the camera…'
     : reads
       ? `${reads.count} scanned · last ${reads.last}`
-      : "Point the camera at a label's QR code";
+      : idCards
+        ? "Point the camera at a label's QR code or an ID card's barcode"
+        : "Point the camera at a label's QR code";
 
   return (
     <Dialog
@@ -152,14 +177,15 @@ export default function CameraScanner({ onClose }: { onClose: () => void }) {
           sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
         />
         {!error && (
-          // The aiming square; its shadow dims everything around it
+          // The aiming box; its shadow dims everything around it. Wider for
+          // ID cards, whose barcode is long and short.
           <Box
             sx={{
               position: 'absolute',
               top: '50%',
               left: '50%',
-              width: 'min(70vw, 60vh, 320px)',
-              aspectRatio: '1',
+              width: idCards ? 'min(88vw, 90vh, 440px)' : 'min(70vw, 60vh, 320px)',
+              aspectRatio: idCards ? '3 / 2' : '1',
               transform: 'translate(-50%, -50%)',
               border: '3px solid rgba(255, 255, 255, 0.9)',
               borderRadius: 2,

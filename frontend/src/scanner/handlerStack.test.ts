@@ -1,11 +1,21 @@
 import { describe, expect, it, vi } from 'vitest';
-import { runHandlers, wantsContinuous, type HandlerEntry, type ScanHandler } from './handlerStack';
+import {
+  runHandlers,
+  wantsContinuous,
+  wantsIdCards,
+  type HandlerEntry,
+  type ScanHandler,
+} from './handlerStack';
 import type { ScanTarget } from './identify';
 
 const target: ScanTarget = { kind: 'container', id: 1, slug: 'chem-1', label: 'CHEM-0001' };
 const raw = '{"id":"CHEM-0001"}';
 
-const entry = (handle: ScanHandler, continuous = false): HandlerEntry => ({ handle, continuous });
+const entry = (handle: ScanHandler, continuous = false, idCards = false): HandlerEntry => ({
+  handle,
+  continuous,
+  idCards,
+});
 
 describe('runHandlers', () => {
   it('gives the scan to the newest handler first', () => {
@@ -44,5 +54,13 @@ describe('wantsContinuous', () => {
     expect(wantsContinuous([entry(vi.fn(), true)])).toBe(true);
     // A field taking scans above a list page: one scan at a time
     expect(wantsContinuous([entry(vi.fn(), true), entry(vi.fn())])).toBe(false);
+  });
+});
+
+describe('wantsIdCards', () => {
+  it("follows the top handler, so a dialog over Check Out doesn't inherit it", () => {
+    expect(wantsIdCards([])).toBe(false);
+    expect(wantsIdCards([entry(vi.fn(), true, true)])).toBe(true);
+    expect(wantsIdCards([entry(vi.fn(), true, true), entry(vi.fn())])).toBe(false);
   });
 });

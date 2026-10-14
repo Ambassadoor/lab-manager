@@ -3,7 +3,13 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useNavigate } from 'react-router-dom';
 import { getSdsList, NEWEST_SDS_FIRST } from '../api/sds';
 import { useAuth } from '../context/AuthContext';
-import { runHandlers, wantsContinuous, type HandlerEntry, type ScanHandler } from './handlerStack';
+import {
+  runHandlers,
+  wantsContinuous,
+  wantsIdCards,
+  type HandlerEntry,
+  type ScanHandler,
+} from './handlerStack';
 import { identify } from './identify';
 import { nextScanStep, type ScanState } from './scanSequence';
 import {
@@ -72,6 +78,7 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
     []
   );
   const wantsList = useCallback(() => wantsContinuous(handlers.current), []);
+  const wantsCards = useCallback(() => wantsIdCards(handlers.current), []);
 
   useEffect(() => {
     let state: ScanState = null;
@@ -95,8 +102,14 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
   }, [submitScan]);
 
   const value = useMemo<ScannerContextValue>(
-    () => ({ register, notify, submitScan, wantsContinuous: wantsList }),
-    [register, notify, submitScan, wantsList]
+    () => ({
+      register,
+      notify,
+      submitScan,
+      wantsContinuous: wantsList,
+      wantsIdCards: wantsCards,
+    }),
+    [register, notify, submitScan, wantsList, wantsCards]
   );
 
   return (
