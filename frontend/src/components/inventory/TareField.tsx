@@ -67,14 +67,13 @@ export const TareField = ({ container, weight, tare, onTareChange }: TareFieldPr
 
   return (
     <Stack spacing={0.5} sx={{ flex: '1 1 200px', minWidth: 0 }}>
-      <Stack direction="row" spacing={1}>
+      <Stack spacing={1}>
         <TextField
           size="small"
           label="Tare weight (g)"
           value={tare}
           onChange={(e) => onTareChange(e.target.value)}
           error={tone === 'error'}
-          sx={{ flex: 1, minWidth: 130 }}
           slotProps={{
             input: {
               endAdornment: (
@@ -98,6 +97,7 @@ export const TareField = ({ container, weight, tare, onTareChange }: TareFieldPr
             },
           }}
         />
+        {/* Its own row, so opening it never squeezes the tare field */}
         {estimating && (
           <TextField
             size="small"
@@ -105,7 +105,7 @@ export const TareField = ({ container, weight, tare, onTareChange }: TareFieldPr
             value={percent}
             onChange={(e) => estimate(e.target.value)}
             error={percent !== '' && !(Number(percent) >= 0 && Number(percent) <= 100)}
-            sx={{ width: 90, flexShrink: 0 }}
+            sx={{ width: 110 }}
             slotProps={{ htmlInput: { inputMode: 'decimal' } }}
           />
         )}
