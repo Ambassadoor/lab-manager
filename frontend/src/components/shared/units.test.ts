@@ -4,6 +4,7 @@ import {
   convertUnits,
   estimateTare,
   isValidTare,
+  isVolumeUnit,
   percentRemaining,
 } from './units';
 
@@ -72,5 +73,15 @@ describe('isValidTare', () => {
     expect(isValidTare('0')).toBe(false);
     expect(isValidTare('-100')).toBe(false);
     expect(isValidTare('abc')).toBe(false);
+  });
+});
+
+describe('isVolumeUnit', () => {
+  it('is true for mL and L only', () => {
+    expect(isVolumeUnit('mL')).toBe(true);
+    expect(isVolumeUnit('L')).toBe(true);
+    expect(isVolumeUnit('g')).toBe(false);
+    expect(isVolumeUnit('')).toBe(false);
+    expect(isVolumeUnit(null)).toBe(false);
   });
 });

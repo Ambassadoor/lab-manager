@@ -25,6 +25,9 @@ export const convertUnits = (
 const GRAMS_PER_UNIT: Record<string, number> = { mg: 0.001, g: 1, kg: 1000 };
 const ML_PER_UNIT: Record<string, number> = { mL: 1, L: 1000 };
 
+// Litres or millilitres: a volume, which needs a density to give a mass.
+export const isVolumeUnit = (unit: string | null | undefined) => !!unit && unit in ML_PER_UNIT;
+
 type ContentFields = Pick<Container, 'initial_quantity' | 'quantity_unit' | 'density'>;
 
 // The original contents' mass in grams, as Container.initial_content_mass
