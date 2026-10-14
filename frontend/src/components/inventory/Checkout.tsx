@@ -62,7 +62,9 @@ export const Checkout = () => {
         const lipscombId = lipscombIdFrom(raw);
         if (!lipscombId) return false;
         holder.setInput(lipscombId);
-        notify(`Checked out by ${lipscombId}`, 'info');
+        // Says what the scan did, not that anything was checked out yet;
+        // the field shows who it is. Mostly for the camera, which covers it.
+        notify(`ID card read into "Checked out by": ${lipscombId}`, 'info');
         return;
       }
       if (checkoutConfirm.isOpen) {

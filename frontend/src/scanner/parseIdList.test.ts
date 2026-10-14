@@ -87,6 +87,17 @@ describe('readIdBox', () => {
     expect(result.error).toBe('Not an ID: CHEM-2x. LOC-3: this list takes containers');
   });
 
+  it('leaves the text as typed when nothing is taken out, so a bad entry can be backspaced', () => {
+    // "CHEM-2x, " with the space deleted
+    expect(readIdBox('CHEM-2x,', false, containersOnly, 'containers')).toEqual({
+      add: [],
+      text: 'CHEM-2x,',
+      error: 'Not an ID: CHEM-2x',
+    });
+    // ...and the comma too
+    expect(readIdBox('CHEM-2x', false, containersOnly, 'containers').text).toBe('CHEM-2x');
+  });
+
   it('takes a fixed entry once it is corrected', () => {
     const result = readIdBox('CHEM-2, CH', false, containersOnly, 'containers');
 
