@@ -14,6 +14,8 @@ export type ScannerContextValue = {
   submitScan: (raw: string) => ScanOutcome;
   // Whether the page taking scans right now takes a list of them.
   wantsContinuous: () => boolean;
+  // Whether it takes ID cards, so the camera reads their barcodes too.
+  wantsIdCards: () => boolean;
 };
 
 export const ScannerContext = createContext<ScannerContextValue | null>(null);
@@ -29,6 +31,8 @@ type ScanHandlerOptions = {
   enabled?: boolean;
   // Takes a list of scans: the camera stays open between them
   continuous?: boolean;
+  // Takes ID card scans: the camera reads Code 39 barcodes as well as QR
+  idCards?: boolean;
 };
 
 // Lets a page or field take scans while it's mounted (and `enabled`).
@@ -36,15 +40,16 @@ type ScanHandlerOptions = {
 // app-wide default (open the container or location) comes last.
 export function useScanHandler(
   handler: ScanHandler,
-  { enabled = true, continuous = false }: ScanHandlerOptions = {}
+  { enabled = true, continuous = false, idCards = false }: ScanHandlerOptions = {}
 ): void {
   const { register } = useScanner();
   // The stack holds this object, so the handler can change every render
   // without re-registering (which would move it to the top of the stack).
-  const entry = useRef<HandlerEntry>({ handle: handler, continuous });
+  const entry = useRef<HandlerEntry>({ handle: handler, continuous, idCards });
   useEffect(() => {
     entry.current.handle = handler;
     entry.current.continuous = continuous;
+    entry.current.idCards = idCards;
   });
   useEffect(() => {
     if (!enabled) return;
