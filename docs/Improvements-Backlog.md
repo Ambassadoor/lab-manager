@@ -1,55 +1,12 @@
 # Improvements backlog
 
-Changes noticed while walking through the code after v1.4.0, in priority order. The first three
+Changes noticed while walking through the code after v1.4.0, in priority order. The first two
 sections are planned work; the last is ideas that need decisions before they're actionable.
 Remove an item when its PR merges.
 
-## 1. Tare and density
+## 1. Camera scanner
 
-One PR, in this order: each step leaves shared pieces for the next.
-
-### 1.1 Density and quantity on the container detail and edit pages
-
-- [ContainerDetail.tsx](../frontend/src/components/inventory/ContainerDetail.tsx) doesn't show
-  density, and [ContainerEditForm.tsx](../frontend/src/components/inventory/ContainerEditForm.tsx)
-  has neither density nor quantity.
-- Add both. Density (g/mL) only matters for volume units, so show it for those.
-- Editing either changes that container's `percent_remaining`. That's expected, but say so in the PR.
-
-### 1.2 Check In: fill in missing quantity or density
-
-- Today, when `contentMassGrams(container)` is null, the estimate button in
-  [TareField.tsx](../frontend/src/components/inventory/TareField.tsx) is disabled with a tooltip:
-  "Needs the container's quantity and density".
-- Show the missing inputs inline instead:
-  - quantity and unit, if there's no quantity
-  - density, if the unit is a volume
-- Use the typed values for the estimate straight away.
-- **Saving:** PATCH the container through the existing endpoint (Stockroom and up) before
-  `weigh_in_bulk`. That needs no API change.
-
-### 1.3 New container form: tare estimate for a part-used bottle
-
-- [ContainerForm.tsx](../frontend/src/components/inventory/ContainerForm.tsx)'s tare effect assumes
-  a full bottle: tare = initial weight − full contents.
-- Add the same "% left" estimate that Check In has, for bottles entered part-used. Reuse `TareField`
-  if it fits, or else `estimateTare` and `contentMassGrams` from
-  [shared/units.ts](../frontend/src/components/shared/units.ts).
-- Switch the effect's own unit conversion to the `units.ts` helpers, so there's one copy.
-
-### 1.4 TareField layout
-
-- When "% left" opens, the tare field shrinks to `minWidth: 130`, and its calculator button
-  crowds the label and value.
-- Possible fixes:
-  - a larger minimum width
-  - letting "% left" wrap onto its own line on narrow screens
-  - moving the button outside the input
-- Check the result at phone width, and with several rows on Check In.
-
-## 2. Camera scanner
-
-### 2.1 Bug: the camera stays on if closed while starting
+### 1.1 Bug: the camera stays on if closed while starting
 
 - In [CameraScanner.tsx](../frontend/src/scanner/CameraScanner.tsx)'s start effect: if the scanner
   unmounts while `getUserMedia` is still pending, cleanup runs with `stream === null`.
@@ -60,7 +17,7 @@ One PR, in this order: each step leaves shared pieces for the next.
 - **Fix:** stop the tracks in that early return.
 - **Check:** open the camera and close it immediately; the camera light should go off.
 
-### 2.2 Code 39 barcodes (ID cards)
+### 1.2 Code 39 barcodes (ID cards)
 
 - Lipscomb ID cards carry a Code 39 barcode. The Bluetooth scanner reads them on Check Out; the
   camera only reads QR codes (`formats: ['qr_code']` in
@@ -74,9 +31,9 @@ One PR, in this order: each step leaves shared pieces for the next.
 - **Aiming box:** 1D codes are easier to line up in a wide, short box.
 - **Test** a real card on an iPhone and an Android phone.
 
-## 3. SDS loading and scan labels
+## 2. SDS loading and scan labels
 
-### 3.1 SDS viewer loading state
+### 2.1 SDS viewer loading state
 
 - [SdsViewer.tsx](../frontend/src/components/sds/SdsViewer.tsx) shows nothing while the SDS record
   loads, then a blank frame until Drive's viewer appears.
@@ -87,7 +44,7 @@ One PR, in this order: each step leaves shared pieces for the next.
 - `onLoad` means Drive's viewer page has loaded, not that the PDF has drawn. Drive shows its own
   spinner after that.
 
-### 3.2 Scan labels shown unpadded
+### 2.2 Scan labels shown unpadded
 
 - [identify.ts](../frontend/src/scanner/identify.ts) builds its label as `CHEM-${n}`, so scan lists
   and the camera's "last scanned" show `CHEM-10` where the printed label says `CHEM-0010`.
@@ -96,7 +53,7 @@ One PR, in this order: each step leaves shared pieces for the next.
 - **Fix:** once a scan list has looked a container up, show the API's `label`. Use identify's
   label only as a placeholder until then.
 
-## 4. Ideas (not actionable yet)
+## 3. Ideas (not actionable yet)
 
 ### Camera: smaller preview
 
