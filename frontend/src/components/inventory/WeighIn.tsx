@@ -57,7 +57,7 @@ async function lookUpForCheckIn(target: ScanTarget): Promise<CheckInDetail> {
     lookUpContainer(target),
     target.kind === 'container' ? checkIfDiscarded(target.slug) : Promise.resolve(null),
   ]);
-  if (status?.is_discarded) throw new Error(`${target.label} has been discarded`);
+  if (status?.is_discarded) throw new Error(`${container.label} has been discarded`);
   return { container, needsTare: !status?.has_estimated_usage };
 }
 
@@ -136,6 +136,10 @@ export const WeighIn = () => {
   );
 
   const rows = list.ready.map((item) => ({ item, ...(weights[item.key] ?? NO_WEIGHTS) }));
+  // The confirm lists rows by slug; show each as its printed label
+  const labelOf = (slug: string) =>
+    list.ready.find((i) => i.detail?.container.slug === slug)?.detail?.container.label ??
+    slug.toUpperCase();
   const weightProblem = rows.some(
     ({ item, weight, tare, contents }) =>
       !weight ||
@@ -218,7 +222,7 @@ export const WeighIn = () => {
                   return (
                     <ListItem key={row.slug} disableGutters>
                       <ListItemText
-                        primary={row.slug.toUpperCase()}
+                        primary={labelOf(row.slug)}
                         secondary={
                           `${row.weight}g` +
                           (row.tare_weight ? ` · tare ${row.tare_weight}g` : '') +
@@ -305,6 +309,7 @@ export const WeighIn = () => {
             onRemove={list.remove}
             emptyText="Put a container on the balance and scan it to start."
             describe={({ container }) => ({
+              label: container.label,
               primary: container.name,
               secondary: container.location.full_path,
             })}

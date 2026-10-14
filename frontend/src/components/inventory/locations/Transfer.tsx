@@ -129,7 +129,10 @@ export const Transfer = () => {
               <List dense sx={{ maxHeight: 240, overflow: 'auto' }}>
                 {transferConfirm.target.items.map((item) => (
                   <ListItem key={item.key} disableGutters>
-                    <ListItemText primary={item.target.label} secondary={item.detail?.name} />
+                    <ListItemText
+                      primary={item.detail?.label ?? item.target.label}
+                      secondary={item.detail?.name}
+                    />
                   </ListItem>
                 ))}
               </List>
@@ -205,7 +208,11 @@ export const Transfer = () => {
             items={list.items}
             onRemove={list.remove}
             emptyText="Scan a container to start."
-            describe={(c) => ({ primary: c.name, secondary: `Now in ${c.location.full_path}` })}
+            describe={(c) => ({
+              label: c.label,
+              primary: c.name,
+              secondary: `Now in ${c.location.full_path}`,
+            })}
           />
           <Box>
             <LocationSelect

@@ -101,7 +101,10 @@ export const Checkout = () => {
               <List dense sx={{ maxHeight: 240, overflow: 'auto' }}>
                 {checkoutConfirm.target.items.map((item) => (
                   <ListItem key={item.key} disableGutters>
-                    <ListItemText primary={item.target.label} secondary={item.detail?.name} />
+                    <ListItemText
+                      primary={item.detail?.label ?? item.target.label}
+                      secondary={item.detail?.name}
+                    />
                   </ListItem>
                 ))}
               </List>
@@ -167,6 +170,7 @@ export const Checkout = () => {
             onRemove={list.remove}
             emptyText="Scan a container to start."
             describe={(c) => ({
+              label: c.label,
               primary: c.name,
               secondary: c.location.full_path,
               warning:
