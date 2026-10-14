@@ -28,7 +28,8 @@ export function parseIdList(
 // What the "add by ID" box does with its text after each change (or Enter,
 // with `flush`): complete entries the panel `accepts` are taken out to be
 // added; complete entries it can't use stay in the box, ahead of whatever
-// is still being typed, with `error` saying why, so they can be fixed.
+// is still being typed, with `error` saying why, so they can be fixed. The text
+// is only rewritten when something was taken out.
 export function readIdBox(
   text: string,
   flush: boolean,
@@ -51,9 +52,14 @@ export function readIdBox(
     unknown.length > 0 && `Not an ID: ${unknown.join(', ')}`,
     wrongKind.length > 0 && `${wrongKind.join(', ')}: this list takes ${describeAccepted}`,
   ].filter(Boolean);
+  const error = errors.length > 0 ? errors.join('. ') : null;
+  // Nothing taken out: leave the text exactly as typed. Rebuilding it
+  // ("BAD, " + remainder) would put back the space or comma someone just
+  // deleted, so a bad entry could never be backspaced into.
+  if (add.length === 0) return { add, text, error };
   return {
     add,
     text: kept.length > 0 ? `${kept.join(', ')}, ${remainder}` : remainder,
-    error: errors.length > 0 ? errors.join('. ') : null,
+    error,
   };
 }
