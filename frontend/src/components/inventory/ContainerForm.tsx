@@ -7,8 +7,10 @@ import {
   Chip,
   Container,
   Divider,
+  InputAdornment,
   Snackbar,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -31,9 +33,12 @@ import { printContainerLabel } from '../shared/printTemplates';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { useStorageConflictConfirm } from '../shared/useStorageConflictConfirm';
 import { StorageConflictWarnings } from '../shared/StorageConflictWarnings';
-import { type ContainerFormDefaults, type CasCheck } from '../../types';
+import {
+  type ContainerFormDefaults,
+  type CasCheck,
+  type Container as ContainerType,
+} from '../../types';
 import { useNavigate } from 'react-router-dom';
-import { Decimal } from 'decimal.js';
 import dayjs from 'dayjs';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { cas_is_valid } from '../shared/checkCas';
@@ -46,7 +51,7 @@ import { MixtureFields } from './MixtureFields';
 import { requiredRule, required, decimalPatternRule } from '../shared/formRules';
 import { LocationSelect } from '../shared/LocationSelect';
 import { QuantityUnitField } from '../shared/QuantityUnitField';
-import { convertUnits } from '../shared/units';
+import { contentMassGrams, estimateTare } from '../shared/units';
 
 // Every field below uses a shared wrapper where one fits: RhfTextField,
 // RhfDateField, and RhfSelect for plain text/date/select, LocationSelect for
@@ -209,51 +214,37 @@ export const ContainerForm = () => {
     }
   }, [errors.chemicals, setValue, allCas, fields]);
 
-  //Calculate and populate the tare weight field using previously input fields
+  // How much of the bottle is left, for one that's already been opened
+  // ('' is a new, full bottle). Not part of the form's values: it isn't
+  // saved, only used to work out the tare.
+  const [percentLeft, setPercentLeft] = useState('');
+  const percentProblem =
+    percentLeft !== '' &&
+    !(/^\d+(\.\d+)?$/.test(percentLeft) && Number(percentLeft) >= 0 && Number(percentLeft) <= 100);
+
+  // The tare the other fields imply: initial weight − the contents' mass
+  // (in grams, through density for a volume) × the fraction left. Null
+  // until there's enough to work it out.
+  const expectedTare = (() => {
+    const weight = parseFloat(String(formValues.initial_weight));
+    const quantity = parseFloat(String(formValues.initial_quantity));
+    if (!(weight > 0) || !(quantity > 0) || percentProblem) return null;
+    const mass = contentMassGrams({
+      initial_quantity: quantity,
+      quantity_unit: (formValues.quantity_unit || null) as ContainerType['quantity_unit'],
+      density: formValues.density ? String(formValues.density) : null,
+    });
+    if (mass === null) return null;
+    return estimateTare(weight, mass, percentLeft === '' ? 100 : Number(percentLeft));
+  })();
+
+  // Fill the tare in whenever it can be worked out
   useEffect(() => {
-    let initial_quantity = formValues.initial_quantity,
-      initial_weight = formValues.initial_weight,
-      density = formValues.density;
-    const quantity_unit = formValues.quantity_unit;
-    if (
-      !initial_quantity ||
-      !quantity_unit ||
-      !initial_weight ||
-      !(initial_quantity = parseFloat(String(initial_quantity))) ||
-      !(initial_weight = parseFloat(String(initial_weight)))
-    )
-      return;
-    if (quantity_unit.includes('g')) {
-      initial_quantity = convertUnits('g', quantity_unit, initial_quantity);
-      const iw = new Decimal(initial_weight);
-      const iq = new Decimal(initial_quantity);
-      const result = iw.minus(iq);
-      clearErrors('tare_weight');
-      setValue('tare_weight', result.toNumber());
-      trigger('tare_weight');
-    } else if (quantity_unit.includes('L')) {
-      initial_quantity = convertUnits('mL', quantity_unit, initial_quantity);
-      const iw = new Decimal(initial_weight);
-      const iq = new Decimal(initial_quantity);
-      if (!density || !(density = parseFloat(String(density)))) {
-        return;
-      } else {
-        const d = new Decimal(density);
-        const result = iw.minus(iq.times(d));
-        clearErrors('tare_weight');
-        setValue('tare_weight', result.toNumber());
-        trigger('tare_weight');
-      }
-    }
-  }, [
-    formValues.initial_quantity,
-    formValues.initial_weight,
-    formValues.quantity_unit,
-    formValues.density,
-    clearErrors,
-    trigger,
-    setValue,
-  ]);
+    if (expectedTare === null) return;
+    clearErrors('tare_weight');
+    setValue('tare_weight', expectedTare);
+    trigger('tare_weight');
+  }, [expectedTare, clearErrors, setValue, trigger]);
 
   //Set fields values for chosen mixture if present
   useEffect(() => {
@@ -551,38 +542,30 @@ export const ContainerForm = () => {
                       message: 'Tare weight cannot be negative',
                     },
                     validate: {
-                      match: async (value) => {
-                        if (!formValues.quantity_unit || !formValues.initial_quantity) return;
-                        if (formValues.quantity_unit?.includes('g')) {
-                          const v = new Decimal(parseFloat(String(value)));
-                          const iw = new Decimal(parseFloat(String(formValues.initial_weight)));
-                          const iq = new Decimal(
-                            convertUnits('g', formValues.quantity_unit, formValues.initial_quantity)
-                          );
-
-                          if (!iw.minus(iq).equals(v)) {
-                            return 'Tare weight should equal the difference between the Initial Weight and the Initial Quantity';
-                          }
-                        } else {
-                          const iw = new Decimal(parseFloat(String(formValues.initial_weight)));
-                          const iq = new Decimal(
-                            convertUnits(
-                              'mL',
-                              formValues.quantity_unit,
-                              formValues.initial_quantity
-                            )
-                          );
-                          const v = new Decimal(value);
-                          const d = new Decimal(parseFloat(String(formValues.density)));
-                          if (!iw.minus(iq.times(d)).equals(v)) {
-                            return 'Tare weight should equal Initial Weight - Initial Quantity * Density';
-                          }
-                        }
-                      },
+                      match: (value) =>
+                        expectedTare === null ||
+                        Number(value) === expectedTare ||
+                        'Should be the Initial Weight minus the contents left in it',
                     },
                   }}
                 />
               </Stack>
+              <TextField
+                label="% left (if already opened)"
+                value={percentLeft}
+                onChange={(e) => setPercentLeft(e.target.value)}
+                error={percentProblem}
+                helperText={
+                  percentProblem
+                    ? 'A number from 0 to 100'
+                    : 'Blank for a new, full bottle. Only used to work out the tare weight'
+                }
+                slotProps={{
+                  htmlInput: { inputMode: 'decimal' },
+                  input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
+                }}
+                sx={{ maxWidth: { sm: 320 } }}
+              />
               <Divider />
               <Stack spacing={1}>
                 <Typography variant="subtitle1">Attach SDS (optional)</Typography>
