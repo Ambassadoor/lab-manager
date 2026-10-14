@@ -108,7 +108,7 @@ export const TareField = ({
       : 'Estimate from how much is left';
 
   return (
-    <Stack spacing={0.5} sx={{ flex: '1 1 200px', minWidth: 0 }}>
+    <Stack spacing={0.5} sx={{ flex: { sm: '1 1 200px' }, minWidth: 0 }}>
       <Stack spacing={1}>
         <TextField
           size="small"

@@ -153,7 +153,7 @@ export const WeighIn = () => {
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         spacing={1}
-        sx={{ flex: '1 1 400px', alignItems: 'flex-start' }}
+        sx={{ flex: '1 1 400px', alignItems: { sm: 'flex-start' } }}
       >
         <TextField
           size="small"
@@ -179,7 +179,7 @@ export const WeighIn = () => {
               ),
             },
           }}
-          sx={{ flex: '1 1 150px' }}
+          sx={{ flex: { sm: '1 1 150px' } }}
         />
         {item.detail?.needsTare && (
           <TareField
