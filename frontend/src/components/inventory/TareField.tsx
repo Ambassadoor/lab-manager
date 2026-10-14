@@ -21,6 +21,14 @@ import {
 
 const DECIMAL = /^\d+(\.\d+)?$/;
 
+// The estimate row's fields share one row from sm up, each on its own row
+// on a phone. `grow` is a field's share of the row: quantity carries its
+// unit picker and density its "g/mL", so they get more than "% left".
+const estimateField = (grow: number) => ({
+  flex: { xs: '1 1 100%', sm: `${grow} 1 0` },
+  minWidth: 0,
+});
+
 type TareFieldProps = {
   container: Container;
   // The container's weight on the balance now, as typed or read
@@ -108,101 +116,102 @@ export const TareField = ({
       : 'Estimate from how much is left';
 
   return (
-    <Stack spacing={0.5} sx={{ flex: { sm: '1 1 200px' }, minWidth: 0 }}>
-      <Stack spacing={1}>
-        <TextField
-          size="small"
-          label="Tare weight (g)"
-          value={tare}
-          onChange={(e) => onTareChange(e.target.value)}
-          error={tone === 'error'}
-          slotProps={{
-            input: {
-              endAdornment: (
-                <InputAdornment position="end">
-                  <Tooltip title={estimateReason}>
-                    {/* span: a disabled button can't show a tooltip itself */}
-                    <span>
-                      <IconButton
-                        size="small"
-                        aria-label={`Estimate ${container.label}'s tare`}
-                        aria-pressed={estimating}
-                        disabled={currentWeight === null}
-                        onClick={() => setEstimating((on) => !on)}
-                      >
-                        <Calculate fontSize="small" color={estimating ? 'primary' : undefined} />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
-        {/* Its own row, so opening it never squeezes the tare field */}
-        {estimating && (
-          <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: 'wrap' }}>
-            {missing.quantity && (
-              <TextField
-                size="small"
-                label="Quantity"
-                value={contents.quantity}
-                onChange={(e) => changeContents({ quantity: e.target.value })}
-                sx={{ width: 170 }}
-                slotProps={{
-                  htmlInput: { inputMode: 'numeric' },
-                  input: {
-                    endAdornment: (
-                      <TextField
-                        select
-                        variant="standard"
-                        value={contents.unit}
-                        onChange={(e) => changeContents({ unit: e.target.value })}
-                        sx={{ minWidth: 52 }}
-                        slotProps={{
-                          htmlInput: { 'aria-label': 'Unit' },
-                          input: { disableUnderline: true },
-                        }}
-                      >
-                        {QUANTITY_UNITS.map((unit) => (
-                          <MenuItem key={unit} value={unit}>
-                            {unit}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    ),
-                  },
-                }}
-              />
-            )}
-            {missing.density && (
-              <TextField
-                size="small"
-                label="Density"
-                value={contents.density}
-                onChange={(e) => changeContents({ density: e.target.value })}
-                sx={{ width: 140 }}
-                slotProps={{
-                  htmlInput: { inputMode: 'decimal' },
-                  input: { endAdornment: <InputAdornment position="end">g/mL</InputAdornment> },
-                }}
-              />
-            )}
+    // A fragment: the tare field sits beside Check In's weight field, and the
+    // estimate row and message each take a full row of its wrapping row
+    <>
+      <TextField
+        size="small"
+        label="Tare weight (g)"
+        value={tare}
+        onChange={(e) => onTareChange(e.target.value)}
+        error={tone === 'error'}
+        sx={{ flex: '1 1 200px', minWidth: 0 }}
+        slotProps={{
+          input: {
+            endAdornment: (
+              <InputAdornment position="end">
+                <Tooltip title={estimateReason}>
+                  {/* span: a disabled button can't show a tooltip itself */}
+                  <span>
+                    <IconButton
+                      size="small"
+                      aria-label={`Estimate ${container.label}'s tare`}
+                      aria-pressed={estimating}
+                      disabled={currentWeight === null}
+                      onClick={() => setEstimating((on) => !on)}
+                    >
+                      <Calculate fontSize="small" color={estimating ? 'primary' : undefined} />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </InputAdornment>
+            ),
+          },
+        }}
+      />
+      {/* Its own row, so opening it never squeezes the tare field */}
+      {estimating && (
+        <Stack direction="row" useFlexGap spacing={1} sx={{ flexBasis: '100%', flexWrap: 'wrap' }}>
+          {missing.quantity && (
             <TextField
               size="small"
-              label="% left"
-              value={percent}
-              onChange={(e) => changePercent(e.target.value)}
-              error={percent !== '' && !(Number(percent) >= 0 && Number(percent) <= 100)}
-              sx={{ width: 110 }}
-              slotProps={{ htmlInput: { inputMode: 'decimal' } }}
+              label="Quantity"
+              value={contents.quantity}
+              onChange={(e) => changeContents({ quantity: e.target.value })}
+              sx={estimateField(1.6)}
+              slotProps={{
+                htmlInput: { inputMode: 'numeric' },
+                input: {
+                  endAdornment: (
+                    <TextField
+                      select
+                      variant="standard"
+                      value={contents.unit}
+                      onChange={(e) => changeContents({ unit: e.target.value })}
+                      sx={{ minWidth: 52 }}
+                      slotProps={{
+                        htmlInput: { 'aria-label': 'Unit' },
+                        input: { disableUnderline: true },
+                      }}
+                    >
+                      {QUANTITY_UNITS.map((unit) => (
+                        <MenuItem key={unit} value={unit}>
+                          {unit}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  ),
+                },
+              }}
             />
-          </Stack>
-        )}
-      </Stack>
-      <Typography variant="caption" color={tone} sx={{ px: 1.75 }}>
+          )}
+          {missing.density && (
+            <TextField
+              size="small"
+              label="Density"
+              value={contents.density}
+              onChange={(e) => changeContents({ density: e.target.value })}
+              sx={estimateField(1.2)}
+              slotProps={{
+                htmlInput: { inputMode: 'decimal' },
+                input: { endAdornment: <InputAdornment position="end">g/mL</InputAdornment> },
+              }}
+            />
+          )}
+          <TextField
+            size="small"
+            label="% left"
+            value={percent}
+            onChange={(e) => changePercent(e.target.value)}
+            error={percent !== '' && !(Number(percent) >= 0 && Number(percent) <= 100)}
+            sx={estimateField(1)}
+            slotProps={{ htmlInput: { inputMode: 'decimal' } }}
+          />
+        </Stack>
+      )}
+      <Typography variant="caption" color={tone} sx={{ flexBasis: '100%', px: 1.75, mt: -0.5 }}>
         {message}
       </Typography>
-    </Stack>
+    </>
   );
 };

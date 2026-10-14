@@ -150,10 +150,13 @@ export const WeighIn = () => {
     const value = weights[item.key] ?? NO_WEIGHTS;
     const badWeight = !!value.weight && !DECIMAL.test(value.weight);
     return (
+      // Wraps: weight and tare side by side when they fit, else stacked;
+      // TareField's estimate row and message take full rows
       <Stack
-        direction={{ xs: 'column', sm: 'row' }}
+        direction="row"
+        useFlexGap
         spacing={1}
-        sx={{ flex: '1 1 400px', alignItems: { sm: 'flex-start' } }}
+        sx={{ flex: '1 1 400px', flexWrap: 'wrap', alignItems: 'flex-start' }}
       >
         <TextField
           size="small"
@@ -179,7 +182,7 @@ export const WeighIn = () => {
               ),
             },
           }}
-          sx={{ flex: { sm: '1 1 150px' } }}
+          sx={{ flex: '1 1 150px' }}
         />
         {item.detail?.needsTare && (
           <TareField
