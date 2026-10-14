@@ -30,8 +30,10 @@ describe('identify', () => {
     expect(identify('{"id":"CHEM-0292"}')).toMatchObject({ kind: 'container', id: 292 });
   });
 
-  it('gives display labels', () => {
-    expect(identify('chem-0292')?.label).toBe('CHEM-292');
+  it('gives display labels, keeping a container label as printed', () => {
+    expect(identify('{"id":"CHEM-0010"}')?.label).toBe('CHEM-0010');
+    expect(identify('chem-0292')?.label).toBe('CHEM-0292');
+    expect(identify('chem-10')?.label).toBe('CHEM-10');
     expect(identify('loc-7')?.label).toBe('LOC-7');
   });
 
