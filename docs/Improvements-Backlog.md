@@ -1,32 +1,10 @@
 # Improvements backlog
 
-Changes noticed while walking through the code after v1.4.0, in priority order. The first section
-is planned work; the last is ideas that need decisions before they're actionable.
-Remove an item when its PR merges.
+Changes noticed while walking through the code after v1.4.0. Planned work goes first, in
+priority order; ideas that need decisions before they're actionable go last. Remove an item when
+its PR merges. Nothing is planned at the moment.
 
-## 1. SDS loading and scan labels
-
-### 1.1 SDS viewer loading state
-
-- [SdsViewer.tsx](../frontend/src/components/sds/SdsViewer.tsx) shows nothing while the SDS record
-  loads, then a blank frame until Drive's viewer appears.
-- Overlay a skeleton on the iframe until its `onLoad` fires. Put `key={sds.drive_id}` on the
-  wrapper so the skeleton resets when the document changes.
-- Show a skeleton in place of `return null` while the record loads.
-- **Optional:** after about 10 s with no load, show an "Open in Drive" link.
-- `onLoad` means Drive's viewer page has loaded, not that the PDF has drawn. Drive shows its own
-  spinner after that.
-
-### 1.2 Scan labels shown unpadded
-
-- [identify.ts](../frontend/src/scanner/identify.ts) builds its label as `CHEM-${n}`, so scan lists
-  and the camera's "last scanned" show `CHEM-10` where the printed label says `CHEM-0010`.
-- The padding width is the width of the highest container id, which only the backend knows
-  (`Container.label`).
-- **Fix:** once a scan list has looked a container up, show the API's `label`. Use identify's
-  label only as a placeholder until then.
-
-## 2. Ideas (not actionable yet)
+## Ideas (not actionable yet)
 
 ### Camera: smaller preview
 
