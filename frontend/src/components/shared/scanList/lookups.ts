@@ -24,7 +24,7 @@ export async function lookUpContainer(target: ScanTarget): Promise<Container> {
 // as the server would refuse it anyway.
 export async function lookUpUsableContainer(target: ScanTarget): Promise<Container> {
   const container = await lookUpContainer(target);
-  if (container.date_discarded) throw new Error(`${target.label} has been discarded`);
+  if (container.date_discarded) throw new Error(`${container.label} has been discarded`);
   return container;
 }
 
