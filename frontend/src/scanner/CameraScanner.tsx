@@ -63,7 +63,13 @@ export default function CameraScanner({ onClose }: { onClose: () => void }) {
         audio: false,
       });
       const video = videoRef.current;
-      if (stopped || !video) return;
+      if (stopped || !video) {
+        // Closed while the camera was starting (or StrictMode's dev
+        // remount): cleanup already ran with no stream to stop, so stop
+        // this one here or the camera stays on.
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       video.srcObject = stream;
       await video.play();
       const track = stream.getVideoTracks()[0];
