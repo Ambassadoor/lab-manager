@@ -564,7 +564,7 @@ export const ContainerForm = () => {
                   htmlInput: { inputMode: 'decimal' },
                   input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
                 }}
-                sx={{ maxWidth: { sm: 320 } }}
+                fullWidth
               />
               <Divider />
               <Stack spacing={1}>
