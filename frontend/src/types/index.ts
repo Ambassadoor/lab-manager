@@ -154,6 +154,8 @@ export type ContainerDetailDefaults = {
   // The form holds this as text; blank means "unknown" and is sent as null
   // (DRF's DecimalField rejects '' but accepts null on this nullable field).
   tare_weight: string | null;
+  // g/mL, for a volume; text like tare_weight, blank sent as null
+  density: string | null;
 };
 
 export type BalanceReading = {
