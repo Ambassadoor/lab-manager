@@ -1,39 +1,12 @@
 # Improvements backlog
 
-Changes noticed while walking through the code after v1.4.0, in priority order. The first two
-sections are planned work; the last is ideas that need decisions before they're actionable.
+Changes noticed while walking through the code after v1.4.0, in priority order. The first section
+is planned work; the last is ideas that need decisions before they're actionable.
 Remove an item when its PR merges.
 
-## 1. Camera scanner
+## 1. SDS loading and scan labels
 
-### 1.1 Bug: the camera stays on if closed while starting
-
-- In [CameraScanner.tsx](../frontend/src/scanner/CameraScanner.tsx)'s start effect: if the scanner
-  unmounts while `getUserMedia` is still pending, cleanup runs with `stream === null`.
-- The stream then arrives, `if (stopped || !video) return` exits, and its tracks are never stopped.
-- When it happens:
-  - in production, closing the camera before answering the permission prompt
-  - in development, every time, because of StrictMode's double mount
-- **Fix:** stop the tracks in that early return.
-- **Check:** open the camera and close it immediately; the camera light should go off.
-
-### 1.2 Code 39 barcodes (ID cards)
-
-- Lipscomb ID cards carry a Code 39 barcode. The Bluetooth scanner reads them on Check Out; the
-  camera only reads QR codes (`formats: ['qr_code']` in
-  [detector.ts](../frontend/src/scanner/detector.ts)).
-- Add `code_39`:
-  - **Native detector:** check it with `getSupportedFormats()`, as is done for QR.
-  - **zxing:** pass it to the decoder as well.
-- Scans then reach `lipscombIdFrom` the same way the scanner's do.
-- **Cost:** each extra format slows decoding with zxing, which matters most on iPhones. Ideally,
-  enable Code 39 only while a handler wants ID cards (Check Out), not app-wide.
-- **Aiming box:** 1D codes are easier to line up in a wide, short box.
-- **Test** a real card on an iPhone and an Android phone.
-
-## 2. SDS loading and scan labels
-
-### 2.1 SDS viewer loading state
+### 1.1 SDS viewer loading state
 
 - [SdsViewer.tsx](../frontend/src/components/sds/SdsViewer.tsx) shows nothing while the SDS record
   loads, then a blank frame until Drive's viewer appears.
@@ -44,7 +17,7 @@ Remove an item when its PR merges.
 - `onLoad` means Drive's viewer page has loaded, not that the PDF has drawn. Drive shows its own
   spinner after that.
 
-### 2.2 Scan labels shown unpadded
+### 1.2 Scan labels shown unpadded
 
 - [identify.ts](../frontend/src/scanner/identify.ts) builds its label as `CHEM-${n}`, so scan lists
   and the camera's "last scanned" show `CHEM-10` where the printed label says `CHEM-0010`.
@@ -53,7 +26,7 @@ Remove an item when its PR merges.
 - **Fix:** once a scan list has looked a container up, show the API's `label`. Use identify's
   label only as a placeholder until then.
 
-## 3. Ideas (not actionable yet)
+## 2. Ideas (not actionable yet)
 
 ### Camera: smaller preview
 
