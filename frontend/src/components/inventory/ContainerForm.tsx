@@ -53,6 +53,18 @@ import { LocationSelect } from '../shared/LocationSelect';
 import { QuantityUnitField } from '../shared/QuantityUnitField';
 import { contentMassGrams, estimateTare } from '../shared/units';
 
+// A date field's value as the API takes it: YYYY-MM-DD in local time, or
+// null. The value is a Dayjs while editing, but a string once restored from
+// the session-storage form cache (JSON turns a Dayjs into an ISO timestamp,
+// which the API rejects), so both are formatted. Not toISOString(): that
+// converts to UTC first, which moves midnight to the day before anywhere
+// east of UTC.
+const toApiDate = (value: ContainerFormDefaults['date_received']) => {
+  if (!value) return null;
+  const date = dayjs(value);
+  return date.isValid() ? date.format('YYYY-MM-DD') : null;
+};
+
 // Every field below uses a shared wrapper where one fits: RhfTextField,
 // RhfDateField, and RhfSelect for plain text/date/select, LocationSelect for
 // the grouped location picker, and QuantityUnitField for quantity + unit.
@@ -282,12 +294,8 @@ export const ContainerForm = () => {
 
   //Format date fields, clear session storage, invalidate stale container data and navigate to detail page
   const doSubmit = async (data: ContainerFormDefaults, confirmed?: boolean) => {
-    if (data.date_received && data.date_received instanceof dayjs) {
-      data.date_received = data.date_received?.toISOString().split('T')[0] || null;
-    }
-    if (data.expiration_date && data.expiration_date instanceof dayjs) {
-      data.expiration_date = data.expiration_date?.toISOString().split('T')[0] || null;
-    }
+    data.date_received = toApiDate(data.date_received);
+    data.expiration_date = toApiDate(data.expiration_date);
 
     let response;
     setSubmitError(null);
