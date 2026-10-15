@@ -2,7 +2,26 @@
 
 Changes noticed while walking through the code after v1.4.0. Planned work goes first, in
 priority order; ideas that need decisions before they're actionable go last. Remove an item when
-its PR merges. Nothing is planned at the moment.
+its PR merges.
+
+## 1. "Recently added" by when a container was added
+
+- "Recently added" sorts by `date_received`, which is typed in by hand (and can be mistyped, as
+  chem-1174's was). It should use `created_at`, which records when the container was actually
+  added (#155).
+- **Two places use it:**
+  - The Dashboard's "Recently added" card:
+    [views/dashboard.py](../backend/apps/inventory/views/dashboard.py) orders by
+    `-date_received`.
+  - The Inventory page's `?view=recently_added`:
+    [Inventory.tsx](../frontend/src/components/inventory/Inventory.tsx) requests
+    `ordering=-date_received` and drops containers without a `date_received`.
+- **What it needs:**
+  - `created_at` added to `ContainerSerializer` (read-only) and to the container list's
+    ordering fields.
+  - The card's date shows when it was added, not received.
+- **Containers without a `created_at`** (607 locally: no weigh-in to backfill from) sort last.
+  Fall back to `date_received` for them (`Coalesce`), or leave them out.
 
 ## Ideas (not actionable yet)
 
