@@ -259,7 +259,15 @@ export const SdsUploadDialog = ({
         fullScreen={fullScreen}
         fullWidth
         component="form"
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={(e) => {
+          // The new container form renders this dialog inside its own
+          // <form>. The dialog is portaled out of it in the DOM, but React
+          // still bubbles the submit event up the component tree, so
+          // without this "Select" also submitted the container form, before
+          // the selection was staged, and the SDS was dropped.
+          e.stopPropagation();
+          return handleSubmit(onSubmit)(e);
+        }}
         open={open}
         onClose={() => setOpen(false)}
         disableRestoreFocus
