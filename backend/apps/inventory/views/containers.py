@@ -273,7 +273,7 @@ class ContainerView(ModelViewSet):
         serializer.is_valid(raise_exception=True)
         container.date_discarded = serializer.validated_data.get("date", timezone.localdate())
         container.discarded_by = request.user
-        container.save(update_fields=["date_discarded", "discarded_by"])
+        container.save(update_fields=["date_discarded", "discarded_by", "updated_at"])
         return Response(self._displayed(container))
 
     # Undoes discard, for a container marked discarded by mistake
@@ -288,7 +288,7 @@ class ContainerView(ModelViewSet):
             )
         container.date_discarded = None
         container.discarded_by = None
-        container.save(update_fields=["date_discarded", "discarded_by"])
+        container.save(update_fields=["date_discarded", "discarded_by", "updated_at"])
         return Response(self._displayed(container))
 
     @staticmethod

@@ -1,6 +1,8 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from .base import TimeStampedModel
+
 
 class LocationTypes(models.Model):
     name = models.CharField(max_length=20, unique=True)
@@ -41,7 +43,7 @@ def descendant_location_ids(location_id: int) -> list[int]:
     return location_ids
 
 
-class Location(models.Model):
+class Location(TimeStampedModel):
     name = models.CharField(max_length=20)
     type = models.ForeignKey(LocationTypes, on_delete=models.DO_NOTHING, related_name="locations")
     parent = models.ForeignKey(

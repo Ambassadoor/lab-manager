@@ -4,6 +4,8 @@ from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from .base import TimeStampedModel
+
 
 # Validator for submitted cas nums
 def validate_cas(cas: str):
@@ -59,7 +61,7 @@ class ChemicalStorageCategories(models.Model):
         return self.shorthand
 
 
-class Chemical(models.Model):
+class Chemical(TimeStampedModel):
     name = models.CharField(max_length=200)
     iupac = models.CharField(max_length=300, blank=True, null=True)
     cas = models.CharField(

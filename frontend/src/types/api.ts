@@ -959,6 +959,16 @@ export interface components {
     Chemical: {
       readonly id: number;
       readonly sds: components['schemas']['SDS'][];
+      /**
+       * Created
+       * Format: date-time
+       */
+      readonly created_at: string | null;
+      /**
+       * Last changed
+       * Format: date-time
+       */
+      readonly updated_at: string | null;
       name: string;
       iupac?: string | null;
       cas?: string | null;

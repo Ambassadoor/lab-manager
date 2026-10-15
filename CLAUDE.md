@@ -121,9 +121,10 @@ SDS list/retrieve and bug report/feedback creation are public (`AllowAny`).
 - **CheckoutEvent** — audit log (container, user, action, timestamp); a check-in links to its check-out through `related_event`. `user` is who recorded it; a check-out also records who took it: `holder` (an account matched by Lipscomb ID) or `holder_name` and `holder_lipscomb_id` for someone without one. `holder_display` picks whichever there is; the ID isn't sent to the frontend.
 - **WeightReading** — balance history (container, weight, `recorded_at`, `recorded_by`); usage is derived from readings, never stored. There is no `source` field, so typed and measured weights are not distinguished.
 - **LabelTemplate / LabelTemplateField** — the printer template registry (see Hardware).
+- **Auditing.** Container, Chemical, Location and SDS have `created_at` / `updated_at` (`models/base.py`'s `TimeStampedModel`; NULL for rows that predate them, except containers, backfilled from their first weigh-in). Container and SDS also keep a full change history (django-simple-history: `container.history`, the History button in admin), with who made each change, from `HistoryRequestMiddleware`. `QuerySet.update()` and `bulk_update()` skip both, and `save(update_fields=...)` must list `updated_at`, so write these models with `save()`.
 - **BugReport / Feedback** — in `apps/feedback`.
 
-CheckoutEvent and WeightReading are meant to be append-only, but this is not enforced yet: `WeightReadingView` is a full `ModelViewSet` and both timestamps use `auto_now=True`.
+CheckoutEvent and WeightReading are meant to be append-only. Their timestamps are set once, on create (`auto_now_add`), but edits aren't blocked yet: `WeightReadingView` is a full `ModelViewSet`.
 
 ### API schema and frontend types
 
