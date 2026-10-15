@@ -6,6 +6,7 @@ from django.db import models
 from django.db.models import Max, OuterRef, Prefetch, Subquery
 from django.utils import timezone
 
+from .base import TimeStampedModel
 from .chemicals import Chemical
 from .locations import Location
 
@@ -71,7 +72,7 @@ class ContainerQuerySet(models.QuerySet):
         )
 
 
-class Container(models.Model):
+class Container(TimeStampedModel):
     QUANTITY_UNIT_CHOICES = [
         ("mL", "mL"),
         ("L", "L"),
@@ -323,7 +324,7 @@ class GHSPictogram(models.TextChoices):
     ENVIRONMENT = "environment", "Environmental Hazard"
 
 
-class SDS(models.Model):
+class SDS(TimeStampedModel):
     # "Newest" for display. revision_number is text, so "10" sorts below
     # "9" (finding 16 in the code review); NULL revision dates sort first.
     NEWEST_FIRST = ("-revision_date", "-revision_number", "-id")

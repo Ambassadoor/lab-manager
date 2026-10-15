@@ -302,10 +302,15 @@ class SDSCorrectionSerializer(serializers.ModelSerializer):
         except DriveUploadError as e:
             raise serializers.ValidationError({"file" if file else "detail": str(e)}) from e
 
+        # Saved one at a time rather than with .update(), so each row's
+        # updated_at (and change history) is recorded; a document is only
+        # ever shared by a handful of rows.
         with transaction.atomic():
-            SDS.objects.filter(drive_id=instance.drive_id).update(
-                file_name=file_name, **validated_data
-            )
+            for sds in SDS.objects.filter(drive_id=instance.drive_id):
+                sds.file_name = file_name
+                for field, value in validated_data.items():
+                    setattr(sds, field, value)
+                sds.save()
         instance.refresh_from_db()
         return instance
 
