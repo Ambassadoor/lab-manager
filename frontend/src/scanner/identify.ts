@@ -3,7 +3,10 @@ import { parseBarcode } from '../components/shared/parseBarcode';
 // What a scanned label or a typed id refers to.
 export type ScanTarget =
   // `slug` is how the API looks a container up ("chem-292"), `id` its
-  // primary key (292); `label` is for showing back to the user.
+  // primary key (292); `label` is for showing back to the user: the id as
+  // it was scanned or typed, so a scanned label shows exactly as printed
+  // ("CHEM-0292"). Once the container is looked up, its own `label` is
+  // the one to show (a typed "chem-10" is printed "CHEM-0010").
   | { kind: 'container'; id: number; slug: string; label: string }
   | { kind: 'location'; id: number; label: string };
 
@@ -24,7 +27,10 @@ export function identify(raw: string): ScanTarget | null {
   const container = CONTAINER_ID.exec(id.trim());
   if (container) {
     const n = Number(container[1]);
-    return { kind: 'container', id: n, slug: `chem-${n}`, label: `CHEM-${n}` };
+    // The padding is the width of the highest container id, which only the
+    // server knows, so it's kept from the input rather than rebuilt
+    const label = id.trim().toUpperCase();
+    return { kind: 'container', id: n, slug: `chem-${n}`, label };
   }
   const location = LOCATION_ID.exec(id.trim());
   if (location) {

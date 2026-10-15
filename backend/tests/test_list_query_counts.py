@@ -70,7 +70,7 @@ def add_containers(make_container, chemical, user):
                 reading = WeightReading.objects.create(
                     container=container, weight=Decimal(weight), recorded_by=user
                 )
-                # recorded_at is auto_now, so set it after creating.
+                # recorded_at is set on create (auto_now_add), so backdate it after.
                 WeightReading.objects.filter(pk=reading.pk).update(
                     recorded_at=now - timedelta(hours=hours_ago)
                 )

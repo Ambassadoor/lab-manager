@@ -4713,6 +4713,20 @@
                         },
                         "readOnly": true
                     },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true,
+                        "title": "Created"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true,
+                        "title": "Last changed"
+                    },
                     "name": {
                         "type": "string",
                         "maxLength": 200
@@ -4752,10 +4766,12 @@
                     }
                 },
                 "required": [
+                    "created_at",
                     "id",
                     "name",
                     "sds",
-                    "storage_category"
+                    "storage_category",
+                    "updated_at"
                 ]
             },
             "ChemicalStorageCategories": {

@@ -62,7 +62,9 @@ export const Checkout = () => {
         const lipscombId = lipscombIdFrom(raw);
         if (!lipscombId) return false;
         holder.setInput(lipscombId);
-        notify(`Checked out by ${lipscombId}`, 'info');
+        // Says what the scan did, not that anything was checked out yet;
+        // the field shows who it is. Mostly for the camera, which covers it.
+        notify(`ID card read into "Checked out by": ${lipscombId}`, 'info');
         return;
       }
       if (checkoutConfirm.isOpen) {
@@ -75,7 +77,8 @@ export const Checkout = () => {
       }
       addItem(target);
     },
-    { continuous: true }
+    // ID cards: the camera reads their barcodes here too
+    { continuous: true, idCards: true }
   );
 
   const canSubmit =
@@ -98,7 +101,10 @@ export const Checkout = () => {
               <List dense sx={{ maxHeight: 240, overflow: 'auto' }}>
                 {checkoutConfirm.target.items.map((item) => (
                   <ListItem key={item.key} disableGutters>
-                    <ListItemText primary={item.target.label} secondary={item.detail?.name} />
+                    <ListItemText
+                      primary={item.detail?.label ?? item.target.label}
+                      secondary={item.detail?.name}
+                    />
                   </ListItem>
                 ))}
               </List>
@@ -164,6 +170,7 @@ export const Checkout = () => {
             onRemove={list.remove}
             emptyText="Scan a container to start."
             describe={(c) => ({
+              label: c.label,
               primary: c.name,
               secondary: c.location.full_path,
               warning:

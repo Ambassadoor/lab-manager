@@ -1,7 +1,7 @@
 import { Alert, Box, CardContent, Stack } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { updateContainer } from '../../api/inventory';
 import { containerKeys, locationKeys } from '../../api/queryKeys';
 import type { Container, ContainerDetailDefaults } from '../../types';
@@ -13,6 +13,7 @@ import { LocationSelect } from '../shared/LocationSelect';
 import { QuantityUnitField } from '../shared/QuantityUnitField';
 import { RhfTextField } from '../shared/RhfTextField';
 import { StorageConflictWarnings } from '../shared/StorageConflictWarnings';
+import { isVolumeUnit } from '../shared/units';
 import { useStorageConflictConfirm } from '../shared/useStorageConflictConfirm';
 
 // Two related fields side by side, wrapping to one column when the card is
@@ -61,8 +62,14 @@ export const ContainerEditForm = ({ container, onDone }: ContainerEditFormProps)
         container.initial_quantity != null ? String(container.initial_quantity) : '',
       quantity_unit: container.quantity_unit ?? '',
       tare_weight: tareWeight ? String(tareWeight) : '',
+      density: container.density != null ? String(parseFloat(container.density)) : '',
     },
   });
+
+  // Density turns a volume into a mass (for percent remaining), so it's
+  // only asked for with mL or L, or when the container already has one
+  const unit = useWatch({ control, name: 'quantity_unit' });
+  const showDensity = isVolumeUnit(unit) || !!container.density;
 
   // Errors that aren't a storage conflict and don't belong to one field
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -72,7 +79,11 @@ export const ContainerEditForm = ({ container, onDone }: ContainerEditFormProps)
     try {
       await updateContainer(
         container.slug,
-        { ...formData, tare_weight: formData.tare_weight?.trim() || null },
+        {
+          ...formData,
+          tare_weight: formData.tare_weight?.trim() || null,
+          density: formData.density?.trim() || null,
+        },
         confirmed
       );
     } catch (e) {
@@ -161,6 +172,22 @@ export const ContainerEditForm = ({ container, onDone }: ContainerEditFormProps)
               clearErrors={clearErrors}
             />
           </FieldPair>
+          {showDensity && (
+            <FieldPair>
+              <RhfTextField
+                control={control}
+                name="density"
+                label="Density"
+                endAdornment="g/mL"
+                helperText="Needed for percent remaining with mL or L"
+                rules={{
+                  pattern: decimalPatternRule('Please input an integer or decimal'),
+                  validate: (v) => !v || Number(v) > 0 || 'Must be greater than 0',
+                }}
+                clearErrors={clearErrors}
+              />
+            </FieldPair>
+          )}
         </Stack>
       </CardContent>
       <FormActions onCancel={onDone} isDirty={isDirty} loading={isSubmitting} />

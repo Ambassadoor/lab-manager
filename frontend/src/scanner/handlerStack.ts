@@ -7,8 +7,10 @@ import type { ScanTarget } from './identify';
 export type ScanHandler = (target: ScanTarget | null, raw: string) => boolean | 'done' | void;
 
 // A registered handler. `continuous` marks one that takes a list of scans
-// (the Actions tabs), so the camera stays open between them.
-export type HandlerEntry = { handle: ScanHandler; continuous: boolean };
+// (the Actions tabs), so the camera stays open between them. `idCards` marks
+// one that takes ID card scans (Check Out), so the camera also reads their
+// Code 39 barcodes.
+export type HandlerEntry = { handle: ScanHandler; continuous: boolean; idCards: boolean };
 
 // 'done': a handler said the scan finished its job. 'handled': otherwise.
 export type ScanOutcome = 'done' | 'handled';
@@ -32,4 +34,9 @@ export function runHandlers(
 // Whether the handler that would get the next scan takes lists.
 export function wantsContinuous(entries: readonly HandlerEntry[]): boolean {
   return entries.length > 0 && entries[entries.length - 1].continuous;
+}
+
+// Whether the handler that would get the next scan takes ID cards.
+export function wantsIdCards(entries: readonly HandlerEntry[]): boolean {
+  return entries.length > 0 && entries[entries.length - 1].idCards;
 }

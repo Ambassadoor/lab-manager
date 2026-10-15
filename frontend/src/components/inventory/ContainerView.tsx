@@ -4,6 +4,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import type { Container } from '../../types';
 import { DetailRow } from '../shared/DetailRow';
 import { useContainerSdsFallback } from '../../hooks/useContainerSdsFallback';
+import { isVolumeUnit } from '../shared/units';
 
 // Matches the Dashboard's "restock soon" cutoff (see Containers.tsx filterByView)
 const RESTOCK_PERCENT = 10;
@@ -56,6 +57,13 @@ export const ContainerView = ({ container, showCurrentWeight }: ContainerViewPro
         <DetailRow label="Manufacturer">{container.manufacturer}</DetailRow>
         <DetailRow label="Product #">{container.product_num}</DetailRow>
         <DetailRow label="Quantity">{container.quantity}</DetailRow>
+        {/* Only a volume needs one; "Not set" there explains a missing
+            percent remaining */}
+        {(isVolumeUnit(container.quantity_unit) || container.density) && (
+          <DetailRow label="Density">
+            {container.density ? `${parseFloat(container.density)} g/mL` : 'Not set'}
+          </DetailRow>
+        )}
         <DetailRow label="Tare Weight">{tareWeight ? `${tareWeight} g` : 'Not set'}</DetailRow>
         {showCurrentWeight && container.latest_reading && (
           <DetailRow label="Current Weight">

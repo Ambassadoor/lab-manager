@@ -5,7 +5,9 @@ from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Max, OuterRef, Prefetch, Subquery
 from django.utils import timezone
+from simple_history.models import HistoricalRecords
 
+from .base import TimeStampedModel
 from .chemicals import Chemical
 from .locations import Location
 
@@ -71,7 +73,7 @@ class ContainerQuerySet(models.QuerySet):
         )
 
 
-class Container(models.Model):
+class Container(TimeStampedModel):
     QUANTITY_UNIT_CHOICES = [
         ("mL", "mL"),
         ("L", "L"),
@@ -121,6 +123,10 @@ class Container(models.Model):
     )
 
     objects = ContainerQuerySet.as_manager()
+    # Every change, with who made it and the values before (container.history,
+    # and the History button in admin). updated_at is left out: it changes
+    # on every save, and history_date already says when.
+    history = HistoricalRecords(excluded_fields=["updated_at"])
 
     @property
     def label(self) -> str:
@@ -240,7 +246,9 @@ class WeightReading(models.Model):
 
     container = models.ForeignKey(Container, on_delete=models.CASCADE, related_name="readings")
     weight = models.DecimalField(max_digits=8, decimal_places=4)
-    recorded_at = models.DateTimeField(auto_now=True)
+    # Set once, when the reading is made (auto_now would reset it on every
+    # save, rewriting history)
+    recorded_at = models.DateTimeField(auto_now_add=True)
     recorded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, related_name="readings"
     )
@@ -255,7 +263,8 @@ class CheckoutEvent(models.Model):
 
     container = models.ForeignKey(Container, on_delete=models.CASCADE, related_name="events")
     action = models.CharField(max_length=3, choices=ACTION_CHOICES)
-    timestamp = models.DateTimeField(auto_now=True)
+    # Set once, when the event is recorded, like WeightReading.recorded_at
+    timestamp = models.DateTimeField(auto_now_add=True)
     # Who recorded the event: the logged-in Stockroom worker
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, related_name="events"
@@ -320,7 +329,7 @@ class GHSPictogram(models.TextChoices):
     ENVIRONMENT = "environment", "Environmental Hazard"
 
 
-class SDS(models.Model):
+class SDS(TimeStampedModel):
     # "Newest" for display. revision_number is text, so "10" sorts below
     # "9" (finding 16 in the code review); NULL revision dates sort first.
     NEWEST_FIRST = ("-revision_date", "-revision_number", "-id")
@@ -348,6 +357,9 @@ class SDS(models.Model):
     # university-wide EHS system (a requirement independent of this
     # project). Not set by anything in this app today.
     is_uploaded = models.BooleanField(default=False)
+
+    # Every change, as on Container: corrections and replacements included
+    history = HistoricalRecords(excluded_fields=["updated_at"])
 
     def __str__(self):
         return self.file_name

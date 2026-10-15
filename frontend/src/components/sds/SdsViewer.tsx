@@ -1,6 +1,6 @@
 import { EditNote } from '@mui/icons-material';
-import { Box, Button, Container, Stack, Typography } from '@mui/material';
-import { useState } from 'react';
+import { Box, Button, Container, Link, Skeleton, Stack, Typography } from '@mui/material';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getSdsById } from '../../api/sds';
@@ -11,6 +11,63 @@ import { ghsPictogramIconSrc, ghsPictogramLabel } from '../shared/ghsPictograms'
 import { useAuth } from '../../context/AuthContext';
 import { hasRoleAtLeast } from '../shared/roles';
 import { SdsCorrectDialog } from './SdsCorrectDialog';
+
+const FRAME_HEIGHT = { xs: '70dvh', sm: '80dvh' };
+// How long before offering to open the document in its own tab
+const SLOW_LOAD_MS = 10_000;
+
+// The Drive preview, with a skeleton over it until the frame loads. That
+// covers the blank white frame before Drive's viewer appears; Drive then
+// shows its own spinner while it draws the PDF, which can't be seen from
+// here (the frame is cross-origin). Keyed by drive_id by the caller, so a
+// different document starts loading afresh.
+const SdsFrame = ({ src, title }: { src: string; title: string }) => {
+  const [loaded, setLoaded] = useState(false);
+  const [slow, setSlow] = useState(false);
+
+  useEffect(() => {
+    if (loaded) return;
+    const timer = setTimeout(() => setSlow(true), SLOW_LOAD_MS);
+    return () => clearTimeout(timer);
+  }, [loaded]);
+
+  return (
+    <Box sx={{ position: 'relative', height: FRAME_HEIGHT }}>
+      {!loaded && (
+        <Stack
+          spacing={1}
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 1,
+            // Opaque: the Skeleton alone is translucent, and the half-loaded
+            // frame would show through
+            bgcolor: 'background.default',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Skeleton variant="rounded" sx={{ position: 'absolute', inset: 0, height: '100%' }} />
+          {slow && (
+            <Typography variant="body2" sx={{ position: 'relative' }}>
+              Taking a while?{' '}
+              <Link href={src} target="_blank" rel="noopener">
+                Open the document in a new tab
+              </Link>
+            </Typography>
+          )}
+        </Stack>
+      )}
+      <Box
+        component="iframe"
+        src={src}
+        title={title}
+        onLoad={() => setLoaded(true)}
+        sx={{ width: '100%', height: '100%', border: 'none', borderRadius: 1 }}
+      />
+    </Box>
+  );
+};
 
 // Fully public — no login, matching the "SDS viewing is public safety
 // information" decision. Embeds the document itself via Drive's own
@@ -33,7 +90,19 @@ export const SdsViewer = () => {
   });
 
   if (isError) return <NotFound />;
-  if (isPending || !sds) return null;
+  if (isPending || !sds) {
+    // The page's shape while the record loads: name, file line, document
+    return (
+      <Container sx={{ py: { xs: 2, sm: 3 } }}>
+        <SafetyHeader />
+        <Stack spacing={1} sx={{ mb: 2 }}>
+          <Skeleton variant="text" sx={{ fontSize: '1.5rem', width: '40%' }} />
+          <Skeleton variant="text" sx={{ width: '60%' }} />
+        </Stack>
+        <Skeleton variant="rounded" sx={{ height: FRAME_HEIGHT }} />
+      </Container>
+    );
+  }
 
   return (
     <Container sx={{ py: { xs: 2, sm: 3 } }}>
@@ -91,17 +160,7 @@ export const SdsViewer = () => {
           </Stack>
         )}
       </Stack>
-      <Box
-        component="iframe"
-        src={sds.view_url}
-        title={sds.file_name}
-        sx={{
-          width: '100%',
-          height: { xs: '70dvh', sm: '80dvh' },
-          border: 'none',
-          borderRadius: 1,
-        }}
-      />
+      <SdsFrame key={sds.drive_id} src={sds.view_url} title={sds.file_name} />
     </Container>
   );
 };

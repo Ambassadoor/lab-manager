@@ -14,8 +14,15 @@ import type { ScanItem } from './useScanList';
 type ScanListViewProps<D> = {
   items: ScanItem<D>[];
   onRemove: (key: string) => void;
-  // The name and place to show under an item's id, once looked up
-  describe: (detail: D) => { primary: string; secondary?: string; warning?: string };
+  // The name and place to show under an item's id, once looked up, and
+  // the item's own label, which replaces the one scanned or typed (the
+  // server knows a container label's padding: CHEM-10 is CHEM-0010)
+  describe: (detail: D) => {
+    primary: string;
+    secondary?: string;
+    warning?: string;
+    label?: string;
+  };
   // Extra fields beside a ready item (Check In's weights)
   renderExtra?: (item: ScanItem<D>) => ReactNode;
   emptyText: string;
@@ -62,7 +69,7 @@ export function ScanListView<D>({
               primary={
                 <>
                   <Typography component="span" sx={{ fontWeight: 'bold', mr: 1 }}>
-                    {item.target.label}
+                    {described?.label ?? item.target.label}
                   </Typography>
                   {described?.primary}
                 </>
