@@ -5,6 +5,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import Max, OuterRef, Prefetch, Subquery
 from django.utils import timezone
+from simple_history.models import HistoricalRecords
 
 from .base import TimeStampedModel
 from .chemicals import Chemical
@@ -122,6 +123,10 @@ class Container(TimeStampedModel):
     )
 
     objects = ContainerQuerySet.as_manager()
+    # Every change, with who made it and the values before (container.history,
+    # and the History button in admin). updated_at is left out: it changes
+    # on every save, and history_date already says when.
+    history = HistoricalRecords(excluded_fields=["updated_at"])
 
     @property
     def label(self) -> str:
@@ -352,6 +357,9 @@ class SDS(TimeStampedModel):
     # university-wide EHS system (a requirement independent of this
     # project). Not set by anything in this app today.
     is_uploaded = models.BooleanField(default=False)
+
+    # Every change, as on Container: corrections and replacements included
+    history = HistoricalRecords(excluded_fields=["updated_at"])
 
     def __str__(self):
         return self.file_name

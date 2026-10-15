@@ -1,4 +1,5 @@
 from django.contrib import admin
+from simple_history.admin import SimpleHistoryAdmin
 from .models import (
     Chemical,
     Container,
@@ -20,12 +21,19 @@ class TimestampedAdmin(admin.ModelAdmin):
     readonly_fields = ["created_at", "updated_at"]
 
 
+# Container and SDS keep a full change history (django-simple-history): the
+# History button on each record lists every change, who made it, and what
+# changed.
+class HistoryAdmin(SimpleHistoryAdmin):
+    readonly_fields = ["created_at", "updated_at"]
+
+
 # Adds models to admin site
 admin.site.register(Chemical, TimestampedAdmin)
-admin.site.register(Container, TimestampedAdmin)
+admin.site.register(Container, HistoryAdmin)
 admin.site.register(Location, TimestampedAdmin)
 admin.site.register(ChemicalStorageCategories)
-admin.site.register(SDS, TimestampedAdmin)
+admin.site.register(SDS, HistoryAdmin)
 admin.site.register(LocationTypes)
 admin.site.register(WeightReading)
 admin.site.register(CheckoutEvent)
