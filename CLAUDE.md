@@ -123,7 +123,7 @@ SDS list/retrieve and bug report/feedback creation are public (`AllowAny`).
 - **LabelTemplate / LabelTemplateField** — the printer template registry (see Hardware).
 - **BugReport / Feedback** — in `apps/feedback`.
 
-CheckoutEvent and WeightReading are meant to be append-only, but this is not enforced yet: `WeightReadingView` is a full `ModelViewSet` and both timestamps use `auto_now=True`.
+CheckoutEvent and WeightReading are meant to be append-only. Their timestamps are set once, on create (`auto_now_add`), but edits aren't blocked yet: `WeightReadingView` is a full `ModelViewSet`.
 
 ### API schema and frontend types
 

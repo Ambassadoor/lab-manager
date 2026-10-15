@@ -240,7 +240,9 @@ class WeightReading(models.Model):
 
     container = models.ForeignKey(Container, on_delete=models.CASCADE, related_name="readings")
     weight = models.DecimalField(max_digits=8, decimal_places=4)
-    recorded_at = models.DateTimeField(auto_now=True)
+    # Set once, when the reading is made (auto_now would reset it on every
+    # save, rewriting history)
+    recorded_at = models.DateTimeField(auto_now_add=True)
     recorded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, related_name="readings"
     )
@@ -255,7 +257,8 @@ class CheckoutEvent(models.Model):
 
     container = models.ForeignKey(Container, on_delete=models.CASCADE, related_name="events")
     action = models.CharField(max_length=3, choices=ACTION_CHOICES)
-    timestamp = models.DateTimeField(auto_now=True)
+    # Set once, when the event is recorded, like WeightReading.recorded_at
+    timestamp = models.DateTimeField(auto_now_add=True)
     # Who recorded the event: the logged-in Stockroom worker
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, related_name="events"
