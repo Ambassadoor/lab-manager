@@ -28,6 +28,12 @@ type_operations = {
     FieldTypes.LOCATION: ["in"],
 }
 
+empty_rules = {
+    FieldTypes.TEXT: {"__isnull": True, "__iexact": ""},
+    FieldTypes.NUMBER: {"__isnull": True},
+    FieldTypes.DATE: {"__isnull": True},
+}
+
 
 @dataclass(frozen=True)
 class Field:
@@ -37,6 +43,9 @@ class Field:
     path: str
     choices: list = field(default_factory=list)
     nullable: bool = False
+    empty_when: dict | None = None
+    date_overrides: dict | None = None
+    datetime: bool = False
 
 
 container_name = Field(
@@ -61,14 +70,20 @@ container_tare_weight = Field(
     type=FieldTypes.NUMBER,
     nullable=True,
     path="tare_weight",
+    empty_when={"__isnull": True, "__lte": 0},
 )
 
+# Null = received before inventory tracking began
 container_date_received = Field(
     key="date_received",
     label="Date Received",
     type=FieldTypes.DATE,
     nullable=True,
     path="date_received",
+    date_overrides={
+        "older_than_days": {"rules": {"__lt": None, "__isnull": True}, "operator": "or"},
+        "before": {"rules": {"__lt": None, "__isnull": True}, "operator": "or"},
+    },
 )
 
 container_unit = Field(
@@ -88,6 +103,15 @@ container_date_discarded = Field(
     path="date_discarded",
 )
 
+container_date_created = Field(
+    key="created_at",
+    label="Date Created",
+    type=FieldTypes.DATE,
+    nullable=False,
+    path="created_at",
+    datetime=True,
+)
+
 container_filter_fields = [
     container_name,
     container_manufacturer,
@@ -95,6 +119,7 @@ container_filter_fields = [
     container_date_received,
     container_unit,
     container_date_discarded,
+    container_date_created,
 ]
 
 
