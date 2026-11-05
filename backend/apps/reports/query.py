@@ -117,14 +117,19 @@ def run_query(definition):
     _is_valid_operator(definition)
     _has_necessary_value(definition)
     queries = []
+    annotations = {}
     for condition in definition["conditions"]:
         field = next(field for field in container_filter_fields if field.key == condition["field"])
+        if field.annotation is not None:
+            annotations[field.path] = field.annotation()
         operation = condition.get("op")
         value = condition.get("value")
 
         query = convert_to_q(field, operation, value)
         queries.append(query)
 
-    results = Container.objects.active().filter(reduce(operator.and_, queries))
+    results = (
+        Container.objects.active().annotate(**annotations).filter(reduce(operator.and_, queries))
+    )
 
     return results
