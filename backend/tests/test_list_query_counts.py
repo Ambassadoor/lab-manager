@@ -205,3 +205,33 @@ class TestDashboardQueries:
         large = count_queries(client, "/api/inventory/dashboard/")
 
         assert large == small
+
+
+@pytest.mark.django_db
+class TestReportQueryQueries:
+    # Two computed fields, so both kinds of annotation are in the query: a
+    # subquery (last check-out) and an expression built on one (percent left)
+    DEFINITION = {
+        "conditions": [
+            {"field": "last_checkout", "op": "within_days", "value": 1},
+            {"field": "percent_remaining", "op": "lt", "value": 50},
+        ]
+    }
+
+    def count_report_queries(self, client):
+        with CaptureQueriesContext(connection) as queries:
+            response = client.post("/api/reports/query/", self.DEFINITION, format="json")
+        assert response.status_code == 200
+        return len(queries), len(response.data)
+
+    def test_query_count_does_not_grow_with_matches(self, client, add_containers):
+        add_containers(2)
+        small, small_matches = self.count_report_queries(client)
+        add_containers(6)
+        large, large_matches = self.count_report_queries(client)
+
+        # Every container from add_containers matches (checked out 3 hours
+        # ago, 10% left), so the second request serializes four times as many
+        assert (small_matches, large_matches) == (2, 8)
+        assert large == small
+        assert large <= MAX_LIST_QUERIES
