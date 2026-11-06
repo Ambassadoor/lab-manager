@@ -25,11 +25,13 @@ class TestRegistry:
 
     def test_unit_field_choices_match_container_model(self):
         registry_data = return_registry()
-        choices = Container.QUANTITY_UNIT_CHOICES
+        choices = [
+            {"value": value, "label": label} for value, label in Container.QUANTITY_UNIT_CHOICES
+        ]
         unit = next((field for field in registry_data if field["key"] == "unit"), None)
         assert unit is not None
         assert "choices" in unit
-        assert unit["choices"] == choices
+        assert choices == unit["choices"]
 
     def test_registry_rejects_duplicate_keys(self):
 

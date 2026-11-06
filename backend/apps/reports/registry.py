@@ -279,7 +279,9 @@ def return_registry():
                 "label": f.label,
                 "type": f.type,
                 "operations": type_operations[f.type],
-                **({"choices": f.choices} if f.choices else {}),
+                "choices": [{"value": value, "label": label} for value, label in f.choices]
+                if f.choices
+                else [],
             }
         )
     return formatted

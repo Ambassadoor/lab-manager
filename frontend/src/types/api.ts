@@ -864,6 +864,38 @@ export interface paths {
     patch: operations['inventory_weight_readings_partial_update'];
     trace?: never;
   };
+  '/api/reports/fields/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['reports_fields_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/reports/query/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['reports_query_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1424,6 +1456,25 @@ export interface components {
      * @enum {string}
      */
     QuantityUnitEnum: 'mL' | 'L' | 'mg' | 'g' | 'kg';
+    QueryCondition: {
+      field: string;
+      op: string;
+      value?: unknown;
+    };
+    QueryRequest: {
+      conditions: components['schemas']['QueryCondition'][];
+    };
+    RegistryChoices: {
+      value: string;
+      label: string;
+    };
+    RegistryResponse: {
+      key: string;
+      label: string;
+      type: string;
+      operations: string[];
+      choices: components['schemas']['RegistryChoices'][];
+    };
     /**
      * @description * `admin` - Admin
      *     * `lab_manager` - Lab Manager
@@ -3875,6 +3926,58 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['WeightReading'];
+        };
+      };
+    };
+  };
+  reports_fields_list: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RegistryResponse'][];
+        };
+      };
+    };
+  };
+  reports_query_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['QueryRequest'];
+        'application/x-www-form-urlencoded': components['schemas']['QueryRequest'];
+        'multipart/form-data': components['schemas']['QueryRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Container'][];
+        };
+      };
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorDetail'];
         };
       };
     };

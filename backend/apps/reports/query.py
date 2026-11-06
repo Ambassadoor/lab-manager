@@ -1,11 +1,18 @@
 import operator
+import datetime
 
 from datetime import timedelta
 from functools import reduce
 from apps.inventory.models.containers import Container
-from apps.reports.registry import FieldTypes, type_operations, container_filter_fields, empty_rules
+from apps.reports.registry import (
+    FieldTypes,
+    type_operations,
+    container_filter_fields,
+    empty_rules,
+)
 from django.db.models import Q
 from django.utils import timezone
+from decimal import Decimal, InvalidOperation
 
 operations = {
     FieldTypes.TEXT: {
@@ -57,7 +64,8 @@ def convert_to_q(field, operation, value=None):
             op = operators[override["operator"]]
 
             q = reduce(
-                op, [Q(**{f"{path}{k}": value if v is None else v}) for k, v in rules.items()]
+                op,
+                [Q(**{f"{path}{k}": value if v is None else v}) for k, v in rules.items()],
             )
         else:
             q = Q(**{f"{path}{lookup}": value})
@@ -71,7 +79,8 @@ def _is_valid_operator(definition):
     invalid_operators = []
     for condition in definition["conditions"]:
         current_field = next(
-            (field for field in container_filter_fields if field.key == condition["field"]), None
+            (field for field in container_filter_fields if field.key == condition["field"]),
+            None,
         )
         operation = condition["op"]
         allowed_operations = type_operations[current_field.type]
@@ -89,7 +98,8 @@ def _is_valid_field_key(definition):
     invalid_field_keys = []
     for condition in definition["conditions"]:
         current_field = next(
-            (field for field in container_filter_fields if field.key == condition["field"]), None
+            (field for field in container_filter_fields if field.key == condition["field"]),
+            None,
         )
         if not current_field:
             invalid_field_keys.append(condition["field"])
@@ -105,6 +115,32 @@ def _has_necessary_value(definition):
         if condition.get("value") is None:
             if condition.get("op") not in ["is_empty", "is_not_empty"]:
                 missing_values.append(condition["field"])
+        else:
+            field = next(f for f in container_filter_fields if f.key == condition.get("field"))
+            value = condition.get("value")
+            op = condition.get("op")
+            if field.type == FieldTypes.NUMBER:
+                try:
+                    Decimal(value)
+                except (InvalidOperation, ValueError, TypeError):
+                    raise ValueError(f"The value for {field.label} must be a number")
+            if field.type == FieldTypes.DATE:
+                if op in ["older_than_days", "within_days"]:
+                    try:
+                        num = Decimal(value)
+                        if not num % 1 == 0 or isinstance(value, str):
+                            raise ValueError
+                    except (ValueError, TypeError, InvalidOperation):
+                        raise ValueError(
+                            f"The value for {field.label} must be a whole number when using {op}"
+                        )
+                elif op == "is_empty":
+                    raise ValueError(f"No value should be provided for {op}")
+                else:
+                    try:
+                        datetime.date.fromisoformat(str(value))
+                    except ValueError:
+                        raise ValueError(f"The value for {field.label} must be a date")
 
     if missing_values:
         raise ValueError(f"The following fields are missing values: {missing_values}")
@@ -129,7 +165,9 @@ def run_query(definition):
         queries.append(query)
 
     results = (
-        Container.objects.active().annotate(**annotations).filter(reduce(operator.and_, queries))
+        Container.objects.active()
+        .annotate(**annotations)
+        .filter(reduce(operator.and_, queries, Q()))
     )
 
     return results
