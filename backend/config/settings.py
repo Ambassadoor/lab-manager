@@ -32,7 +32,6 @@ INSTALLED_APPS = [
     "apps.feedback",
     "apps.reports",
     "drf_spectacular",
-    
 ]
 
 MIDDLEWARE = [
