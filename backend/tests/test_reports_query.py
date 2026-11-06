@@ -65,11 +65,11 @@ class TestReportQuery:
         assert {c.slug for c in results} == {"not_empty"}
 
     def test_quantity_unit_query(self, make_container):
-        make_container("ml", quantity_unit="ml")
+        make_container("ml", quantity_unit="mL")
         make_container("g", quantity_unit="g")
-        make_container("l", quantity_unit="l")
+        make_container("l", quantity_unit="L")
 
-        query = {"conditions": [{"field": "unit", "op": "is_any_of", "value": ["ml", "l"]}]}
+        query = {"conditions": [{"field": "unit", "op": "is_any_of", "value": ["mL", "L"]}]}
 
         results = run_query(query)
         assert {c.slug for c in results} == {"ml", "l"}

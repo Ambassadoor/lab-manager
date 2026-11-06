@@ -62,6 +62,18 @@ class TestReportAPI:
         assert response.status_code == 200
         assert {c["slug"] for c in response.data} == {"old"}
 
+    def test_any_of_choices(self, client_as, make_container):
+        make_container("millilitres", quantity_unit="mL")
+        make_container("grams", quantity_unit="g")
+        make_container("kilograms", quantity_unit="kg")
+
+        response = client_as("stockroom").post(
+            QUERY_URL, condition("unit", "is_any_of", ["mL", "kg"]), format="json"
+        )
+
+        assert response.status_code == 200
+        assert {c["slug"] for c in response.data} == {"millilitres", "kilograms"}
+
     def test_whole_days_sent_as_a_number(self, client_as, make_container):
         make_container("new")
 
@@ -93,6 +105,12 @@ BAD_CONDITIONS = {
     "value_missing": (("created_at", "before"), "missing values"),
     "unknown_field": (("created_on", "before", "2026-01-01"), "not supported"),
     "operator_wrong_for_type": (("tare_weight", "contains", "1"), "does not support"),
+    "days_overflow": (("created_at", "within_days", 10**9), "too many"),
+    "choice_not_a_choice": (("unit", "is", "xyz"), "is not a choice"),
+    "choice_is_a_list": (("unit", "is", ["g"]), "is not a choice"),
+    "any_of_is_a_string": (("unit", "is_any_of", "mL"), "must be a list"),
+    "any_of_is_empty": (("unit", "is_any_of", []), "must be a list"),
+    "any_of_has_a_bad_choice": (("unit", "is_any_of", ["g", "xyz"]), "xyz is not a choice"),
 }
 
 

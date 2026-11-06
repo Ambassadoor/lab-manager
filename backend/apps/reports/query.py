@@ -109,6 +109,27 @@ def _is_valid_field_key(definition):
     return True
 
 
+def _check_choices(field, op, value):
+    """`is` takes one of the field's choices, `is_any_of` a list of them.
+
+    Without this, a value that isn't a choice silently matches nothing, and
+    a string given to `is_any_of` is read as its letters ("mL" → IN ('m', 'L')).
+    """
+    allowed = [choice for choice, _label in field.choices]
+    if op == "is_any_of":
+        if not isinstance(value, list) or not value:
+            raise ValueError(f"The value for {field.label} must be a list of choices")
+        chosen = value
+    else:
+        chosen = [value]
+    invalid = [str(v) for v in chosen if v not in allowed]
+    if invalid:
+        raise ValueError(
+            f"{', '.join(invalid)} is not a choice for {field.label}. "
+            f"Choose from: {', '.join(allowed)}"
+        )
+
+
 def _has_necessary_value(definition):
     missing_values = []
     for condition in definition["conditions"]:
@@ -124,6 +145,8 @@ def _has_necessary_value(definition):
                     Decimal(value)
                 except (InvalidOperation, ValueError, TypeError):
                     raise ValueError(f"The value for {field.label} must be a number")
+            if field.type == FieldTypes.CHOICE:
+                _check_choices(field, op, value)
             if field.type == FieldTypes.DATE:
                 if op in ["older_than_days", "within_days"]:
                     try:
@@ -134,6 +157,12 @@ def _has_necessary_value(definition):
                         raise ValueError(
                             f"The value for {field.label} must be a whole number when using {op}"
                         )
+                    try:
+                        # The same conversion convert_to_q makes; past about
+                        # 2.7 million years, timedelta overflows
+                        timedelta(days=int(num))
+                    except OverflowError:
+                        raise ValueError(f"{value} days is too many for {field.label}")
                 elif op == "is_empty":
                     raise ValueError(f"No value should be provided for {op}")
                 else:
@@ -154,7 +183,10 @@ def run_query(definition):
     _has_necessary_value(definition)
     queries = []
     annotations = {}
+    active_only = True
     for condition in definition["conditions"]:
+        if condition["field"] == "date_discarded":
+            active_only = False
         field = next(field for field in container_filter_fields if field.key == condition["field"])
         if field.annotation is not None:
             annotations[field.path] = field.annotation()
@@ -164,10 +196,8 @@ def run_query(definition):
         query = convert_to_q(field, operation, value)
         queries.append(query)
 
-    results = (
-        Container.objects.active()
-        .annotate(**annotations)
-        .filter(reduce(operator.and_, queries, Q()))
-    )
+    queryset = Container.objects.active() if active_only else Container.objects
+
+    results = queryset.annotate(**annotations).filter(reduce(operator.and_, queries, Q()))
 
     return results
