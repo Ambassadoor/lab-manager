@@ -64,10 +64,12 @@ class LocationSerializer(serializers.ModelSerializer):
         }
 
     # Building a serializer is the slow part, not the data: the container
-    # list nests a location (with its subtree) in every row, about 20,000
-    # nodes in all, and a new LocationTypeSerializer per node took most of
-    # the request's time. There are only a handful of types, so each is
-    # serialized once and reused, cached on `self` like the location map.
+    # list once nested a location (with its subtree) in every row, about
+    # 20,000 nodes in all, and a new LocationTypeSerializer per node took
+    # most of the request's time. Containers now use ContainerLocationSerializer,
+    # but the locations page still serializes the whole tree. There are only
+    # a handful of types, so each is serialized once and reused, cached on
+    # `self` like the location map.
     def _type_data(self, location_type):
         cache = getattr(self, "_cached_type_data", None)
         if cache is None:
@@ -83,6 +85,49 @@ class LocationSerializer(serializers.ModelSerializer):
             names.append(current.name)
             current = by_id.get(current.parent_id)
         return " ".join(reversed(names))
+
+
+# LocationSerializer's type and subtree are for the locations page. Nested in
+# every container they repeated a room's whole subtree in each of the room's
+# containers: about 77% of a container list's size. Paths are built for every
+# location in one query, cached on `self` so a many=True container list pays
+# once.
+class ContainerLocationSerializer(serializers.ModelSerializer):
+    """Where a container is: the location's id, name and full path."""
+
+    class Meta:
+        model = Location
+        fields = ["id", "name", "full_path"]
+
+    def to_representation(self, instance):
+        return {
+            "id": instance.id,
+            "name": instance.name,
+            "full_path": self._full_paths()[instance.id],
+        }
+
+    def _full_paths(self):
+        cached = getattr(self, "_cached_full_paths", None)
+        if cached is not None:
+            return cached
+        by_id = {loc.id: loc for loc in Location.objects.only("id", "name", "parent_id")}
+        paths: dict[int, str] = {}
+
+        def path_of(location_id):
+            if location_id not in paths:
+                location = by_id[location_id]
+                parent_id = location.parent_id
+                paths[location_id] = (
+                    f"{path_of(parent_id)} {location.name}"
+                    if parent_id is not None
+                    else location.name
+                )
+            return paths[location_id]
+
+        for location_id in by_id:
+            path_of(location_id)
+        self._cached_full_paths = paths
+        return paths
 
 
 class LocationWriteSerializer(serializers.ModelSerializer):
