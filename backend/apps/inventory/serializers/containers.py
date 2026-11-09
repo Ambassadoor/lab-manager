@@ -13,7 +13,7 @@ from ..models import (
 )
 from ..storage_rules import check_storage_conflicts
 from .chemicals import SDSSerializer
-from .locations import LocationSerializer, LocationTypeSerializer
+from .locations import ContainerLocationSerializer, LocationTypeSerializer
 
 
 # Serializer for weight reading writes
@@ -56,7 +56,7 @@ class ContainerSerializer(serializers.ModelSerializer):
     is_opened = serializers.ReadOnlyField(label="Opened?")
     quantity = serializers.ReadOnlyField(label="Quantity")
     has_estimated_usage = serializers.ReadOnlyField(label="Has Estimated Usage?")
-    location = LocationSerializer()
+    location = ContainerLocationSerializer()
     # Read-only PK, not nested — the frontend only needs the id, to fall
     # back to the chemical's other SDS when this container has none of its
     # own (see useContainerSdsFallback.ts). Writes still go through
@@ -197,7 +197,7 @@ class ContainerWriteSerializer(serializers.ModelSerializer):
 
 
 # Lives here rather than serializers/locations.py: it needs ContainerSerializer
-# (defined above), and ContainerSerializer needs LocationSerializer — keeping
+# (defined above), and ContainerSerializer needs ContainerLocationSerializer — keeping
 # both directions of that dependency in one file avoids a locations <-> containers
 # circular import between the two modules.
 class LocationContainersSerializer(serializers.ModelSerializer):

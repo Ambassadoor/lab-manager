@@ -4872,7 +4872,7 @@
                         "title": "Density/specific gravity"
                     },
                     "location": {
-                        "$ref": "#/components/schemas/Location"
+                        "$ref": "#/components/schemas/ContainerLocation"
                     },
                     "manufacturer": {
                         "type": "string",
@@ -5014,6 +5014,29 @@
                         "type": "boolean"
                     }
                 }
+            },
+            "ContainerLocation": {
+                "type": "object",
+                "description": "Where a container is: the location's id, name and full path.",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 20
+                    },
+                    "full_path": {
+                        "type": "string",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "full_path",
+                    "id",
+                    "name"
+                ]
             },
             "ContainerSlug": {
                 "type": "object",

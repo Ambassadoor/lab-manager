@@ -154,6 +154,23 @@ class TestContainerListQueries:
         # Postgres sorts NULL first in a descending order, as before.
         assert data["latest_sds"]["revision_date"] is None
 
+    def test_location_is_a_summary_without_the_subtree(self, client, make_container, make_location):
+        # A container directly in a room with shelves under it: the room's
+        # subtree once rode along in every one of its containers
+        room = make_location("Room")
+        shelf = make_location("Shelf", parent=room)
+        make_location("Bin", parent=shelf)
+        make_container("in-room", location=room)
+        make_container("in-shelf", location=shelf)
+
+        response = client.get("/api/inventory/containers/")
+
+        locations = {row["slug"]: row["location"] for row in response.data}
+        assert locations == {
+            "in-room": {"id": room.id, "name": "Room", "full_path": "Room"},
+            "in-shelf": {"id": shelf.id, "name": "Shelf", "full_path": "Room Shelf"},
+        }
+
 
 @pytest.mark.django_db
 class TestChemicalListQueries:
