@@ -23,6 +23,17 @@ server {
     add_header Strict-Transport-Security "max-age=86400" always;
 
     client_max_body_size 25m;   # SDS PDF uploads
+
+    # Compress API JSON and the frontend bundle. Debian's nginx.conf turns
+    # gzip on but only for HTML; a container list is ~1 MB of JSON and ~120 KB
+    # compressed. Responses under 1 KB aren't worth it. Vary tells caches the
+    # body depends on Accept-Encoding.
+    gzip on;
+    gzip_comp_level 5;
+    gzip_min_length 1024;
+    gzip_vary on;
+    gzip_types application/json application/javascript text/css text/plain image/svg+xml;
+
     root /opt/lab-manager/frontend/dist;
 
     # proxy_params sends X-Forwarded-Proto, which Django trusts when

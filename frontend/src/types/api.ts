@@ -1005,7 +1005,7 @@ export interface components {
        * Format: decimal
        */
       density?: string | null;
-      location: components['schemas']['Location'];
+      location: components['schemas']['ContainerLocation'];
       manufacturer?: string | null;
       readonly quantity: string;
       /** Quantity */
@@ -1047,6 +1047,12 @@ export interface components {
       is_discarded?: boolean;
       has_estimated_usage?: boolean;
       is_valid?: boolean;
+    };
+    /** @description Where a container is: the location's id, name and full path. */
+    ContainerLocation: {
+      readonly id: number;
+      name: string;
+      readonly full_path: string;
     };
     ContainerSlug: {
       slug: string;
