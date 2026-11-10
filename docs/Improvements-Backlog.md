@@ -61,6 +61,20 @@ whether it's really optional.
 - **Keep the serializers, the form's rules and the docs** (CLAUDE.md's data model) in line with
   whatever is decided.
 
+## 3. `deploy.sh` hangs at "Installing backend and bridge dependencies"
+
+- The v1.5.1 deploy over SSH hung at `poetry install` although nothing needed installing.
+- **Cause:** Poetry asks the system keyring (Secret Service) for credentials, even for public
+  PyPI packages. The Pi's desktop keyring is locked, so it waits for an unlock prompt that shows
+  on the Pi's own screen, not in the SSH session.
+- **Workaround until fixed:** run the deploy with the keyring turned off:
+  `PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring deploy.sh <tag>`.
+- **Fix:** in [deploy.sh](../deploy/pi/deploy.sh), next to `unset VIRTUAL_ENV`, add
+  `export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring`, with a comment saying why. Every
+  package comes from public PyPI, so Poetry never needs stored credentials here.
+- Mention it under deploying updates in [deploy/pi/README.md](../deploy/pi/README.md), in case a
+  manual `poetry install` on the Pi hangs the same way.
+
 ## Ideas (not actionable yet)
 
 ### Camera: smaller preview
