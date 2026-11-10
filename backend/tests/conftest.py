@@ -1,7 +1,14 @@
 import pytest
 from rest_framework.test import APIClient
 
-from apps.inventory.models import Chemical, Container, Location, LocationTypes
+from apps.inventory.models import (
+    Chemical,
+    Container,
+    Location,
+    LocationTypes,
+    CheckoutEvent,
+    WeightReading,
+)
 from apps.users.models import User
 
 
@@ -38,6 +45,55 @@ def make_container(chemical, make_location):
         return Container.objects.create(**defaults)
 
     return _make
+
+
+@pytest.fixture
+def make_checkout_event(user):
+    def _make(container, date, **overrides):
+        defaults = {"container": container, "action": "out", "user": user}
+        defaults.update(overrides)
+        event = CheckoutEvent.objects.create(**defaults)
+        event.timestamp = date
+        event.save()
+
+        return event
+
+    return _make
+
+
+@pytest.fixture
+def make_weight_reading(user):
+    def _make(container, date, weight, **overrides):
+        defaults = {"container": container, "recorded_by": user, "weight": weight}
+        defaults.update(overrides)
+        reading = WeightReading.objects.create(**defaults)
+        reading.recorded_at = date
+        reading.save()
+
+        return reading
+
+    return _make
+
+
+@pytest.fixture
+def make_user(db):
+    def _make(username="jsmith", first="John", last="Smith", **overrides):
+        defaults = {
+            "username": username,
+            "email": f"{username}@lipscomb.edu",
+            "password": "pw12345!",
+            "first_name": first,
+            "last_name": last,
+            **overrides,
+        }
+        return User.objects.create_user(**defaults)
+
+    return _make
+
+
+@pytest.fixture
+def user(make_user):
+    return make_user()
 
 
 @pytest.fixture

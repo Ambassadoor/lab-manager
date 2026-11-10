@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.inventory",
     "apps.feedback",
+    "apps.reports",
     "drf_spectacular",
 ]
 

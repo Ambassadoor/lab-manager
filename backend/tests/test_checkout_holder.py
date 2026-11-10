@@ -1,23 +1,11 @@
 import pytest
 
 from apps.inventory.models import CheckoutEvent
-from apps.users.models import User
-
-
-def make_user(username, first, last, **extra):
-    return User.objects.create_user(
-        username=username,
-        email=f"{username}@lipscomb.edu",
-        password="pw12345!",
-        first_name=first,
-        last_name=last,
-        **extra,
-    )
 
 
 @pytest.mark.django_db
 class TestHolderDisplay:
-    def test_falls_back_from_holder_to_name_to_recorder(self, make_container):
+    def test_falls_back_from_holder_to_name_to_recorder(self, make_container, make_user):
         jar = make_container("jar")
         worker = make_user("worker", "Stock", "Worker")
         student = make_user("student", "Ada", "Lovelace")
@@ -34,7 +22,9 @@ class TestHolderDisplay:
         assert named.holder_display == "Grace Hopper"
         assert matched.holder_display == "Ada Lovelace"
 
-    def test_checkout_status_shows_holder_but_not_their_id(self, client_as, make_container):
+    def test_checkout_status_shows_holder_but_not_their_id(
+        self, client_as, make_container, make_user
+    ):
         jar = make_container("jar")
         worker = make_user("worker", "Stock", "Worker")
         CheckoutEvent.objects.create(
@@ -56,7 +46,7 @@ class TestHolderDisplay:
 class TestUserLookup:
     URL = "/api/auth/users/lookup/"
 
-    def test_finds_a_user_by_lipscomb_id(self, client_as):
+    def test_finds_a_user_by_lipscomb_id(self, client_as, make_user):
         student = make_user("student", "Ada", "Lovelace", lipscomb_id="L12345678")
 
         response = client_as("stockroom").get(self.URL, {"lipscomb_id": "l1234 5678"})
@@ -88,7 +78,7 @@ class TestCheckOutHolder:
     def check_out(self, client, holder):
         return client.post(self.URL, {"containers": ["jar"], "holder": holder}, format="json")
 
-    def test_matching_id_links_the_user(self, client_as, make_container):
+    def test_matching_id_links_the_user(self, client_as, make_container, make_user):
         make_container("jar")
         student = make_user("student", "Ada", "Lovelace", lipscomb_id="L12345678")
 
